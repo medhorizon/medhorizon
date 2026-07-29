@@ -122,5 +122,6 @@ jobs:
             完整说明见 [README](https://github.com/medhorizon/medhorizon#readme)
           files: |
             artifacts/*
+            scripts/install.bat
           draft: false
           prerelease: false
