@@ -144,6 +144,7 @@ export ANTHROPIC_API_KEY=sk-ant-...
 ### 前端操作
 
 右侧面板 → **Stages** 选项卡，可以：
+
 - 查看所有阶段的进展与耗时
 - 查看每个阶段的代码变更量
 - 点击 **Restart from here** 从任意阶段重新开始
@@ -151,6 +152,7 @@ export ANTHROPIC_API_KEY=sk-ant-...
 ### 跳转行为
 
 跳转会：
+
 1. Fork 会话到目标节点（原会话不受影响）
 2. 恢复该节点的文件快照（git 状态）
 3. 保留之前所有阶段的消息历史（记忆）
@@ -173,18 +175,19 @@ export ANTHROPIC_API_KEY=sk-ant-...
   "agent": [
     {
       "name": "my-specialist",
-      "mode": "subagent",          // primary | subagent | all
+      "mode": "subagent", // primary | subagent | all
       "model": "claude-opus-5",
       "prompt": "You are a specialist in...",
       "permission": { "level": "normal" },
       "temperature": 0.7,
-      "steps": 50
-    }
-  ]
+      "steps": 50,
+    },
+  ],
 }
 ```
 
 **mode 说明**：
+
 - `primary` — 只作为主 agent（用户直接交互）
 - `subagent` — 只作为子 agent（被其他 agent 委托）
 - `all` — 两种模式都可用
@@ -221,18 +224,22 @@ const COMPUTE_SUBAGENTS = {
   biology: "biology-specialist",
   ml: "ml-specialist",
   physics: "physics-specialist",
-  myDomain: "my-specialist"   // 新增一行即可
+  myDomain: "my-specialist", // 新增一行即可
 }
 
 // 委托调用
-const result = await TaskTool.execute({
-  agentType: "ml",
-  task: "Train a classifier on dataset X",
-  context: { dataset: "path/to/data" }
-}, ctx)
+const result = await TaskTool.execute(
+  {
+    agentType: "ml",
+    task: "Train a classifier on dataset X",
+    context: { dataset: "path/to/data" },
+  },
+  ctx,
+)
 ```
 
 **并发控制**：
+
 - 默认 `MAX_COMPUTE_SUBAGENTS = 2`
 - 环境变量 `OPENSCIENCE_MAX_COMPUTE_SUBAGENTS` 可覆盖
 - 实现：`HierarchicalSemaphore` 类
@@ -258,6 +265,7 @@ await SessionStage.jump({ sessionID: "xxx", partID: "stage-part-id" })
 ```
 
 前端会自动：
+
 1. Fork 会话到目标节点
 2. 恢复该节点的 snapshot（文件状态）
 3. 保留之前节点的记忆（消息历史）
@@ -283,9 +291,9 @@ export const MyTool = Tool.define({
     return {
       title: "Tool executed",
       output: `Result: ${params.input}`,
-      metadata: {}
+      metadata: {},
     }
-  }
+  },
 })
 ```
 
@@ -293,7 +301,7 @@ export const MyTool = Tool.define({
 
 ```typescript
 import { MyTool } from "./my-tool"
-export const TOOLS = [ ...existingTools, MyTool ]
+export const TOOLS = [...existingTools, MyTool]
 ```
 
 ---
@@ -304,24 +312,27 @@ export const TOOLS = [ ...existingTools, MyTool ]
 
 ```jsonc
 {
-  "agent": [{
-    "name": "restricted-agent",
-    "permission": {
-      "level": "ask",
-      "rules": {
-        "bash": "block",
-        "file_write": {
-          "level": "ask",
-          "patterns": ["src/**"]
+  "agent": [
+    {
+      "name": "restricted-agent",
+      "permission": {
+        "level": "ask",
+        "rules": {
+          "bash": "block",
+          "file_write": {
+            "level": "ask",
+            "patterns": ["src/**"],
+          },
+          "file_read": "auto",
         },
-        "file_read": "auto"
-      }
-    }
-  }]
+      },
+    },
+  ],
 }
 ```
 
 **权限级别**：
+
 - `auto` — 自动允许
 - `ask` — 每次询问用户
 - `block` — 完全禁止
@@ -340,9 +351,9 @@ export const TOOLS = [ ...existingTools, MyTool ]
     "my-mcp-server": {
       "type": "local",
       "command": ["node", "path/to/server.js"],
-      "environment": { "API_KEY": "xxx" }
-    }
-  }
+      "environment": { "API_KEY": "xxx" },
+    },
+  },
 }
 ```
 
@@ -368,16 +379,19 @@ description: Custom workflow for...
 根据"不动大框架"的约束，推荐扩展点：
 
 **✅ 零侵入（推荐）**：
+
 - 添加新 agent 定义（`.openscience/openscience.jsonc`）
 - 添加新工具（`tool/` 下新文件 + `registry.ts` 一行注册）
 - 添加 prompt 文件（`agent/prompt/*.txt`）
 - 添加 skill（`.openscience/skills/*.md`）
 
 **⚠️ 轻度侵入（仅修改 1-2 处）**：
+
 - 在 `session/prompt.ts` 的 `insertReminders` 添加新 agent 的提示逻辑
 - 在 `tool/task.ts` 的 `COMPUTE_SUBAGENTS` 添加新的委托类型
 
 **❌ 避免修改（核心框架）**：
+
 - `processor.ts`、`llm.ts`、`compaction.ts`（核心循环）
 - `snapshot/`、`permission/next.ts`（基础设施）
 

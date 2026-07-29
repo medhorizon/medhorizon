@@ -433,11 +433,13 @@ export const dict = {
   "session.tab.context": "context",
 
   "atlas.tab.stages": "stages",
-  "atlas.stages.empty": "No stages recorded yet. In a long, multi-phase task the agent marks each phase, and every marker becomes a point you can restart from.",
+  "atlas.stages.empty":
+    "No stages recorded yet. In a long, multi-phase task the agent marks each phase, and every marker becomes a point you can restart from.",
   "atlas.stages.restartButton": "restart here",
   "atlas.stages.restartTooltip": "fork the session here and restart from this stage",
-  "atlas.stages.confirmTitle": "Restart from \"{{name}}\"?",
-  "atlas.stages.confirmMessage": "Forks this session at stage {{index}} and carries the earlier stages' history into the copy. File changes made from this stage onward are rolled back — the workspace is shared, so the files the original session sees change too. The original conversation is kept.",
+  "atlas.stages.confirmTitle": 'Restart from "{{name}}"?',
+  "atlas.stages.confirmMessage":
+    "Forks this session at stage {{index}} and carries the earlier stages' history into the copy. File changes made from this stage onward are rolled back — the workspace is shared, so the files the original session sees change too. The original conversation is kept.",
   "atlas.stages.confirmLabel": "restart here",
   "atlas.stages.toastSuccess": "restarted from {{name}}",
   "atlas.stages.toastRestored": "files rolled back to this stage",

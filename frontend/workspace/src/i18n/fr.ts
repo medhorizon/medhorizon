@@ -439,11 +439,13 @@ export const dict = {
   "session.tab.context": "Contexte",
 
   "atlas.tab.stages": "étapes",
-  "atlas.stages.empty": "Aucune étape enregistrée. Dans une tâche longue et multi-phases, l'agent marque chaque phase, et chaque marqueur devient un point de reprise.",
+  "atlas.stages.empty":
+    "Aucune étape enregistrée. Dans une tâche longue et multi-phases, l'agent marque chaque phase, et chaque marqueur devient un point de reprise.",
   "atlas.stages.restartButton": "redémarrer ici",
   "atlas.stages.restartTooltip": "bifurquer la session ici et redémarrer depuis cette étape",
-  "atlas.stages.confirmTitle": "Redémarrer depuis \"{{name}}\" ?",
-  "atlas.stages.confirmMessage": "Bifurque cette session à l'étape {{index}} et copie l'historique des étapes précédentes. Les modifications de fichiers depuis cette étape sont annulées — l'espace de travail est partagé, donc les fichiers visibles par la session originale changent aussi. La conversation originale est conservée.",
+  "atlas.stages.confirmTitle": 'Redémarrer depuis "{{name}}" ?',
+  "atlas.stages.confirmMessage":
+    "Bifurque cette session à l'étape {{index}} et copie l'historique des étapes précédentes. Les modifications de fichiers depuis cette étape sont annulées — l'espace de travail est partagé, donc les fichiers visibles par la session originale changent aussi. La conversation originale est conservée.",
   "atlas.stages.confirmLabel": "redémarrer ici",
   "atlas.stages.toastSuccess": "redémarré depuis {{name}}",
   "atlas.stages.toastRestored": "fichiers restaurés à cette étape",

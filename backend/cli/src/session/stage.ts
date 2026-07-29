@@ -13,7 +13,6 @@ import { SessionPrompt } from "./prompt"
 export namespace SessionStage {
   const log = Log.create({ service: "session.stage" })
 
-
   export const Node = z
     .object({
       partID: z.string(),

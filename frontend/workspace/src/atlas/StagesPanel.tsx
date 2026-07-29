@@ -50,9 +50,7 @@ export function StagesPanel(): JSX.Element {
       const result = await sync.session.stageJump(id, partID)
       toast.success(
         language.t("atlas.stages.toastSuccess", { name }),
-        result.restored
-          ? language.t("atlas.stages.toastRestored")
-          : language.t("atlas.stages.toastNotRestored"),
+        result.restored ? language.t("atlas.stages.toastRestored") : language.t("atlas.stages.toastNotRestored"),
       )
       navigate(`/${params.dir}/session/${result.session.id}`)
     } catch (e: any) {
