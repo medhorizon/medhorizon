@@ -1,0 +1,126 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            target: windows-x64
+            archive: zip
+          - os: macos-latest
+            target: macos-arm64
+            archive: tar.gz
+          - os: macos-13
+            target: macos-x64
+            archive: tar.gz
+          - os: ubuntu-latest
+            target: linux-x64
+            archive: tar.gz
+
+    runs-on: ${{ matrix.os }}
+    name: Build ${{ matrix.target }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Build frontend + backend binary
+        run: bun run script/build.ts --single
+        working-directory: backend/cli
+        env:
+          # Skip fetching live model list during CI (use cached snapshot if present)
+          MODELS_DEV_API_JSON: ""
+
+      - name: Find binary (Unix)
+        if: runner.os != 'Windows'
+        run: |
+          BINARY=$(find backend/cli/dist -type f -name "openscience" | head -1)
+          echo "BINARY=$BINARY" >> $GITHUB_ENV
+
+      - name: Find binary (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $b = Get-ChildItem -Path "backend/cli/dist" -Recurse -Filter "openscience.exe" | Select-Object -First 1
+          echo "BINARY=$($b.FullName)" >> $env:GITHUB_ENV
+
+      - name: Package (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path release
+          Copy-Item $env:BINARY release\medho.exe
+          Compress-Archive -Path release\medho.exe -DestinationPath medho-${{ matrix.target }}.zip
+
+      - name: Package (Unix)
+        if: runner.os != 'Windows'
+        run: |
+          mkdir -p release
+          cp "$BINARY" release/medho
+          chmod +x release/medho
+          tar -czf medho-${{ matrix.target }}.tar.gz -C release medho
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: medho-${{ matrix.target }}
+          path: medho-${{ matrix.target }}.${{ matrix.archive }}
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Create checksums
+        run: |
+          cd artifacts
+          sha256sum * > checksums.txt
+          cat checksums.txt
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "Medho ${{ github.ref_name }}"
+          body: |
+            ## 安装方法
+
+            ### Windows
+            下载 `install.bat`，双击运行，按提示操作。
+
+            ### macOS / Linux
+            ```bash
+            curl -fsSL https://raw.githubusercontent.com/medhorizon/medhorizon/main/scripts/install.sh | bash
+            ```
+
+            ### 手动安装
+            下载对应平台的压缩包，解压后双击 `medho` 即可启动。
+            首次启动会自动打开浏览器引导填写 API Key。
+
+            ---
+            完整说明见 [README](https://github.com/medhorizon/medhorizon#readme)
+          files: |
+            artifacts/*
+          draft: false
+          prerelease: false
