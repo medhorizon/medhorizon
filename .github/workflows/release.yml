@@ -20,7 +20,7 @@ jobs:
           - os: macos-latest
             target: macos-arm64
             archive: tar.gz
-          - os: macos-13
+          - os: macos-12
             target: macos-x64
             archive: tar.gz
           - os: ubuntu-latest
