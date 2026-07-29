@@ -20,7 +20,7 @@ async function probeMacFda(): Promise<{ blocked: boolean; reason?: string }> {
   try {
     const entries = await fs.readdir(desktop)
     if (entries.length > 0) return { blocked: false }
-    return { blocked: true, reason: "openscience returned 0 entries for ~/Desktop (TCC likely blocking)" }
+    return { blocked: true, reason: "medhorizon returned 0 entries for ~/Desktop (TCC likely blocking)" }
   } catch (err: any) {
     if (err?.code === "EACCES" || err?.code === "EPERM") {
       return { blocked: true, reason: err.message }
@@ -35,21 +35,21 @@ const FDA_SETTINGS_URL = "x-apple.systempreferences:com.apple.preference.securit
 async function announceFdaIfNeeded() {
   const result = await probeMacFda()
   if (!result.blocked) return
-  const binary = process.execPath || "openscience"
+  const binary = process.execPath || "medhorizon"
   UI.empty()
   UI.println(UI.Style.TEXT_WARNING_BOLD + "  ⚠  Full Disk Access required", UI.Style.TEXT_NORMAL)
   UI.empty()
   UI.println(
     UI.Style.TEXT_NORMAL,
-    "  macOS is blocking OpenScience from listing ~/Desktop, ~/Documents and ~/Downloads.",
+    "  macOS is blocking MedHorizon from listing ~/Desktop, ~/Documents and ~/Downloads.",
   )
   UI.println(UI.Style.TEXT_NORMAL, "  Without Full Disk Access the folder picker and file tree will be empty.")
   UI.empty()
   UI.println(UI.Style.TEXT_INFO_BOLD + "  Grant access:", UI.Style.TEXT_NORMAL)
   UI.println(UI.Style.TEXT_NORMAL, "    1. The Privacy & Security pane just opened — find “Full Disk Access”")
   UI.println(UI.Style.TEXT_NORMAL, "    2. Click +, hit ⌘⇧G, paste the path below, click Open")
-  UI.println(UI.Style.TEXT_NORMAL, "    3. Toggle the openscience entry on")
-  UI.println(UI.Style.TEXT_NORMAL, "    4. Quit (Ctrl+C) and relaunch `openscience web`")
+  UI.println(UI.Style.TEXT_NORMAL, "    3. Toggle the medhorizon entry on")
+  UI.println(UI.Style.TEXT_NORMAL, "    4. Quit (Ctrl+C) and relaunch `medhorizon web`")
   UI.empty()
   UI.println(UI.Style.TEXT_INFO_BOLD + "  Path to add:", UI.Style.TEXT_NORMAL, "  " + binary)
   UI.empty()
@@ -58,7 +58,7 @@ async function announceFdaIfNeeded() {
 }
 
 export const WebCommand = cmd({
-  // Default command: bare `openscience` and `openscience web` both open the
+  // Default command: bare `medhorizon` and `medhorizon web` both open the
   // workspace in the browser. An optional [project] path runs it in that dir.
   command: ["web", "$0 [project]"],
   builder: (yargs) =>
@@ -66,7 +66,7 @@ export const WebCommand = cmd({
       type: "string",
       describe: "directory to open the workspace in",
     }),
-  describe: "open the OpenScience workspace in your browser",
+  describe: "open the MedHorizon workspace in your browser",
   handler: async (args) => {
     if (args.project) {
       try {
@@ -106,7 +106,7 @@ export const WebCommand = cmd({
         UI.println(UI.Style.TEXT_WARNING_BOLD + "  ⚠  No model configured", UI.Style.TEXT_NORMAL)
         UI.println(
           UI.Style.TEXT_NORMAL,
-          "  Run `openscience login` for Atlas managed models, or `openscience keys add` for your own key.",
+          "  Run `medhorizon login` for Atlas managed models, or `medhorizon keys add` for your own key.",
         )
         UI.println(UI.Style.TEXT_DIM, "  Continuing with free demo models for now.")
         UI.empty()

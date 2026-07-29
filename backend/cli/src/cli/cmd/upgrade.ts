@@ -5,7 +5,7 @@ import { Installation } from "../../installation"
 
 export const UpgradeCommand = {
   command: "upgrade [target]",
-  describe: "upgrade openscience to the latest or a specific version",
+  describe: "upgrade MedHorizon to the latest or a specific version",
   builder: (yargs: Argv) => {
     return yargs
       .positional("target", {
@@ -37,7 +37,7 @@ export const UpgradeCommand = {
     }
 
     if (Installation.VERSION === target) {
-      prompts.log.warn(`openscience upgrade skipped: ${target} is already installed`)
+      prompts.log.warn(`medhorizon upgrade skipped: ${target} is already installed`)
       prompts.outro("Done")
       return
     }

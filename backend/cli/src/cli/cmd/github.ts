@@ -370,7 +370,7 @@ export const GithubInstallCommand = cmd({
 
             await Bun.write(
               path.join(app.root, WORKFLOW_FILE),
-              `name: openscience
+              `name: MedHorizon
 
 on:
   issue_comment:
@@ -397,7 +397,7 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Run openscience
+      - name: Run MedHorizon
         uses: synthetic-sciences/OpenScience/github@latest${envStr}
         with:
           model: ${provider}/${model}`,
@@ -859,7 +859,7 @@ export const GithubRunCommand = cmd({
       }
 
       async function chat(message: string, files: PromptFiles = []) {
-        console.log("Sending message to openscience...")
+        console.log("Sending message to MedHorizon...")
 
         const result = await SessionPrompt.prompt({
           sessionID: session.id,
@@ -1338,7 +1338,7 @@ query($owner: String!, $repo: String!, $number: Int!) {
         return [
           "<github_action_context>",
           "You are running as a GitHub Action. Important:",
-          "- Git push and PR creation are handled AUTOMATICALLY by the openscience infrastructure after your response",
+          "- Git push and PR creation are handled AUTOMATICALLY by the MedHorizon infrastructure after your response",
           "- Do NOT include warnings or disclaimers about GitHub tokens, workflow permissions, or PR creation capabilities",
           "- Do NOT suggest manual steps for creating PRs or pushing code - this happens automatically",
           "- Focus only on the code changes and your analysis/response",
@@ -1476,7 +1476,7 @@ query($owner: String!, $repo: String!, $number: Int!) {
         return [
           "<github_action_context>",
           "You are running as a GitHub Action. Important:",
-          "- Git push and PR creation are handled AUTOMATICALLY by the openscience infrastructure after your response",
+          "- Git push and PR creation are handled AUTOMATICALLY by the MedHorizon infrastructure after your response",
           "- Do NOT include warnings or disclaimers about GitHub tokens, workflow permissions, or PR creation capabilities",
           "- Do NOT suggest manual steps for creating PRs or pushing code - this happens automatically",
           "- Focus only on the code changes and your analysis/response",

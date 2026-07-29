@@ -13,7 +13,7 @@ export interface AtlasPackageResolutionOptions {
 /** Locate the bundled @synsci/atlas package.
  *
  * Compiled npm installs run the native binary from a platform package such as
- * `node_modules/@synsci/openscience-darwin-arm64/bin/openscience`, while Atlas
+ * `node_modules/@synsci/openscience-darwin-arm64/bin/medhorizon`, while Atlas
  * is a sibling dependency at `node_modules/@synsci/atlas`. A compiled bundle's
  * import.meta.url is not a reliable anchor for that install tree, so walk from
  * process.execPath first, then retain the source-mode module/cwd fallbacks. */

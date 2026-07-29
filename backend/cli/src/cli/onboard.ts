@@ -89,7 +89,7 @@ async function onboardManaged(): Promise<void> {
   } else {
     const ok = await runAtlasLogin({})
     if (!ok) {
-      prompts.log.warn("Skipped Atlas sign-in. Run `openscience login` anytime to connect.")
+      prompts.log.warn("Skipped Atlas sign-in. Run `medhorizon login` anytime to connect.")
       return
     }
   }
@@ -108,11 +108,11 @@ async function onboardManaged(): Promise<void> {
       prompts.log.message("Top up in the Plan tab, then come back here — your balance updates automatically.")
       openUrl(PLAN_URL)
     } else {
-      prompts.log.info(`No problem — top up anytime with \`openscience wallet\` or at ${PLAN_URL}.`)
+      prompts.log.info(`No problem — top up anytime with \`medhorizon wallet\` or at ${PLAN_URL}.`)
     }
   }
   prompts.log.info(
-    "Managed models are metered from your wallet. Switch to your own keys anytime with `openscience keys add`.",
+    "Managed models are metered from your wallet. Switch to your own keys anytime with `medhorizon keys add`.",
   )
 }
 
@@ -127,7 +127,7 @@ async function onboardByok(): Promise<void> {
 
 async function onboardLocal(): Promise<void> {
   prompts.log.info(
-    "Point OpenScience at a local model server (Ollama, LM Studio, or any OpenAI-compatible endpoint). " +
+    "Point MedHorizon at a local model server (Ollama, LM Studio, or any OpenAI-compatible endpoint). " +
       "It runs on your machine — free, offline, no API key.",
   )
   await runLocalModelSetup({ intro: false })
@@ -137,9 +137,9 @@ function onboardSkip(): void {
   prompts.log.info("No problem — start right away with the free demo models.")
   prompts.log.message(
     "When you're ready:\n" +
-      "  openscience login       connect Atlas managed models (prepaid wallet)\n" +
-      "  openscience keys add    add your own provider key (always free)\n" +
-      "  openscience local add   use a local model (Ollama / LM Studio / OpenAI-compatible)",
+      "  medhorizon login       connect Atlas managed models (prepaid wallet)\n" +
+      "  medhorizon keys add    add your own provider key (always free)\n" +
+      "  medhorizon local add   use a local model (Ollama / LM Studio / OpenAI-compatible)",
   )
 }
 
@@ -171,9 +171,9 @@ async function offerAtlasCli(): Promise<void> {
 }
 
 /** The first-run setup wizard. Managed-first, but bring-your-own-key and
- *  "not now" stay one keystroke away — OpenScience never requires an account. */
+ *  "not now" stay one keystroke away — MedHorizon never requires an account. */
 export async function runOnboarding(opts?: { force?: boolean }): Promise<void> {
-  prompts.intro(opts?.force ? "OpenScience setup" : "Welcome to OpenScience")
+  prompts.intro(opts?.force ? "MedHorizon setup" : "Welcome to MedHorizon")
 
   const choice = await prompts.select({
     message: "How do you want to power the models?",
@@ -190,7 +190,7 @@ export async function runOnboarding(opts?: { force?: boolean }): Promise<void> {
     ],
   })
   if (prompts.isCancel(choice)) {
-    prompts.cancel("Setup cancelled — run `openscience init` whenever you're ready.")
+    prompts.cancel("Setup cancelled — run `medhorizon init` whenever you're ready.")
     await markOnboarded()
     return
   }
@@ -207,7 +207,7 @@ export async function runOnboarding(opts?: { force?: boolean }): Promise<void> {
 
 export const InitCommand = cmd({
   command: ["init", "onboard"],
-  describe: "set up OpenScience — models, keys, and Atlas",
+  describe: "set up MedHorizon — models, keys, and Atlas",
   async handler() {
     UI.empty()
     UI.println(UI.logo("  "))
@@ -221,7 +221,7 @@ export const DoctorCommand = cmd({
   describe: "check what's configured and what's missing",
   async handler() {
     UI.empty()
-    prompts.intro("openscience doctor")
+    prompts.intro("medhorizon doctor")
 
     if (Global.LegacyConflicts.length) {
       prompts.log.warn(
@@ -238,13 +238,13 @@ export const DoctorCommand = cmd({
         prompts.log.info(`Wallet: $${mode.balance_usd.toFixed(2)}${suffix}`)
       }
     } else {
-      prompts.log.info("Atlas account: not connected  (run `openscience login`)")
+      prompts.log.info("Atlas account: not connected  (run `medhorizon login`)")
     }
 
     try {
       const keys = Object.keys(await Auth.all())
       if (keys.length) prompts.log.success(`Provider keys: ${keys.join(", ")}`)
-      else prompts.log.info("Provider keys: none  (run `openscience keys add`)")
+      else prompts.log.info("Provider keys: none  (run `medhorizon keys add`)")
     } catch {}
 
     const envKeys = PROVIDER_ENV_KEYS.filter((k) => !!process.env[k])
@@ -256,7 +256,7 @@ export const DoctorCommand = cmd({
         Provider.isLocalBaseURL(p?.options?.baseURL ?? p?.api),
       )
       if (locals.length) {
-        prompts.log.success(`Local models: ${locals.map(([id]) => id).join(", ")}  (run \`openscience local list\`)`)
+        prompts.log.success(`Local models: ${locals.map(([id]) => id).join(", ")}  (run \`medhorizon local list\`)`)
       }
       prompts.log.info(`Default model: ${config.model ?? "auto (chosen from available providers)"}`)
 
@@ -264,12 +264,12 @@ export const DoctorCommand = cmd({
       const sandboxOn = (await Config.trustedSandbox())?.enabled === true
       const sandboxLine = sandboxOn
         ? sandbox.available
-          ? { level: "success" as const, msg: `Sandbox: on (${sandbox.backend})  (run \`openscience sandbox test\`)` }
+          ? { level: "success" as const, msg: `Sandbox: on (${sandbox.backend})  (run \`medhorizon sandbox test\`)` }
           : { level: "warn" as const, msg: `Sandbox: on but no backend here — ${sandbox.reason}` }
         : {
             level: "info" as const,
             msg: sandbox.available
-              ? `Sandbox: off  (${sandbox.backend} available — \`openscience sandbox enable\`)`
+              ? `Sandbox: off  (${sandbox.backend} available — \`medhorizon sandbox enable\`)`
               : "Sandbox: off",
           }
       prompts.log[sandboxLine.level](sandboxLine.msg)
@@ -277,7 +277,7 @@ export const DoctorCommand = cmd({
 
     if (!(await isConfigured())) {
       prompts.log.warn(
-        "No model source configured — free demo models will be used. Run `openscience init` to set one up.",
+        "No model source configured — free demo models will be used. Run `medhorizon init` to set one up.",
       )
     }
     prompts.outro("Done")

@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# Medho 一键安装脚本 — macOS / Linux
+# MedHorizon 一键安装脚本 — macOS / Linux
 # 用法：curl -fsSL https://raw.githubusercontent.com/medhorizon/medhorizon/main/scripts/install.sh | bash
 
 set -e
 
 REPO="medhorizon/medhorizon"
-INSTALL_DIR="$HOME/.local/medho"
-BIN_LINK="/usr/local/bin/medho"
+INSTALL_DIR="$HOME/.local/medhorizon"
+BIN_LINK="/usr/local/bin/medhorizon"
 
 # ── 颜色 ───────────────────────────────────────────────────────
 RED='\033[0;31m'; GREEN='\033[0;32m'; CYAN='\033[0;36m'; YELLOW='\033[1;33m'; NC='\033[0m'
@@ -16,7 +16,7 @@ err()   { echo -e "${RED}  ✗ $*${NC}"; exit 1; }
 
 echo ""
 echo -e "${CYAN}  ╔══════════════════════════════╗${NC}"
-echo -e "${CYAN}  ║       Medho 安装程序          ║${NC}"
+echo -e "${CYAN}  ║    MedHorizon 安装程序         ║${NC}"
 echo -e "${CYAN}  ╚══════════════════════════════╝${NC}"
 echo ""
 
@@ -35,7 +35,7 @@ case "$OS" in
   *)      err "不支持的系统: $OS" ;;
 esac
 
-ASSET_NAME="medho-${PLATFORM}-${ARCH}.tar.gz"
+ASSET_NAME="medhorizon-${PLATFORM}-${ARCH}.tar.gz"
 step "平台: $PLATFORM-$ARCH"
 
 # ── 2. 检查依赖 ────────────────────────────────────────────────
@@ -58,20 +58,20 @@ ok "找到版本: $VERSION"
 step "正在下载..."
 mkdir -p "$INSTALL_DIR"
 TMP=$(mktemp -d)
-curl -fsSL --progress-bar "$DOWNLOAD_URL" -o "$TMP/medho.tar.gz"
-tar -xzf "$TMP/medho.tar.gz" -C "$TMP"
-cp "$TMP/medho" "$INSTALL_DIR/medho"
-chmod +x "$INSTALL_DIR/medho"
+curl -fsSL --progress-bar "$DOWNLOAD_URL" -o "$TMP/medhorizon.tar.gz"
+tar -xzf "$TMP/medhorizon.tar.gz" -C "$TMP"
+cp "$TMP/medhorizon" "$INSTALL_DIR/medhorizon"
+chmod +x "$INSTALL_DIR/medhorizon"
 rm -rf "$TMP"
 echo "$VERSION" > "$INSTALL_DIR/version.txt"
-ok "安装至: $INSTALL_DIR/medho"
+ok "安装至: $INSTALL_DIR/medhorizon"
 
 # ── 5. 创建启动脚本 ────────────────────────────────────────────
 cat > "$INSTALL_DIR/start.sh" <<'STARTSCRIPT'
 #!/usr/bin/env bash
 INSTALL_DIR="$(cd "$(dirname "$0")" && pwd)"
 # 等待服务启动后再打开浏览器
-"$INSTALL_DIR/medho" &
+"$INSTALL_DIR/medhorizon" &
 SERVER_PID=$!
 sleep 1
 if command -v xdg-open &>/dev/null; then
@@ -86,9 +86,9 @@ chmod +x "$INSTALL_DIR/start.sh"
 # ── 6. 软链接到 PATH ───────────────────────────────────────────
 if [ -w "$(dirname "$BIN_LINK")" ]; then
   ln -sf "$INSTALL_DIR/start.sh" "$BIN_LINK"
-  ok "可以直接运行: medho"
+  ok "可以直接运行: medhorizon"
 else
-  BIN_LINK="$HOME/.local/bin/medho"
+  BIN_LINK="$HOME/.local/bin/medhorizon"
   mkdir -p "$HOME/.local/bin"
   ln -sf "$INSTALL_DIR/start.sh" "$BIN_LINK"
   ok "可以直接运行: $BIN_LINK"
@@ -101,34 +101,34 @@ fi
 
 # ── 7. macOS 可选：创建应用程序快捷方式 ──────────────────────────
 if [ "$PLATFORM" = "macos" ]; then
-  APP_DIR="$HOME/Applications/Medho.app"
+  APP_DIR="$HOME/Applications/MedHorizon.app"
   MACOS_BIN="$APP_DIR/Contents/MacOS"
   mkdir -p "$MACOS_BIN"
-  cat > "$MACOS_BIN/Medho" <<APPSCRIPT
+  cat > "$MACOS_BIN/MedHorizon" <<APPSCRIPT
 #!/usr/bin/env bash
 "$INSTALL_DIR/start.sh"
 APPSCRIPT
-  chmod +x "$MACOS_BIN/Medho"
+  chmod +x "$MACOS_BIN/MedHorizon"
   cat > "$APP_DIR/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-  <key>CFBundleName</key><string>Medho</string>
-  <key>CFBundleExecutable</key><string>Medho</string>
-  <key>CFBundleIdentifier</key><string>ai.medho.app</string>
+  <key>CFBundleName</key><string>MedHorizon</string>
+  <key>CFBundleExecutable</key><string>MedHorizon</string>
+  <key>CFBundleIdentifier</key><string>ai.medhorizon.app</string>
   <key>CFBundleVersion</key><string>$VERSION</string>
   <key>CFBundlePackageType</key><string>APPL</string>
 </dict>
 </plist>
 PLIST
-  ok "创建 macOS 应用: ~/Applications/Medho.app"
+  ok "创建 macOS 应用: ~/Applications/MedHorizon.app"
 fi
 
 echo ""
 echo -e "${GREEN}  安装完成！${NC}"
 echo -e "${YELLOW}  首次启动会自动打开浏览器，引导你填写 API Key。${NC}"
 echo ""
-echo "  启动命令: medho"
+echo "  启动命令: medhorizon"
 echo "  或运行:   $INSTALL_DIR/start.sh"
 echo ""

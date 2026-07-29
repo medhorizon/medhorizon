@@ -23,7 +23,7 @@ function linuxKernelProblem(platform = os.platform(), release = os.release()) {
   ) {
     return undefined
   }
-  return `Linux kernel ${release} is unsupported. OpenScience's bundled runtime requires kernel 5.1 or newer.`
+  return `Linux kernel ${release} is unsupported. MedHorizon's bundled runtime requires kernel 5.1 or newer.`
 }
 
 function detectMusl(platform = os.platform()) {
@@ -52,7 +52,7 @@ function linuxArm64PageSizeProblem(platform, arch, detectedPageSize) {
   const bytes = Number.parseInt(String(detectedPageSize), 10)
   if (!Number.isFinite(bytes) || bytes === 4096) return undefined
   return [
-    `Linux ARM64 page size ${bytes} is unsupported by OpenScience's Bun-compiled executable.`,
+    `Linux ARM64 page size ${bytes} is unsupported by MedHorizon's Bun-compiled executable.`,
     "Use a kernel or VM configured with 4 KB pages.",
     "Upstream status: https://github.com/oven-sh/bun/issues/17627",
   ].join(" ")
@@ -80,7 +80,7 @@ function run(target) {
   if (kernelProblem) {
     console.error(kernelProblem)
     console.error(
-      "Upgrade the host kernel or run OpenScience on a newer VM. CentOS 7's stock 3.10 kernel is not supported.",
+      "Upgrade the host kernel or run MedHorizon on a newer VM. CentOS 7's stock 3.10 kernel is not supported.",
     )
     process.exit(1)
   }
@@ -114,17 +114,17 @@ function run(target) {
     stdio: "inherit",
   })
   if (result.error) {
-    console.error(`Failed to launch OpenScience binary at ${target}: ${result.error.message}`)
+    console.error(`Failed to launch MedHorizon binary at ${target}: ${result.error.message}`)
     console.error(`Detected runtime: ${runtimeDescription(os.platform(), os.arch(), detectMusl())}`)
     process.exit(1)
   }
   if (result.signal) {
     console.error(
-      `openscience was terminated by ${result.signal}. The prebuilt native binary may be ` +
+      `medhorizon was terminated by ${result.signal}. The prebuilt native binary may be ` +
         `incompatible with this host (platform ${os.platform()}, arch ${os.arch()}). ` +
         `Some ARM64 hosts (e.g. 64KB page-size kernels) cannot run the prebuilt binary. ` +
         `Try reinstalling, set OPENSCIENCE_BIN_PATH to a compatible binary, or report at ` +
-        `https://github.com/synthetic-sciences/openscience/issues`,
+        `https://github.com/medhorizon/medhorizon/issues`,
     )
   }
   process.exit(exitCodeForResult(result))
@@ -165,7 +165,7 @@ function main() {
     run(envPath)
   }
 
-  const binary = os.platform() === "win32" ? "openscience.exe" : "openscience"
+  const binaries = os.platform() === "win32" ? ["medhorizon.exe", "openscience.exe"] : ["medhorizon", "openscience"]
   const scriptPath = fs.realpathSync(__filename)
   const scriptDir = path.dirname(scriptPath)
 
@@ -187,16 +187,20 @@ function main() {
       try {
         const entries = fs.readdirSync(modules)
         for (const entry of matchingVariants(base, entries, musl)) {
-          const candidate = path.join(modules, entry, "bin", binary)
-          if (isBinary(candidate)) run(candidate)
+          for (const binary of binaries) {
+            const candidate = path.join(modules, entry, "bin", binary)
+            if (isBinary(candidate)) run(candidate)
+          }
         }
         // Check scoped packages (@synsci/openscience-darwin-arm64)
         const scoped = path.join(modules, "@synsci")
         if (fs.existsSync(scoped)) {
           const scopedEntries = fs.readdirSync(scoped)
           for (const entry of matchingVariants(scopedBase, scopedEntries, musl)) {
-            const candidate = path.join(scoped, entry, "bin", binary)
-            if (isBinary(candidate)) run(candidate)
+            for (const binary of binaries) {
+              const candidate = path.join(scoped, entry, "bin", binary)
+              if (isBinary(candidate)) run(candidate)
+            }
           }
         }
       } catch {}
@@ -206,31 +210,34 @@ function main() {
     current = parent
   }
 
-  // Check ~/.openscience/bin (curl installer fallback; dir renamed later)
-  const homeBin = path.join(os.homedir(), ".openscience", "bin", binary)
-  if (isBinary(homeBin)) {
-    run(homeBin)
+  // Check the current curl location, then the legacy OpenScience location.
+  const homes = [
+    path.join(os.homedir(), ".medhorizon", "bin", binaries[0]),
+    path.join(os.homedir(), ".openscience", "bin", binaries[1]),
+  ]
+  for (const home of homes) {
+    if (isBinary(home)) run(home)
   }
 
   // Check /opt/homebrew/bin (macOS)
-  if (os.platform() === "darwin" && isBinary("/opt/homebrew/bin/openscience")) {
-    run("/opt/homebrew/bin/openscience")
+  if (os.platform() === "darwin") {
+    if (isBinary("/opt/homebrew/bin/medhorizon")) run("/opt/homebrew/bin/medhorizon")
+    if (isBinary("/opt/homebrew/bin/openscience")) run("/opt/homebrew/bin/openscience")
   }
 
   // Check /usr/local/bin
-  if (isBinary("/usr/local/bin/openscience")) {
-    run("/usr/local/bin/openscience")
-  }
+  if (isBinary("/usr/local/bin/medhorizon")) run("/usr/local/bin/medhorizon")
+  if (isBinary("/usr/local/bin/openscience")) run("/usr/local/bin/openscience")
 
   const expectedPackages = expectedPlatformPackages(platform, arch, musl)
-  console.error(`OpenScience binary not found for ${platform}-${arch}.`)
+  console.error(`MedHorizon binary not found for ${platform}-${arch}.`)
   console.error(`Detected runtime: ${runtimeDescription(platform, arch, musl)}`)
   console.error(`Expected npm package: ${expectedPackages[0]}`)
   console.error("Check npm's platform selection with:")
   console.error("  npm config get cpu")
   console.error(`  npm ls -g @synsci/openscience ${expectedPackages[0]} --depth=0`)
   console.error("Reinstall with: npm install -g @synsci/openscience")
-  console.error("Or set OPENSCIENCE_BIN_PATH to a native OpenScience binary.")
+  console.error("Or set OPENSCIENCE_BIN_PATH to a native MedHorizon binary.")
   process.exit(1)
 }
 

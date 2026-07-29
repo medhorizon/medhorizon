@@ -58,6 +58,8 @@ export namespace Installation {
   }
 
   export async function method() {
+    if (process.execPath.includes(path.join(".medhorizon", "bin"))) return "curl"
+    // Legacy OpenScience curl installs remain detectable for compatibility.
     if (process.execPath.includes(path.join(".openscience", "bin"))) return "curl"
     // legacy pre-rename curl installs lived under ~/.synsc/bin
     if (process.execPath.includes(path.join(".synsc", "bin"))) return "curl"
@@ -88,15 +90,15 @@ export namespace Installation {
       },
       {
         name: "brew" as const,
-        command: () => $`brew list --formula openscience`.throws(false).quiet().text(),
+        command: () => $`brew list --formula medhorizon`.throws(false).quiet().text(),
       },
       {
         name: "scoop" as const,
-        command: () => $`scoop list openscience`.throws(false).quiet().text(),
+        command: () => $`scoop list medhorizon`.throws(false).quiet().text(),
       },
       {
         name: "choco" as const,
-        command: () => $`choco list --limit-output openscience`.throws(false).quiet().text(),
+        command: () => $`choco list --limit-output medhorizon`.throws(false).quiet().text(),
       },
     ]
 
@@ -111,9 +113,7 @@ export namespace Installation {
     for (const check of checks) {
       const output = await check.command()
       const installedName =
-        check.name === "brew" || check.name === "choco" || check.name === "scoop"
-          ? "openscience"
-          : "@synsci/openscience"
+        check.name === "brew" || check.name === "choco" || check.name === "scoop" ? "medhorizon" : "@synsci/openscience"
       if (output.includes(installedName)) {
         return check.name
       }
@@ -134,24 +134,26 @@ export namespace Installation {
   )
 
   async function getBrewFormula() {
-    const tapFormula = await $`brew list --formula openscience/tap/openscience`.throws(false).quiet().text()
-    if (tapFormula.includes("openscience")) return "openscience/tap/openscience"
-    const coreFormula = await $`brew list --formula openscience`.throws(false).quiet().text()
-    if (coreFormula.includes("openscience")) return "openscience"
-    return "openscience"
+    const tapFormula = await $`brew list --formula medhorizon/tap/medhorizon`.throws(false).quiet().text()
+    if (tapFormula.includes("medhorizon")) return "medhorizon/tap/medhorizon"
+    const coreFormula = await $`brew list --formula medhorizon`.throws(false).quiet().text()
+    if (coreFormula.includes("medhorizon")) return "medhorizon"
+    return "medhorizon"
   }
 
   export async function upgrade(method: Method, target: string) {
     let cmd
     switch (method) {
       case "curl":
-        // openscience.sh/install serves the repo install script. The app
-        // subdomain serves the dashboard SPA, so piping it into bash fails.
+        // The raw repository URL serves the standalone installer.
         // Override via OPENSCIENCE_INSTALL_URL if hosting the script elsewhere.
-        cmd = $`curl -fsSL ${process.env.OPENSCIENCE_INSTALL_URL || "https://openscience.sh/install"} | bash`.env({
-          ...process.env,
-          VERSION: target,
-        })
+        cmd =
+          $`curl -fsSL ${process.env.OPENSCIENCE_INSTALL_URL || "https://raw.githubusercontent.com/medhorizon/medhorizon/main/install"} | bash`.env(
+            {
+              ...process.env,
+              VERSION: target,
+            },
+          )
         break
       case "npm":
         cmd = $`npm install -g @synsci/openscience@${target}`
@@ -171,10 +173,10 @@ export namespace Installation {
         break
       }
       case "choco":
-        cmd = $`echo Y | choco upgrade openscience --version=${target}`
+        cmd = $`echo Y | choco upgrade medhorizon --version=${target}`
         break
       case "scoop":
-        cmd = $`scoop install openscience@${target}`
+        cmd = $`scoop install medhorizon@${target}`
         break
       default:
         throw new Error(`Unknown method: ${method}`)
@@ -197,15 +199,11 @@ export namespace Installation {
 
   export const VERSION = typeof OPENSCIENCE_VERSION === "string" ? OPENSCIENCE_VERSION : "local"
   export const CHANNEL = typeof OPENSCIENCE_CHANNEL === "string" ? OPENSCIENCE_CHANNEL : "local"
-  export const USER_AGENT = `openscience/${CHANNEL}/${VERSION}/${Flag.OPENSCIENCE_CLIENT}`
+  export const USER_AGENT = `medhorizon/${CHANNEL}/${VERSION}/${Flag.OPENSCIENCE_CLIENT}`
 
   /** OData query for the latest published version of a Chocolatey package.
-   *  The id must match what the CLI actually publishes to Chocolatey
-   *  (`openscience`) — everywhere else in this file already uses it (`choco
-   *  list --limit-output openscience`, `choco upgrade openscience`). A leftover
-   *  pre-rename `synsc` id here queried a non-existent package, so choco users
-   *  could never resolve an upgrade target (`data.d.results[0]` was undefined). */
-  export function chocoLatestVersionUrl(pkg: string = "openscience"): string {
+   *  The id must match the MedHorizon package used by the install commands. */
+  export function chocoLatestVersionUrl(pkg: string = "medhorizon"): string {
     const filter = encodeURIComponent(`Id eq '${pkg}' and IsLatestVersion`)
     return `https://community.chocolatey.org/api/v2/Packages?$filter=${filter}&$select=Version`
   }
@@ -220,8 +218,8 @@ export namespace Installation {
 
     if (detectedMethod === "brew") {
       const formula = await getBrewFormula()
-      if (formula === "openscience") {
-        return fetch("https://formulae.brew.sh/api/formula/openscience.json")
+      if (formula === "medhorizon") {
+        return fetch("https://formulae.brew.sh/api/formula/medhorizon.json")
           .then((res) => {
             if (!res.ok) throw new Error(res.statusText)
             return res.json()
@@ -260,7 +258,7 @@ export namespace Installation {
     }
 
     if (detectedMethod === "scoop") {
-      return fetch("https://raw.githubusercontent.com/ScoopInstaller/Main/master/bucket/openscience.json", {
+      return fetch("https://raw.githubusercontent.com/ScoopInstaller/Main/master/bucket/medhorizon.json", {
         headers: { Accept: "application/json" },
       })
         .then((res) => {
@@ -270,7 +268,7 @@ export namespace Installation {
         .then((data: any) => data.version)
     }
 
-    return fetch("https://api.github.com/repos/synthetic-sciences/OpenScience/releases/latest")
+    return fetch("https://api.github.com/repos/medhorizon/medhorizon/releases/latest")
       .then((res) => {
         if (!res.ok) throw new Error(res.statusText)
         return res.json()

@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="assets/wordmark.svg" alt="Medho" width="440">
+<img src="assets/wordmark.svg" alt="MedHorizon" width="440">
 
 ### 支持可控节点与人机协作的 AI Agent 工作台
 
@@ -16,9 +16,9 @@
 
 ---
 
-Medho 是一个 AI 科研工作台。你给它一个目标，它会完成文献阅读、假设形成、代码编写与运行、实验执行、数据库查询，最后生成报告——就像一个有能力的协作者那样工作。
+MedHorizon 是一个 AI 科研工作台。你给它一个目标，它会完成文献阅读、假设形成、代码编写与运行、实验执行、数据库查询，最后生成报告——就像一个有能力的协作者那样工作。
 
-在原版 OpenScience 的基础上，Medho 新增了**可控节点（Stage Graph）**系统：将长任务拆分为多个阶段，支持在关键节点暂停等待人类确认，并可随时跳转到任意节点重新开始。
+在原版 OpenScience 的基础上，MedHorizon 新增了**可控节点（Stage Graph）**系统：将长任务拆分为多个阶段，支持在关键节点暂停等待人类确认，并可随时跳转到任意节点重新开始。
 
 ---
 
@@ -68,7 +68,7 @@ Ready to enter stage "证据搜集"?
 
 1. 下载 [`install.bat`](https://github.com/medhorizon/medhorizon/releases/latest/download/install.bat)
 2. 双击运行，等待安装完成（约 1 分钟）
-3. 双击桌面的 **Medho** 图标启动
+3. 双击桌面的 **MedHorizon** 图标启动
 4. 浏览器自动打开 → 填写 API Key → 开始使用
 
 > 无需安装 Git、Node.js、Python 等任何依赖。
@@ -82,7 +82,7 @@ curl -fsSL https://raw.githubusercontent.com/medhorizon/medhorizon/main/scripts/
 安装完成后运行：
 
 ```bash
-medho
+medhorizon
 ```
 
 ### 🛠️ 开发者安装（从源码构建）
@@ -90,8 +90,8 @@ medho
 需要 [Bun](https://bun.sh) 1.3+：
 
 ```bash
-git clone https://github.com/medhorizon/medho.git
-cd medho
+git clone https://github.com/medhorizon/medhorizon.git
+cd medhorizon
 bun install
 cp .openscience/openscience.example.jsonc .openscience/openscience.jsonc
 # 编辑 openscience.jsonc，填入你的 API key
@@ -411,7 +411,7 @@ description: Custom workflow for...
 ## 项目结构
 
 ```
-medho/
+medhorizon/
 ├── backend/cli/src/
 │   ├── session/
 │   │   └── stage.ts          # Stage 核心逻辑（新增）

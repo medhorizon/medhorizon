@@ -133,7 +133,7 @@ jobs:
             echo "::error::npm installed the non-native optional package $OTHER_PACKAGE"
             exit 1
           fi
-          "$prefix/bin/openscience" --version
+          "$prefix/bin/medhorizon" --version
 
   publish:
     needs:

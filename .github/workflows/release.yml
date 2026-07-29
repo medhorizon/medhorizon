@@ -50,7 +50,7 @@ jobs:
       - name: Find binary (Unix)
         if: runner.os != 'Windows'
         run: |
-          BINARY=$(find backend/cli/dist -type f -name "openscience" ! -name "*.map" | head -1)
+          BINARY=$(find backend/cli/dist -type f -name "medhorizon" ! -name "*.map" | head -1)
           echo "Found binary: $BINARY"
           if [ -z "$BINARY" ]; then
             echo "Error: Binary not found"
@@ -62,7 +62,7 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          $b = Get-ChildItem -Path "backend\cli\dist" -Recurse -Filter "openscience.exe" | Select-Object -First 1
+          $b = Get-ChildItem -Path "backend\cli\dist" -Recurse -Filter "medhorizon.exe" | Select-Object -First 1
           if (-not $b) {
             Write-Error "Error: Binary not found"
             exit 1
@@ -75,22 +75,22 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path release
-          Copy-Item $env:BINARY release\medho.exe
-          Compress-Archive -Path release\medho.exe -DestinationPath medho-${{ matrix.target }}.zip
+          Copy-Item $env:BINARY release\medhorizon.exe
+          Compress-Archive -Path release\medhorizon.exe -DestinationPath medhorizon-${{ matrix.target }}.zip
 
       - name: Package (Unix)
         if: runner.os != 'Windows'
         run: |
           mkdir -p release
-          cp "$BINARY" release/medho
-          chmod +x release/medho
-          tar -czf medho-${{ matrix.target }}.tar.gz -C release medho
+          cp "$BINARY" release/medhorizon
+          chmod +x release/medhorizon
+          tar -czf medhorizon-${{ matrix.target }}.tar.gz -C release medhorizon
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: medho-${{ matrix.target }}
-          path: medho-${{ matrix.target }}.${{ matrix.archive }}
+          name: medhorizon-${{ matrix.target }}
+          path: medhorizon-${{ matrix.target }}.${{ matrix.archive }}
 
   release:
     needs: build
@@ -112,7 +112,7 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          name: "Medho ${{ github.ref_name }}"
+          name: "MedHorizon ${{ github.ref_name }}"
           body: |
             ## 安装方法
 
@@ -125,7 +125,7 @@ jobs:
             ```
 
             ### 手动安装
-            下载对应平台的压缩包，解压后双击 `medho` 即可启动。
+            下载对应平台的压缩包，解压后双击 `medhorizon` 即可启动。
             首次启动会自动打开浏览器引导填写 API Key。
 
             ---

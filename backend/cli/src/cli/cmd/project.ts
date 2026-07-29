@@ -8,7 +8,7 @@ import { computeDedupeKey, initProjectDetailed } from "../../server/routes/atlas
 import type { InitProjectFailure } from "../../server/routes/atlas-bridge"
 
 /**
- * `openscience project` — manage the Atlas project root for a folder.
+ * `medhorizon project` — manage the Atlas project root for a folder.
  *
  * `init` (find-or-create) links this repo to an Atlas research graph — the same
  * dedupe-safe path the web "Initialize" button uses. Agent-runnable, so a skill
@@ -44,7 +44,7 @@ const ProjectInitCommand = cmd({
         return
       }
       UI.empty()
-      prompts.log.error("Not connected to Atlas. Run `openscience login` first.")
+      prompts.log.error("Not connected to Atlas. Run `medhorizon login` first.")
       return
     }
     const opened = (args.dir as string | undefined) || process.cwd()
@@ -81,8 +81,8 @@ function reportInitFailure(failure: InitProjectFailure | undefined) {
     case "unauthenticated":
       prompts.log.error(
         f.status
-          ? `${f.host} rejected your saved session (HTTP ${f.status})${detail}. Run \`openscience login\` to re-authenticate.`
-          : "Not connected to Atlas. Run `openscience login` first.",
+          ? `${f.host} rejected your saved session (HTTP ${f.status})${detail}. Run \`medhorizon login\` to re-authenticate.`
+          : "Not connected to Atlas. Run `medhorizon login` first.",
       )
       break
     case "unreachable":
@@ -146,11 +146,11 @@ const ProjectMergeCommand = cmd({
     }),
   async handler(args) {
     UI.empty()
-    prompts.intro("OpenScience — project merge")
+    prompts.intro("MedHorizon — project merge")
 
     const session = await OpenScience.getSession()
     if (!session) {
-      prompts.log.error("Not authenticated. Run `openscience login` first.")
+      prompts.log.error("Not authenticated. Run `medhorizon login` first.")
       prompts.outro("Aborted")
       return
     }

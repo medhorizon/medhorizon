@@ -6,13 +6,13 @@ import { UI } from "./ui"
 
 export function FormatError(input: unknown) {
   if (MCP.Failed.isInstance(input))
-    return `MCP server "${input.data.name}" failed. If it requires OAuth, run \`openscience mcp auth ${input.data.name}\`.`
+    return `MCP server "${input.data.name}" failed. If it requires OAuth, run \`medhorizon mcp auth ${input.data.name}\`.`
   if (Provider.ModelNotFoundError.isInstance(input)) {
     const { providerID, modelID, suggestions } = input.data
     return [
       `Model not found: ${providerID}/${modelID}`,
       ...(Array.isArray(suggestions) && suggestions.length ? ["Did you mean: " + suggestions.join(", ")] : []),
-      `Try: \`openscience models\` to list available models`,
+      `Try: \`medhorizon models\` to list available models`,
       `Or check your config (openscience.json) provider/model names`,
     ].join("\n")
   }

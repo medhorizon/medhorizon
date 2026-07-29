@@ -14,7 +14,8 @@
     "dev": "bun run --conditions=browser ./src/index.ts"
   },
   "bin": {
-    "openscience": "./bin/openscience"
+    "medhorizon": "./bin/medhorizon",
+    "openscience": "./bin/medhorizon"
   },
   "files": [
     "bin",

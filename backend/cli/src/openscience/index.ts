@@ -603,14 +603,14 @@ export namespace OpenScience {
   /** Minimal pages shown in the browser after it redirects back to our
    *  loopback callback. Inlined so login carries no asset dependencies. */
   const CALLBACK_SUCCESS_HTML =
-    "<!doctype html><meta charset=utf-8><title>OpenScience</title>" +
+    "<!doctype html><meta charset=utf-8><title>MedHorizon</title>" +
     '<body style="font-family:system-ui,sans-serif;background:#0b0b12;color:#eee;display:grid;place-items:center;height:100vh;margin:0">' +
     "<div style=text-align:center><h1 style=color:#4ade80>Login complete</h1>" +
-    "<p style=color:#9aa>You're signed in to the OpenScience CLI. You can close this tab.</p></div>" +
+    "<p style=color:#9aa>You're signed in to MedHorizon. You can close this tab.</p></div>" +
     "<script>setTimeout(()=>window.close(),1500)</script>"
 
   const CALLBACK_ERROR_HTML =
-    "<!doctype html><meta charset=utf-8><title>OpenScience</title>" +
+    "<!doctype html><meta charset=utf-8><title>MedHorizon</title>" +
     '<body style="font-family:system-ui,sans-serif;background:#0b0b12;color:#eee;display:grid;place-items:center;height:100vh;margin:0">' +
     "<div style=text-align:center><h1 style=color:#f87171>Login failed</h1>" +
     "<p style=color:#9aa>The callback could not be verified. Return to your terminal and try again.</p></div>"
@@ -1683,8 +1683,7 @@ export namespace OpenScience {
       })
       if (!res.ok) return null
       const body = (await res.json()) as
-        | Array<Record<string, unknown>>
-        | { transactions?: Array<Record<string, unknown>> }
+        Array<Record<string, unknown>> | { transactions?: Array<Record<string, unknown>> }
       const rows = Array.isArray(body) ? body : (body.transactions ?? [])
       return rows.slice(0, limit).map((r) => ({
         id: String(r["id"] ?? ""),

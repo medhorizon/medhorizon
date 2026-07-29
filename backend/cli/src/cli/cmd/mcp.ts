@@ -86,7 +86,7 @@ export const McpListCommand = cmd({
 
         if (servers.length === 0) {
           prompts.log.warn("No MCP servers configured")
-          prompts.outro("Add servers with: openscience mcp add")
+          prompts.outro("Add servers with: medhorizon mcp add")
           return
         }
 

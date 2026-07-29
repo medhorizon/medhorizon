@@ -2,10 +2,9 @@ import { describe, expect, test } from "bun:test"
 import { Installation } from "../../src/installation"
 
 describe("Installation.chocoLatestVersionUrl", () => {
-  test("queries the openscience package, not the pre-rename synsc id", () => {
+  test("queries the medhorizon package", () => {
     const url = Installation.chocoLatestVersionUrl()
-    expect(url).toContain(encodeURIComponent("Id eq 'openscience'"))
-    expect(url).not.toContain("synsc")
+    expect(url).toContain(encodeURIComponent("Id eq 'medhorizon'"))
   })
 
   test("keeps the OData query options ($filter/$select) literal", () => {

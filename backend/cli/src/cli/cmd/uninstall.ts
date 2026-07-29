@@ -23,7 +23,7 @@ interface RemovalTargets {
 
 export const UninstallCommand = {
   command: "uninstall",
-  describe: "uninstall openscience and remove all related files",
+  describe: "uninstall MedHorizon and remove all related files",
   builder: (yargs: Argv) =>
     yargs
       .option("keep-config", {
@@ -54,7 +54,7 @@ export const UninstallCommand = {
     UI.empty()
     UI.println(UI.logo("  "))
     UI.empty()
-    prompts.intro("Uninstall OpenScience")
+    prompts.intro("Uninstall MedHorizon")
 
     const method = await Installation.method()
     prompts.log.info(`Installation method: ${method}`)
@@ -132,9 +132,9 @@ async function showRemovalSummary(targets: RemovalTargets, method: Installation.
       pnpm: "pnpm uninstall -g @synsci/openscience",
       bun: "bun remove -g @synsci/openscience",
       yarn: "yarn global remove @synsci/openscience",
-      brew: "brew uninstall openscience",
-      choco: "choco uninstall openscience",
-      scoop: "scoop uninstall openscience",
+      brew: "brew uninstall medhorizon",
+      choco: "choco uninstall medhorizon",
+      scoop: "scoop uninstall medhorizon",
     }
     prompts.log.info(`  ✓ Package: ${cmds[method] || method}`)
   }
@@ -183,9 +183,9 @@ async function executeUninstall(method: Installation.Method, targets: RemovalTar
       pnpm: ["pnpm", "uninstall", "-g", "@synsci/openscience"],
       bun: ["bun", "remove", "-g", "@synsci/openscience"],
       yarn: ["yarn", "global", "remove", "@synsci/openscience"],
-      brew: ["brew", "uninstall", "openscience"],
-      choco: ["choco", "uninstall", "openscience"],
-      scoop: ["scoop", "uninstall", "openscience"],
+      brew: ["brew", "uninstall", "medhorizon"],
+      choco: ["choco", "uninstall", "medhorizon"],
+      scoop: ["scoop", "uninstall", "medhorizon"],
     }
 
     const cmd = cmds[method]
@@ -193,7 +193,7 @@ async function executeUninstall(method: Installation.Method, targets: RemovalTar
       spinner.start(`Running ${cmd.join(" ")}...`)
       const result =
         method === "choco"
-          ? await $`echo Y | choco uninstall openscience -y -r`.quiet().nothrow()
+          ? await $`echo Y | choco uninstall medhorizon -y -r`.quiet().nothrow()
           : await $`${cmd}`.quiet().nothrow()
       if (result.exitCode !== 0) {
         spinner.stop(`Package manager uninstall failed: exit code ${result.exitCode}`, 1)
@@ -217,7 +217,7 @@ async function executeUninstall(method: Installation.Method, targets: RemovalTar
     prompts.log.info(`  rm "${targets.binary}"`)
 
     const binDir = path.dirname(targets.binary)
-    if (binDir.includes(".openscience")) {
+    if (binDir.includes(".medhorizon") || binDir.includes(".openscience")) {
       prompts.log.info(`  rmdir "${binDir}" 2>/dev/null`)
     }
   }
@@ -231,7 +231,7 @@ async function executeUninstall(method: Installation.Method, targets: RemovalTar
   }
 
   UI.empty()
-  prompts.log.success("Thank you for using OpenScience!")
+  prompts.log.success("Thank you for using MedHorizon!")
 }
 
 async function getShellConfigFile(): Promise<string | null> {
@@ -270,7 +270,12 @@ async function getShellConfigFile(): Promise<string | null> {
     const content = await Bun.file(file)
       .text()
       .catch(() => "")
-    if (content.includes("# openscience") || content.includes(".openscience/bin")) {
+    if (
+      content.includes("# medhorizon") ||
+      content.includes(".medhorizon/bin") ||
+      content.includes("# openscience") ||
+      content.includes(".openscience/bin")
+    ) {
       return file
     }
   }
@@ -288,21 +293,26 @@ async function cleanShellConfig(file: string) {
   for (const line of lines) {
     const trimmed = line.trim()
 
-    if (trimmed === "# openscience") {
+    if (trimmed === "# medhorizon" || trimmed === "# openscience") {
       skip = true
       continue
     }
 
     if (skip) {
       skip = false
-      if (trimmed.includes(".openscience/bin") || trimmed.includes("fish_add_path")) {
+      if (
+        trimmed.includes(".medhorizon/bin") ||
+        trimmed.includes(".openscience/bin") ||
+        trimmed.includes("fish_add_path")
+      ) {
         continue
       }
     }
 
     if (
-      (trimmed.startsWith("export PATH=") && trimmed.includes(".openscience/bin")) ||
-      (trimmed.startsWith("fish_add_path") && trimmed.includes(".openscience"))
+      (trimmed.startsWith("export PATH=") &&
+        (trimmed.includes(".medhorizon/bin") || trimmed.includes(".openscience/bin"))) ||
+      (trimmed.startsWith("fish_add_path") && (trimmed.includes(".medhorizon") || trimmed.includes(".openscience")))
     ) {
       continue
     }

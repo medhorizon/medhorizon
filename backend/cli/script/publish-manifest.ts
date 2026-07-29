@@ -16,7 +16,8 @@ export function createWrapperPackageManifest(options: WrapperPackageManifestOpti
   return {
     name: options.source.name,
     bin: {
-      openscience: "./bin/openscience",
+      medhorizon: "./bin/medhorizon",
+      openscience: "./bin/medhorizon",
     },
     scripts: {
       // Best-effort: clears a stale global @synsci/cli whose `openscience`
@@ -29,7 +30,7 @@ export function createWrapperPackageManifest(options: WrapperPackageManifestOpti
     // the repo the workflow ran from (case-sensitive).
     repository: {
       type: "git",
-      url: "git+https://github.com/synthetic-sciences/openscience.git",
+      url: "git+https://github.com/medhorizon/medhorizon.git",
     },
     optionalDependencies: {
       ...(options.source.optionalDependencies ?? {}),

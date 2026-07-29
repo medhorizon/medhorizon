@@ -21,7 +21,8 @@
       "name": "@synsci/openscience",
       "version": "1.2.3",
       "bin": {
-        "openscience": "./bin/openscience",
+        "medhorizon": "./bin/medhorizon",
+        "openscience": "./bin/medhorizon",
       },
       "dependencies": {
         "@actions/core": "1.11.1",

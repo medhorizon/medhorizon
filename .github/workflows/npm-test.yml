@@ -132,7 +132,7 @@ jobs:
           mkdir -p "$prefix" "$home"
           npm install --global --prefix "$prefix" @synsci/openscience@test
           echo "$prefix/bin" >> "$GITHUB_PATH"
-          "$prefix/bin/openscience" --version | tee "$RUNNER_TEMP/openscience-version.txt"
+          "$prefix/bin/medhorizon" --version | tee "$RUNNER_TEMP/openscience-version.txt"
           grep -Fx "${{ needs.publish-test.outputs.version }}" "$RUNNER_TEMP/openscience-version.txt"
           wrapper_dir="$prefix/lib/node_modules/@synsci/openscience"
           WRAPPER_DIR="$wrapper_dir" node - <<'NODE'
@@ -235,7 +235,7 @@ jobs:
           OPENSCIENCE_E2E_MESSAGE: "Seeded for UI e2e"
           OPENSCIENCE_E2E_MODEL: "e2e/echo"
       - name: Run published OpenScience server
-        run: openscience --print-logs --log-level WARN serve --port 4096 > "$RUNNER_TEMP/openscience-server.log" 2>&1 &
+        run: medhorizon --print-logs --log-level WARN serve --port 4096 > "$RUNNER_TEMP/openscience-server.log" 2>&1 &
         env:
           OPENSCIENCE_DISABLE_SHARE: "true"
           OPENSCIENCE_DISABLE_LSP_DOWNLOAD: "true"
@@ -317,7 +317,7 @@ jobs:
           export OPENSCIENCE_DISABLE_DEFAULT_PLUGINS=true
           export OPENSCIENCE_EXPERIMENTAL_DISABLE_FILEWATCHER=true
           npm install --global --prefix "$prefix" @synsci/openscience@test
-          bin="$prefix/bin/openscience"
+          bin="$prefix/bin/medhorizon"
           "$bin" --version | tee "$RUNNER_TEMP/openscience-version.txt"
           grep -Fx "${{ needs.publish-test.outputs.version }}" "$RUNNER_TEMP/openscience-version.txt"
           "$bin" serve --port 4096 > "$RUNNER_TEMP/openscience-smoke.log" 2>&1 &
@@ -327,7 +327,7 @@ jobs:
             curl -fsS "http://127.0.0.1:4096/global/health" > /dev/null && exit 0
             sleep 1
           done
-          echo "::error::openscience server never became healthy"
+          echo "::error::medhorizon server never became healthy"
           cat "$RUNNER_TEMP/openscience-smoke.log" || true
           exit 1
       - name: Install and smoke OpenScience test package
@@ -340,7 +340,7 @@ jobs:
           $env:OPENSCIENCE_DISABLE_DEFAULT_PLUGINS = "true"
           $env:OPENSCIENCE_EXPERIMENTAL_DISABLE_FILEWATCHER = "true"
           npm install --global --prefix $prefix "@synsci/openscience@test"
-          $bin = Join-Path $prefix "openscience.cmd"
+          $bin = Join-Path $prefix "medhorizon.cmd"
           & $bin --version | Tee-Object -FilePath (Join-Path $env:RUNNER_TEMP "openscience-version.txt")
           $actual = Get-Content (Join-Path $env:RUNNER_TEMP "openscience-version.txt")
           if ($actual -ne "${{ needs.publish-test.outputs.version }}") {
@@ -360,7 +360,7 @@ jobs:
             }
             Get-Content $stdout -ErrorAction SilentlyContinue
             Get-Content $stderr -ErrorAction SilentlyContinue
-            throw "openscience server never became healthy"
+            throw "medhorizon server never became healthy"
           } finally {
             Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
           }
