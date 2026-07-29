@@ -1,0 +1,79 @@
+#!/usr/bin/env bun
+
+import fs from "node:fs/promises"
+import path from "node:path"
+import pkg from "../package.json"
+import { createWrapperPackageManifest } from "./publish-manifest"
+
+const outputArg = process.argv[2]
+if (!outputArg) throw new Error("usage: pack-native-smoke.ts <output-directory>")
+const output: string = path.resolve(outputArg)
+
+const cli = path.resolve(import.meta.dir, "..")
+await fs.rm(output, { recursive: true, force: true })
+await fs.mkdir(output, { recursive: true })
+
+function npmVersion(value: string): string {
+  return /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/.test(value) ? value : "0.0.0-native-smoke"
+}
+
+async function pack(directory: string): Promise<string> {
+  const proc = Bun.spawn(["npm", "pack", "--json", "--pack-destination", output], {
+    cwd: directory,
+    stdout: "pipe",
+    stderr: "pipe",
+  })
+  const [stdout, stderr, exitCode] = await Promise.all([
+    new Response(proc.stdout).text(),
+    new Response(proc.stderr).text(),
+    proc.exited,
+  ])
+  if (exitCode !== 0) throw new Error(`npm pack failed in ${directory}: ${stderr || stdout}`)
+  const result = JSON.parse(stdout) as { filename?: string }[]
+  const filename = result[0]?.filename
+  if (!filename) throw new Error(`npm pack returned no filename for ${directory}`)
+  return path.resolve(output, filename)
+}
+
+// Include both Linux architectures. npm must install only the native optional
+// dependency on each matrix runner, which exercises os/cpu selection instead
+// of merely proving that a cached binary can execute.
+const platformNames = ["@synsci/openscience-linux-x64", "@synsci/openscience-linux-arm64"]
+const binaries: Record<string, string> = {}
+let packageVersion = "0.0.0-native-smoke"
+for (const name of platformNames) {
+  const source = path.join(cli, "dist", name)
+  const directory = path.join(output, "platforms", name)
+  await fs.mkdir(path.dirname(directory), { recursive: true })
+  await fs.cp(source, directory, { recursive: true })
+  const platformManifest = await Bun.file(path.join(directory, "package.json")).json()
+  platformManifest.version = npmVersion(String(platformManifest.version))
+  packageVersion = platformManifest.version
+  await fs.writeFile(path.join(directory, "package.json"), JSON.stringify(platformManifest, null, 2) + "\n")
+  await fs.chmod(path.join(directory, "bin", "openscience"), 0o755)
+  binaries[name] = `file:${await pack(directory)}`
+}
+
+// Keep the wrapper's companion dependency hermetic as well. The smoke test is
+// for npm layout and platform resolution, not registry availability.
+const atlasStub = path.join(output, "atlas-stub")
+await fs.mkdir(atlasStub, { recursive: true })
+await fs.writeFile(
+  path.join(atlasStub, "package.json"),
+  JSON.stringify({ name: "@synsci/atlas", version: "0.13.2", private: false }, null, 2) + "\n",
+)
+const atlasTarball = await pack(atlasStub)
+
+const wrapper = path.join(output, "wrapper")
+await fs.mkdir(wrapper, { recursive: true })
+await fs.cp(path.join(cli, "bin"), path.join(wrapper, "bin"), { recursive: true })
+await fs.copyFile(path.join(cli, "script", "preinstall.mjs"), path.join(wrapper, "preinstall.mjs"))
+await fs.copyFile(path.join(cli, "script", "postinstall.mjs"), path.join(wrapper, "postinstall.mjs"))
+
+const manifest = createWrapperPackageManifest({ source: pkg, version: packageVersion, binaries })
+manifest.optionalDependencies["@synsci/atlas"] = `file:${atlasTarball}`
+await fs.writeFile(path.join(wrapper, "package.json"), JSON.stringify(manifest, null, 2) + "\n")
+
+const wrapperTarball = await pack(wrapper)
+await fs.copyFile(wrapperTarball, path.join(output, "wrapper.tgz"))
+console.log(`packed native npm smoke fixture at ${output}`)

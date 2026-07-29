@@ -1,0 +1,30 @@
+Mark the beginning of a named stage in a long-running task.
+
+Call this IMMEDIATELY when you begin a new phase of work, BEFORE taking any other
+action in that phase. Calling it late makes the stage boundary imprecise: the user
+resumes from the marker, so any work you did earlier in the same turn is lost.
+
+Each call records a checkpoint: the stage name plus a snapshot of the workspace as
+it is at that moment. The user can later jump back to any stage and restart from it
+with every earlier stage's context intact.
+
+Use the `summary` parameter to record what the PREVIOUS stage concluded, so the
+stage graph reads as a coherent narrative.
+
+Use the `gate` parameter (default false) to pause and wait for human approval before
+entering this stage. When enabled, the user sees a prompt asking whether to proceed.
+If they decline or dismiss it, execution stops immediately and no stage is entered.
+Use this when you need the user to review intermediate results before continuing, or
+when the next stage involves risky operations that need explicit confirmation.
+
+Only use this for multi-phase work where resuming from an earlier phase is
+plausible. Do not mark stages in short tasks; use the todo tools to track ordinary
+step-by-step progress instead.
+
+Example for a research task:
+  stage(name="Problem discovery")
+  ...investigate...
+  stage(name="Evidence gathering", summary="Narrowed to 3 candidate mechanisms")
+  ...gather...
+  stage(name="Code execution", summary="Collected 4 datasets, all validated", gate=true)
+  ...execute...

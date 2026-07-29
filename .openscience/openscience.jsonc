@@ -1,0 +1,29 @@
+{
+  "$schema": "https://syntheticsciences.ai/config.json",
+  // "plugin": ["openscience-openai-codex-auth"],
+  "provider": {
+    "synsci": {
+      "options": {},
+    },
+  },
+  "mcp": {
+    "context7": {
+      "type": "remote",
+      "url": "https://mcp.context7.com/mcp",
+    },
+    "grok": {
+      "type": "local",
+      "command": ["bun", "D:/claude work/mcp-bridges/grok-mcp/server.mjs"],
+      "environment": {
+        "GROK_BIN": "grok",
+        "GROK_YOLO": "1",
+      },
+      // Agent calls take minutes; the default is far too short.
+      "timeout": 1800000,
+    },
+  },
+  "tools": {
+    "github-triage": false,
+    "github-pr-search": false,
+  },
+}
