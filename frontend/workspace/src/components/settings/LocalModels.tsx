@@ -200,7 +200,7 @@ const LocalModels: Component = () => {
         <section class="flex flex-col gap-3">
           <h3 class="text-13-medium text-text-strong">Run a model locally</h3>
           <p class="text-12-regular text-text-weak/70">
-            Let OpenScience start and host a runtime for you — no terminal needed.
+            Let MedHorizon start and host a runtime for you — no terminal needed.
           </p>
           <For each={status()}>
             {(rt) => (

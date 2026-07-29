@@ -534,8 +534,8 @@ export function FolderPicker(props: PickerProps): JSX.Element {
                           </span>
                           <span style={{ "max-width": "360px", "line-height": 1.5 }}>
                             To list this folder we'd need Full Disk Access for the
-                            <code>openscience</code> binary. For now, paste the absolute path of the folder you want
-                            into the <em>go to</em> bar above — OpenScience can still open any path you give it.
+                            <code>medhorizon</code> binary. For now, paste the absolute path of the folder you want into
+                            the <em>go to</em> bar above — MedHorizon can still open any path you give it.
                           </span>
                         </Show>
                       </Show>

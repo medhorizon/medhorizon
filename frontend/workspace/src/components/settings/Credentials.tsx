@@ -64,12 +64,12 @@ const SOURCE_INFO: Record<Provider["source"], { label: string; removable: boolea
   config: {
     label: "config",
     removable: false,
-    title: "API key set in openscience.json — edit the config file to remove it",
+    title: "API key set in medhorizon.json — edit the config file to remove it",
   },
   custom: {
     label: "custom",
     removable: false,
-    title: "Custom provider defined in openscience.json — edit the config file to remove it",
+    title: "Custom provider defined in medhorizon.json — edit the config file to remove it",
   },
 }
 

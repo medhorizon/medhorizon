@@ -97,7 +97,7 @@ export function OpenScienceFileTree(props: { onOpen?: (path: string) => void }):
         // hits EACCES/EPERM — surface that to the UI so we can prompt for
         // Full Disk Access on macOS instead of showing "0 entries".
         if (status === 403) {
-          const message = err?.body?.message ?? err?.message ?? "OpenScience cannot read this directory"
+          const message = err?.body?.message ?? err?.message ?? "MedHorizon cannot read this directory"
           setPermissionError(String(message))
         }
         return [] as FileNode[]
@@ -239,7 +239,7 @@ export function OpenScienceFileTree(props: { onOpen?: (path: string) => void }):
                     }}
                   >
                     <Show when={isMac()} fallback={<>{permissionError()}</>}>
-                      Grant <strong>Full Disk Access</strong> to OpenScience in System Settings → Privacy &amp;
+                      Grant <strong>Full Disk Access</strong> to MedHorizon in System Settings → Privacy &amp;
                       Security, then refresh.
                     </Show>
                   </div>
@@ -336,7 +336,7 @@ function Node(props: {
           if (props.node.type === "directory") props.onToggle(props.node.path)
           else props.onOpen?.(props.node.path)
         }}
-        title={props.node.ignored ? `${props.node.name} · ignored by gitignore / OpenScience` : props.node.name}
+        title={props.node.ignored ? `${props.node.name} · ignored by gitignore / MedHorizon` : props.node.name}
         style={{
           all: "unset",
           cursor: "pointer",

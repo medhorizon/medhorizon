@@ -3,7 +3,7 @@ import workspaceShot from "@/assets/workspace.png"
 import modelPickerShot from "@/assets/model-picker.png"
 import heroPlate from "@/assets/hero.webp"
 
-/* OpenScience. CMU Concrete, warm dark, coral accents.
+/* MedHorizon. CMU Concrete, warm dark, coral accents.
    Same design family as the Atlas landing page.
 
    Type system, used consistently:
@@ -26,10 +26,10 @@ const CAPTION = "text-[13px] leading-[1.6] text-foreground/50"
 const MONO_N = "font-terminal text-[11px] tracking-[0.08em] text-foreground/40"
 const LABEL = "text-[14px] text-muted-foreground"
 
-const GITHUB = "https://github.com/synthetic-sciences/openscience"
-const DOCS = "https://openscience.sh/docs"
-const NPM_CMD = "npm i -g @synsci/openscience"
-const CURL_CMD = "curl -fsSL https://openscience.sh/install | bash"
+const GITHUB = "https://github.com/medhorizon/medhorizon"
+const DOCS = "https://medhorizon.ai/docs"
+const NPM_CMD = "npm i -g @synsci/openscience && medhorizon"
+const CURL_CMD = "curl -fsSL https://medhorizon.ai/install | bash"
 
 /* Eyebrow, the quiet label above every section heading. */
 function Eyebrow({ children, className = "" }: { children: React.ReactNode; className?: string }) {
@@ -143,7 +143,7 @@ function CopyChip({ cmd, className = "" }: { cmd: string; className?: string }) 
   )
 }
 
-/* OsMark, the OpenScience mark. A thin ring with an orbiting coral node. */
+/* OsMark, the MedHorizon mark. A thin ring with an orbiting coral node. */
 function OsMark({ size = 15 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 16 16" fill="none" aria-hidden className="text-foreground/85">
@@ -344,14 +344,14 @@ function Hero() {
 
       <div className="absolute inset-0 z-10 mx-auto flex h-full max-w-[1400px] flex-col px-6 sm:px-10">
         <div className="hero-text rise self-start mt-[9vh]" style={{ animationDelay: "120ms" }}>
-          <div className="text-[clamp(40px,6.4vw,96px)] leading-[0.9] tracking-[-0.04em]">openscience</div>
+          <div className="text-[clamp(40px,6.4vw,96px)] leading-[0.9] tracking-[-0.04em]">MedHorizon</div>
           <a
-            href="https://syntheticsciences.ai"
+            href={GITHUB}
             target="_blank"
             rel="noreferrer"
             className="mt-3 inline-block text-[13px] tracking-[0.04em] text-foreground/55 transition-colors duration-300 hover:text-foreground/85"
           >
-            by Synthetic Sciences
+            Open source · Apache 2.0
           </a>
         </div>
 
@@ -365,14 +365,14 @@ function Hero() {
             className="rise mt-9 flex flex-wrap items-center justify-end gap-3 [text-shadow:none]"
             style={{ animationDelay: "420ms" }}
           >
-            <Cta href="#install">Install OpenScience</Cta>
+            <Cta href="#install">Install MedHorizon</Cta>
             <Cta href={GITHUB} variant="ghost" arrow={false} external>
               <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor" aria-hidden>
                 <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z" />
               </svg>
               Star on GitHub
             </Cta>
-            <CopyChip cmd={NPM_CMD} className="hidden lg:inline-flex ml-2" />
+            <CopyChip cmd={CURL_CMD} className="hidden lg:inline-flex ml-2" />
           </div>
         </div>
       </div>
@@ -391,7 +391,7 @@ function ProductShot() {
           <div className="border border-border/50 bg-[hsl(28,14%,6%)] shadow-[0_40px_120px_-30px_rgba(0,0,0,0.8)]">
             <img
               src={workspaceShot}
-              alt="The OpenScience workspace: a research session with agent selector, model picker, files, terminal, and the research graph"
+              alt="The MedHorizon workspace: a research session with agent selector, model picker, files, terminal, and the research graph"
               className="block w-full h-auto select-none"
               draggable={false}
               decoding="async"
@@ -648,7 +648,7 @@ export default function Landing() {
             </Reveal>
             <Reveal delay={150}>
               <p className={`mt-5 max-w-[44ch] ${P_BIG}`}>
-                Install with npm or the script, then run <span className="text-foreground">openscience</span>. A short
+                Install with npm or the script, then run <span className="text-foreground">medhorizon</span>. A short
                 setup asks how you want to power the models — Atlas managed models, your own provider keys, or the free
                 demo models — and the workspace opens in your browser.
               </p>
@@ -801,7 +801,7 @@ export default function Landing() {
               <div className="border border-border/50 bg-[hsl(28,14%,6%)] shadow-[0_30px_90px_-30px_rgba(0,0,0,0.75)]">
                 <img
                   src={modelPickerShot}
-                  alt="The OpenScience model selector: Anthropic, OpenAI, and Google models with live pricing and an effort control"
+                  alt="The MedHorizon model selector: Anthropic, OpenAI, and Google models with live pricing and an effort control"
                   className="block w-full h-auto select-none"
                   draggable={false}
                   loading="lazy"
@@ -836,7 +836,7 @@ export default function Landing() {
                   Star on GitHub
                 </Cta>
                 <span className="font-terminal text-[12.5px] text-foreground/60">
-                  github.com/synthetic-sciences/openscience
+                  github.com/medhorizon/medhorizon
                 </span>
               </div>
             </Reveal>
@@ -861,7 +861,7 @@ export default function Landing() {
             <FaqList
               items={[
                 {
-                  q: "What is OpenScience?",
+                  q: "What is MedHorizon?",
                   a: "An open-source AI workbench for scientific research. You give it a goal and it works the loop: literature, hypothesis, code, experiments, write-up. It runs as a local workspace in your browser and does real work in ML, biology, physics, and chemistry.",
                 },
                 {
@@ -886,7 +886,7 @@ export default function Landing() {
                 },
                 {
                   q: "What is Atlas?",
-                  a: "Synthetic Sciences' managed platform: curated frontier models billed from one wallet, a persistent research graph, and cloud compute. OpenScience works with Atlas but never requires it.",
+                  a: "Atlas is the optional managed platform: curated frontier models billed from one wallet, a persistent research graph, and cloud compute. MedHorizon works with Atlas but never requires it.",
                 },
               ]}
             />
@@ -912,8 +912,8 @@ export default function Landing() {
                     Free and open source. The whole loop, on your keys.
                   </p>
                   <div className="mt-8 flex flex-wrap items-center gap-3">
-                    <Cta href="#install">Install OpenScience</Cta>
-                    <CopyChip cmd={NPM_CMD} />
+                    <Cta href="#install">Install MedHorizon</Cta>
+                    <CopyChip cmd={CURL_CMD} />
                   </div>
                 </Reveal>
               </div>
@@ -929,10 +929,10 @@ export default function Landing() {
             <div className="col-span-12 md:col-span-5">
               <div className="flex items-center gap-2.5 text-foreground">
                 <OsMark size={15} />
-                <span className="font-display text-[22px] tracking-tight leading-none">openscience</span>
+                <span className="font-display text-[22px] tracking-tight leading-none">MedHorizon</span>
               </div>
               <p className="mt-4 max-w-[36ch] text-[13.5px] leading-[1.7] text-foreground/55">
-                The open-source AI workbench for scientific research, by Synthetic Sciences.
+                The open-source AI workbench for scientific research.
               </p>
             </div>
             <div className="col-span-6 sm:col-span-4 md:col-span-2">
@@ -1001,16 +1001,16 @@ export default function Landing() {
               </ul>
             </div>
             <div className="col-span-12 sm:col-span-4 md:col-span-3">
-              <div className="text-[13px] tracking-[0.04em] text-foreground/45 mb-4">Company</div>
+              <div className="text-[13px] tracking-[0.04em] text-foreground/45 mb-4">Ecosystem</div>
               <ul className="space-y-2.5 text-[13.5px]">
                 <li>
                   <a
-                    href="https://syntheticsciences.ai"
+                    href={GITHUB}
                     className="link-underline text-foreground/70 hover:text-foreground inline-flex items-center gap-1.5"
                     target="_blank"
                     rel="noreferrer"
                   >
-                    Synthetic Sciences
+                    MedHorizon
                     <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden>
                       <path d="M2 8 L8 2 M4 2 L8 2 L8 6" stroke="currentColor" fill="none" />
                     </svg>
@@ -1029,22 +1029,12 @@ export default function Landing() {
                     </svg>
                   </a>
                 </li>
-                <li>
-                  <a
-                    href="https://x.com/SynScience"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="link-underline text-foreground/70 hover:text-foreground"
-                  >
-                    X / Twitter
-                  </a>
-                </li>
               </ul>
             </div>
           </div>
 
           <div className="mt-14 pt-6 border-t border-border/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-[12.5px] text-foreground/45">
-            <div>&copy; {new Date().getFullYear()} Synthetic Sciences. Apache 2.0.</div>
+            <div>&copy; {new Date().getFullYear()} MedHorizon contributors. Apache 2.0.</div>
             <a href="#top" className="link-underline hover:text-foreground inline-flex items-center gap-2">
               Back to top
               <svg width="9" height="11" viewBox="0 0 9 11" aria-hidden>
@@ -1057,7 +1047,7 @@ export default function Landing() {
         {/* Giant clipped wordmark, the closing brand moment. */}
         <div className="relative h-[13vw] min-h-[90px] max-h-[200px] overflow-hidden" aria-hidden>
           <div className="footer-watermark absolute left-1/2 -translate-x-1/2 top-[0.04em] text-center">
-            openscience
+            MedHorizon
           </div>
         </div>
       </footer>

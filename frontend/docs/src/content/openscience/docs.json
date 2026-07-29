@@ -1,6 +1,6 @@
 {
   "$schema": "https://mintlify.com/docs.json",
-  "name": "OpenScience",
+  "name": "MedHorizon",
   "navigation": {
     "tabs": [
       {
@@ -28,10 +28,10 @@
     ],
     "global": {
       "anchors": [
-        { "anchor": "openscience.sh", "href": "https://openscience.sh" },
-        { "anchor": "GitHub", "href": "https://github.com/synthetic-sciences/openscience" },
+        { "anchor": "medhorizon.ai", "href": "https://medhorizon.ai" },
+        { "anchor": "GitHub", "href": "https://github.com/medhorizon/medhorizon" },
         { "anchor": "npm", "href": "https://www.npmjs.com/package/@synsci/openscience" },
-        { "anchor": "Releases", "href": "https://github.com/synthetic-sciences/openscience/releases" }
+        { "anchor": "Releases", "href": "https://github.com/medhorizon/medhorizon/releases" }
       ]
     }
   },
@@ -39,7 +39,7 @@
     "primary": {
       "type": "button",
       "label": "Star on GitHub",
-      "href": "https://github.com/synthetic-sciences/openscience"
+      "href": "https://github.com/medhorizon/medhorizon"
     }
   }
 }

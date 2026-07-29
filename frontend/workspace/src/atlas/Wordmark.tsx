@@ -26,7 +26,7 @@ export function Wordmark(props: WordmarkProps): JSX.Element {
     >
       <Show when={!props.textOnly}>
         <img
-          src="/openscience-logo.png"
+          src="/medhorizon-logo.png"
           alt=""
           style={{
             width: `${px().logo}px`,
@@ -46,7 +46,7 @@ export function Wordmark(props: WordmarkProps): JSX.Element {
           "white-space": "nowrap",
         }}
       >
-        OpenScience
+        MedHorizon
       </span>
     </button>
   )

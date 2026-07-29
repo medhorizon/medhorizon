@@ -23,24 +23,24 @@ Two sub-agents back the roster. The main agent delegates to them like tools:
 | `critique` | Read-only scientific critique. Finds blocking errors — data leakage, wrong statistics, unsupported claims — before expensive or irreversible actions. |
 | `literature-review` | Full PRISMA literature review: systematic search, screening, eligibility, synthesis, verification. |
 
-Run `openscience agent list` to print the complete set on your install, including utility sub-agents like `explore` and `reviewer`.
+Run `medhorizon agent list` to print the complete set on your install, including utility sub-agents like `explore` and `reviewer`.
 
 ## Pick an agent
 
 ```bash
 # one-shot run with a specific agent
-openscience run --agent physics "Fit the dispersion relation in data/spectra.csv"
+medhorizon run --agent physics "Fit the dispersion relation in data/spectra.csv"
 ```
 
-In the workspace, switch agents from the session picker. To change the default, set `default_agent` in `openscience.json`. Only agents with mode `primary` or `all` can lead a session; `subagent` profiles are reachable only by delegation.
+In the workspace, switch agents from the session picker. To change the default, set `default_agent` in `medhorizon.json`. Only agents with mode `primary` or `all` can lead a session; `subagent` profiles are reachable only by delegation.
 
 ## Create a custom agent
 
-`openscience agent create` walks you through it interactively. The non-interactive form:
+`medhorizon agent create` walks you through it interactively. The non-interactive form:
 
 ```bash
-openscience agent create \
-  --path .openscience \
+medhorizon agent create \
+  --path .medhorizon \
   --description "Reviews analysis notebooks for data leakage and unsound statistics" \
   --mode subagent \
   --tools "read,grep,glob" \
@@ -59,14 +59,14 @@ The result is a Markdown file: YAML frontmatter (description, mode, tools) plus 
 
 ## Tool restrictions
 
-`--tools "read,grep,glob"` produces a read-only agent that cannot be tricked into editing files. The available tools are `bash`, `read`, `write`, `edit`, `list`, `glob`, `grep`, `webfetch`, `task`, `todowrite`, and `todoread` — run `openscience agent create --help` for the list on your version.
+`--tools "read,grep,glob"` produces a read-only agent that cannot be tricked into editing files. The available tools are `bash`, `read`, `write`, `edit`, `list`, `glob`, `grep`, `webfetch`, `task`, `todowrite`, and `todoread` — run `medhorizon agent create --help` for the list on your version.
 
 ## Where agents live
 
 ```text
-.openscience/agent/             # project-scoped
-~/.config/openscience/agent/    # user-global
-<bundled>                       # ships with OpenScience
+.medhorizon/agent/             # project-scoped
+~/.config/medhorizon/agent/    # user-global
+<bundled>                       # ships with MedHorizon
 ```
 
 Resolution is project-local, then user-global, then built-in.

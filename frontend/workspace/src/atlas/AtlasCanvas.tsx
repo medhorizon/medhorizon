@@ -1639,7 +1639,7 @@ function InitHero(props: { onInit: () => void; onChat: () => void; busy: boolean
           "font-size": "10px",
           color: "var(--color-text-faint)",
         }}
-        title="Drop a prompt in the chat and let the agent run `openscience project init`"
+        title="Drop a prompt in the chat and let the agent run `medhorizon project init`"
       >
         or set it up from chat →
       </button>
