@@ -16,7 +16,7 @@ import type { InitProjectFailure } from "../../server/routes/atlas-bridge"
  *
  * `merge` (alias `pick`) collapses pre-existing duplicate roots created before
  * server-side dedupe: it lists candidate roots, lets the user pick the
- * canonical one, and writes it to `.openscience/project.json` so future syncs from
+ * canonical one, and writes it to `.medhorizon/project.json` so future syncs from
  * this folder reuse it. It never auto-merges.
  */
 export const ProjectCommand = cmd({
@@ -65,7 +65,7 @@ const ProjectInitCommand = cmd({
     UI.empty()
     if (result.projectId) {
       prompts.log.success(`Atlas research graph ready — project ${result.projectId}`)
-      prompts.log.info("Pinned to .openscience/project.json; the canvas will show it on next open.")
+      prompts.log.info("Pinned to .medhorizon/project.json; the canvas will show it on next open.")
       return
     }
     reportInitFailure(result.failure)
@@ -217,18 +217,18 @@ const ProjectMergeCommand = cmd({
     // Pin locally: PR-B's find-or-create reads this marker first, so every
     // future sync from this folder collapses onto the chosen root.
     try {
-      mkdirSync(join(directory, ".openscience"), { recursive: true })
+      mkdirSync(join(directory, ".medhorizon"), { recursive: true })
       writeFileSync(
-        join(directory, ".openscience", "project.json"),
+        join(directory, ".medhorizon", "project.json"),
         JSON.stringify({ project_id: chosen, dedupe_key: key, resolved_at: new Date().toISOString() }, null, 2) + "\n",
       )
     } catch (e) {
-      prompts.log.error(`Could not write .openscience/project.json: ${e instanceof Error ? e.message : String(e)}`)
+      prompts.log.error(`Could not write .medhorizon/project.json: ${e instanceof Error ? e.message : String(e)}`)
       prompts.outro("Aborted")
       return
     }
 
-    prompts.log.success(`Pinned ${chosen} for this folder (.openscience/project.json).`)
+    prompts.log.success(`Pinned ${chosen} for this folder (.medhorizon/project.json).`)
     const others = pool.filter((r) => r.node_id !== chosen)
     if (others.length > 0) {
       prompts.note(

@@ -26,7 +26,7 @@ afterEach(() => {
 
 async function seedSession() {
   await Bun.write(
-    path.join(Global.Path.data, "openscience-session.json"),
+    path.join(Global.Path.data, "medhorizon-session.json"),
     JSON.stringify({ api_key: "thk_test.secret", user_id: "u1", device_name: "test" }),
   )
 }

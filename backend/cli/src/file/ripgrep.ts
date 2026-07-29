@@ -302,7 +302,7 @@ export namespace Ripgrep {
       children: [],
     }
     for (const file of files) {
-      if (file.includes(".openscience") || file.includes(".synsc")) continue
+      if (file.includes(".medhorizon") || file.includes(".openscience") || file.includes(".synsc")) continue
       const parts = file.split(path.sep)
       getPath(root, parts, true)
     }

@@ -7,10 +7,10 @@ import { OpenScience, API_BASE } from "../src/openscience"
 
 // XDG dirs are isolated per test run by test/preload.ts, so these paths all
 // live under the throwaway temp tree — never the developer's real config.
-const session = path.join(Global.Path.data, "openscience-session.json")
-const synced = path.join(process.env.XDG_CONFIG_HOME!, "openscience")
+const session = path.join(Global.Path.data, "medhorizon-session.json")
+const synced = Global.Path.config
 const snapshot = path.join(synced, "synced-env.json")
-const managed = path.join(synced, "openscience-synced.json")
+const managed = path.join(synced, "medhorizon-synced.json")
 const queue = path.join(Global.Path.data, "usage-queue.jsonl")
 const atlas = path.join(os.tmpdir(), `openscience-test-atlas-${process.pid}`, "config.json")
 const sandboxAtlasConfig = process.env.ATLAS_CLI_CONFIG_PATH

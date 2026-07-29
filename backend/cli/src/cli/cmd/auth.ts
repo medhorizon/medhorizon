@@ -366,7 +366,7 @@ export const AuthLoginCommand = cmd({
         let provider: string | symbol | undefined = preselect
         if (preselect && !providers[preselect] && !specialIds.has(preselect)) {
           prompts.log.warn(
-            `${preselect} isn't in the model catalog — the key will be stored, but you'll need to configure the provider in openscience.json. See the docs.`,
+            `${preselect} isn't in the model catalog — the key will be stored, but you'll need to configure the provider in medhorizon.json. See the docs.`,
           )
         }
         if (!provider) {
@@ -471,7 +471,7 @@ export const AuthLoginCommand = cmd({
           }
 
           prompts.log.warn(
-            `This only stores a credential for ${provider} - you will need to configure it in openscience.json, check the docs for examples.`,
+            `This only stores a credential for ${provider} - you will need to configure it in medhorizon.json, check the docs for examples.`,
           )
         }
 
@@ -480,7 +480,7 @@ export const AuthLoginCommand = cmd({
             "Amazon Bedrock authentication priority:\n" +
               "  1. Bearer token (AWS_BEARER_TOKEN_BEDROCK or /connect)\n" +
               "  2. AWS credential chain (profile, access keys, IAM roles, EKS IRSA)\n\n" +
-              "Configure via openscience.json options (profile, region, endpoint) or\n" +
+              "Configure via medhorizon.json options (profile, region, endpoint) or\n" +
               "AWS environment variables (AWS_PROFILE, AWS_REGION, AWS_ACCESS_KEY_ID, AWS_WEB_IDENTITY_TOKEN_FILE).",
           )
         }

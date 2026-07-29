@@ -91,7 +91,7 @@ export const WebCommand = cmd({
 
     // Run the dashboard sync BEFORE starting the server — and without
     // the 5s race timeout the global middleware uses. The model picker
-    // and provider whitelist live in ~/.config/openscience/openscience-synced.json;
+    // and provider whitelist live in ~/.config/medhorizon/medhorizon-synced.json;
     // Config.state() reads that file once on first request and caches
     // for the process lifetime. If we start the HTTP server first, the
     // browser can race the sync and the picker shows the previous run's

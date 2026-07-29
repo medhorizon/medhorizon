@@ -23,7 +23,7 @@ medhorizon login               # sign in to Atlas (optional; BYOK works without 
 medhorizon run "..."           # run a one-shot task
 ```
 
-Configuration lives in `~/.config/openscience/openscience.json`. Provider keys can be set in the workspace (bring your own key) or synced from Atlas.
+Configuration lives in `~/.config/medhorizon/medhorizon.json`. Legacy OpenScience config paths remain readable. Provider keys can be set in the workspace (bring your own key) or synced from Atlas.
 
 ## Docs
 

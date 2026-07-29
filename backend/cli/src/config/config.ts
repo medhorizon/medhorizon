@@ -37,28 +37,42 @@ export namespace Config {
   // Managed settings directory for enterprise deployments (highest priority, admin-controlled)
   // These settings override all user and project settings
   function getManagedConfigDir(): string {
-    const dir = (() => {
+    const candidates = (() => {
       switch (process.platform) {
         case "darwin":
-          return "/Library/Application Support/openscience"
-        case "win32":
-          return path.join(process.env.ProgramData || "C:\\ProgramData", "openscience")
+          return [
+            "/Library/Application Support/medhorizon",
+            "/Library/Application Support/openscience",
+            "/Library/Application Support/synsc",
+          ]
+        case "win32": {
+          const root = process.env.ProgramData || "C:\\ProgramData"
+          return [path.join(root, "medhorizon"), path.join(root, "openscience"), path.join(root, "synsc")]
+        }
         default:
-          return "/etc/openscience"
+          return ["/etc/medhorizon", "/etc/openscience", "/etc/synsc"]
       }
     })()
-    // Enterprise machines provisioned before the OpenScience rename may still
-    // use the legacy "synsc" directory; keep honoring it until re-provisioned.
-    if (existsSync(dir)) return dir
-    const old = dir.replace(/openscience$/, "synsc")
-    return existsSync(old) ? old : dir
+    // Prefer MedHorizon; keep honoring OpenScience / synsc until re-provisioned.
+    for (const dir of candidates) {
+      if (existsSync(dir)) return dir
+    }
+    return candidates[0]
   }
 
   const managedConfigDir = process.env.OPENSCIENCE_TEST_MANAGED_CONFIG_DIR || getManagedConfigDir()
 
-  // Config filenames, oldest first: later merges win, so the legacy names load
-  // as the base and openscience.json(c) overrides them.
-  const CONFIG_FILES = ["synsc.jsonc", "synsc.json", "openscience.jsonc", "openscience.json"]
+  // Config filenames, oldest first: later merges win, so legacy names load as
+  // the base and medhorizon.json(c) overrides them.
+  const CONFIG_FILES = [
+    "synsc.jsonc",
+    "synsc.json",
+    "openscience.jsonc",
+    "openscience.json",
+    "medhorizon.jsonc",
+    "medhorizon.json",
+  ]
+  const PROJECT_CONFIG_DIRS = [".medhorizon", ".openscience", ".synsc"] as const
 
   // Custom merge function that concatenates array fields instead of replacing them
   function mergeConfigConcatArrays(target: Info, source: Info): Info {
@@ -137,21 +151,21 @@ export namespace Config {
 
     const directories = [
       Global.Path.config,
-      // Only scan project .openscience/ directories when project discovery is enabled
-      // (".synsc" is the pre-rename name, still honored)
+      // Only scan project .medhorizon/ (and legacy) dirs when project discovery
+      // is enabled. ".openscience" / ".synsc" remain dual-read.
       ...(!Flag.OPENSCIENCE_DISABLE_PROJECT_CONFIG
         ? await Array.fromAsync(
             Filesystem.up({
-              targets: [".openscience", ".synsc"],
+              targets: [...PROJECT_CONFIG_DIRS],
               start: Instance.directory,
               stop: Instance.worktree,
             }),
           )
         : []),
-      // Always scan ~/.openscience/ (user home directory)
+      // Always scan ~/.medhorizon/ (and legacy) under the user home directory
       ...(await Array.fromAsync(
         Filesystem.up({
-          targets: [".openscience", ".synsc"],
+          targets: [...PROJECT_CONFIG_DIRS],
           start: Global.Path.home,
           stop: Global.Path.home,
         }),
@@ -164,7 +178,12 @@ export namespace Config {
     }
 
     for (const dir of unique(directories)) {
-      if (dir.endsWith(".openscience") || dir.endsWith(".synsc") || dir === Flag.OPENSCIENCE_CONFIG_DIR) {
+      if (
+        dir.endsWith(".medhorizon") ||
+        dir.endsWith(".openscience") ||
+        dir.endsWith(".synsc") ||
+        dir === Flag.OPENSCIENCE_CONFIG_DIR
+      ) {
         for (const file of CONFIG_FILES) {
           log.debug(`loading config from ${path.join(dir, file)}`)
           result = mergeConfigConcatArrays(result, await loadFile(path.join(dir, file)))
@@ -190,7 +209,12 @@ export namespace Config {
     // a corrupt file: it must never brick config load (and thus the whole CLI).
     // Atomic writes prevent torn files going forward; this covers external
     // corruption or a file written by an older, non-atomic version.
-    const syncedConfig = path.join(Global.Path.config, "openscience-synced.json")
+    const syncedConfig = (() => {
+      const preferred = path.join(Global.Path.config, "medhorizon-synced.json")
+      if (existsSync(preferred)) return preferred
+      const legacy = path.join(Global.Path.config, "openscience-synced.json")
+      return existsSync(legacy) ? legacy : preferred
+    })()
     try {
       // Atlas writes model-lockdown config (enabled_providers, per-provider
       // whitelists, default model) for the hosted web agents. On the CLI the
@@ -341,6 +365,8 @@ export namespace Config {
       if (!md) continue
 
       const patterns = [
+        "/.medhorizon/command/",
+        "/.medhorizon/commands/",
         "/.openscience/command/",
         "/.openscience/commands/",
         "/.synsc/command/",
@@ -388,6 +414,8 @@ export namespace Config {
       if (!md) continue
 
       const patterns = [
+        "/.medhorizon/agent/",
+        "/.medhorizon/agents/",
         "/.openscience/agent/",
         "/.openscience/agents/",
         "/.synsc/agent/",
@@ -490,9 +518,9 @@ export namespace Config {
    * Deduplicates plugins by name, with later entries (higher priority) winning.
    * Priority order (highest to lowest):
    * 1. Local plugin/ directory
-   * 2. Local openscience.json
+   * 2. Local medhorizon.json (or a legacy config)
    * 3. Global plugin/ directory
-   * 4. Global openscience.json
+   * 4. Global medhorizon.json (or a legacy config)
    *
    * Since plugins are added in low-to-high priority order,
    * we reverse, deduplicate (keeping first occurrence), then restore order.
@@ -1258,8 +1286,12 @@ export namespace Config {
     let result: Info = pipe(
       {},
       mergeDeep(await loadFile(path.join(Global.Path.config, "config.json"))),
+      mergeDeep(await loadFile(path.join(Global.Path.config, "synsc.json"))),
+      mergeDeep(await loadFile(path.join(Global.Path.config, "synsc.jsonc"))),
       mergeDeep(await loadFile(path.join(Global.Path.config, "openscience.json"))),
       mergeDeep(await loadFile(path.join(Global.Path.config, "openscience.jsonc"))),
+      mergeDeep(await loadFile(path.join(Global.Path.config, "medhorizon.json"))),
+      mergeDeep(await loadFile(path.join(Global.Path.config, "medhorizon.jsonc"))),
     )
 
     const legacy = path.join(Global.Path.config, "config")
@@ -1422,7 +1454,7 @@ export namespace Config {
   }
 
   export async function update(config: Info) {
-    // Write to an actual project config READ path (openscience.json / .openscience/…)
+    // Write to an actual project config read path (medhorizon.json / .medhorizon/…)
     // — the previous `<Instance.directory>/config.json` is only read as the GLOBAL
     // config, never as project config, so PATCH /config appeared to save but the
     // change vanished on the next Instance reload.
@@ -1433,8 +1465,8 @@ export namespace Config {
   }
 
   function globalConfigFile() {
-    const candidates = ["openscience.jsonc", "openscience.json", "config.json"].map((file) =>
-      path.join(Global.Path.config, file),
+    const candidates = ["medhorizon.jsonc", "medhorizon.json", "openscience.jsonc", "openscience.json", "config.json"].map(
+      (file) => path.join(Global.Path.config, file),
     )
     for (const file of candidates) {
       if (existsSync(file)) return file
@@ -1444,6 +1476,10 @@ export namespace Config {
 
   function projectConfigFile() {
     const candidates = [
+      path.join(Instance.worktree, "medhorizon.jsonc"),
+      path.join(Instance.worktree, "medhorizon.json"),
+      path.join(Instance.worktree, ".medhorizon", "medhorizon.jsonc"),
+      path.join(Instance.worktree, ".medhorizon", "medhorizon.json"),
       path.join(Instance.worktree, "openscience.jsonc"),
       path.join(Instance.worktree, "openscience.json"),
       path.join(Instance.worktree, ".openscience", "openscience.jsonc"),
@@ -1542,7 +1578,7 @@ export namespace Config {
   /**
    * Execution-sandbox policy resolved from GLOBAL + MANAGED (admin) config only.
    * Project config is deliberately excluded: the sandbox is a machine-wide safety
-   * boundary, so an untrusted repo's `openscience.json` must not be able to weaken
+   * boundary, so an untrusted repo's config must not be able to weaken
    * or disable it. Managed (enterprise) config wins over the user's global config.
    */
   export async function trustedSandbox(): Promise<Sandbox | undefined> {

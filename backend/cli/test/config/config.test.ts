@@ -107,6 +107,23 @@ test("merges multiple config files with correct precedence", async () => {
   })
 })
 
+test("medhorizon config overrides legacy openscience config", async () => {
+  await using tmp = await tmpdir({
+    init: async (dir) => {
+      await writeConfig(dir, { model: "legacy/model", username: "legacy" }, "openscience.json")
+      await writeConfig(dir, { model: "current/model" }, "medhorizon.json")
+    },
+  })
+  await Instance.provide({
+    directory: tmp.path,
+    fn: async () => {
+      const config = await Config.get()
+      expect(config.model).toBe("current/model")
+      expect(config.username).toBe("legacy")
+    },
+  })
+})
+
 test("handles environment variable substitution", async () => {
   const originalEnv = process.env["TEST_VAR"]
   process.env["TEST_VAR"] = "test_theme"
@@ -315,12 +332,12 @@ test("migrates mode field to agent field", async () => {
   })
 })
 
-test("loads config from .openscience directory", async () => {
+test("loads config from .medhorizon directory", async () => {
   await using tmp = await tmpdir({
     init: async (dir) => {
-      const openscienceDir = path.join(dir, ".openscience")
-      await fs.mkdir(openscienceDir, { recursive: true })
-      const agentDir = path.join(openscienceDir, "agent")
+      const medhorizonDir = path.join(dir, ".medhorizon")
+      await fs.mkdir(medhorizonDir, { recursive: true })
+      const agentDir = path.join(medhorizonDir, "agent")
       await fs.mkdir(agentDir, { recursive: true })
 
       await Bun.write(
@@ -398,13 +415,13 @@ Nested agent prompt`,
   })
 })
 
-test("loads commands from .openscience/command (singular)", async () => {
+test("loads commands from .medhorizon/command (singular)", async () => {
   await using tmp = await tmpdir({
     init: async (dir) => {
-      const openscienceDir = path.join(dir, ".openscience")
-      await fs.mkdir(openscienceDir, { recursive: true })
+      const medhorizonDir = path.join(dir, ".medhorizon")
+      await fs.mkdir(medhorizonDir, { recursive: true })
 
-      const commandDir = path.join(openscienceDir, "command")
+      const commandDir = path.join(medhorizonDir, "command")
       await fs.mkdir(path.join(commandDir, "nested"), { recursive: true })
 
       await Bun.write(

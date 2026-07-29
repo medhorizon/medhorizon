@@ -75,13 +75,17 @@ export async function gitFetchPinned(params: FetchPinnedParams): Promise<void> {
     await mkdir(params.destDir, { recursive: true })
     await copyTree(srcSkill, params.destDir)
 
-    // Also copy the namespace's openscience-skills.json (entries manifest) if
-    // present. This is per-namespace, not per-skill — only the first sync
-    // per namespace needs to write it.
+    // Also copy the namespace's entries manifest if present. Prefer the
+    // MedHorizon name while accepting legacy repositories.
     const nsDir = path.dirname(path.dirname(params.destDir))
-    const nsManifest = path.join(nsDir, "openscience-skills.json")
-    const upstreamManifest = path.join(tmpDir, "openscience-skills.json")
-    if ((await Bun.file(upstreamManifest).exists()) && !(await Bun.file(nsManifest).exists())) {
+    const nsManifest = path.join(nsDir, "medhorizon-skills.json")
+    const upstreamManifest = await (async () => {
+      for (const name of ["medhorizon-skills.json", "openscience-skills.json"]) {
+        const file = path.join(tmpDir, name)
+        if (await Bun.file(file).exists()) return file
+      }
+    })()
+    if (upstreamManifest && !(await Bun.file(nsManifest).exists())) {
       await copyFile(upstreamManifest, nsManifest)
     }
   } finally {

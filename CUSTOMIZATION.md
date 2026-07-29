@@ -22,7 +22,9 @@
 
 ### 配置文件位置
 
-`.openscience/openscience.jsonc` 中的 `agent` 字段
+`.medhorizon/medhorizon.jsonc` 中的 `agent` 字段
+
+兼容说明：MedHorizon 仍会读取旧的 `.openscience/` 项目配置，但新配置应写入 `.medhorizon/`。
 
 ### 基本结构
 
@@ -60,7 +62,7 @@ bun src/cli/cmd/agent.ts create --name my-agent --model claude-sonnet-5
 
 ### 相关文件
 
-- 配置：`.openscience/openscience.jsonc`
+- 配置：`.medhorizon/medhorizon.jsonc`
 - Agent 定义类型：`backend/cli/src/agent/agent.ts`
 - Agent 加载逻辑：`backend/cli/src/agent/index.ts`
 
@@ -101,7 +103,7 @@ if (agent.name === "my-agent") {
 
 ### 方法 B：直接在配置中写
 
-在 `.openscience/openscience.jsonc` 的 `agent[].prompt` 字段直接写完整提示词（适合短提示）。
+在 `.medhorizon/medhorizon.jsonc` 的 `agent[].prompt` 字段直接写完整提示词（适合短提示）。
 
 ### 相关文件
 
@@ -399,7 +401,7 @@ await ctx.ask({
 
 ### Plugin（MCP 集成）
 
-**配置位置**：`.openscience/openscience.jsonc`
+**配置位置**：`.medhorizon/medhorizon.jsonc`
 
 ```jsonc
 {
@@ -433,7 +435,7 @@ await ctx.ask({
 ### Skill（可复用工作流）
 
 **创建 Skill**  
-在 `.openscience/skills/` 下创建 `my-workflow.md`：
+在 `.medhorizon/skills/` 下创建 `my-workflow.md`：
 
 ```markdown
 ---
@@ -479,9 +481,9 @@ This workflow helps with X, Y, and Z.
 
 ### 相关文件
 
-- Plugin 配置：`.openscience/openscience.jsonc` → `plugins`
+- Plugin 配置：`.medhorizon/medhorizon.jsonc` → `plugins`
 - Plugin 加载：`backend/cli/src/plugin/`
-- Skill 目录：`.openscience/skills/`
+- Skill 目录：`.medhorizon/skills/`
 - Skill 解析：`backend/cli/src/skill/`
 
 ---
@@ -496,11 +498,11 @@ This workflow helps with X, Y, and Z.
 
 | 修改类型      | 文件位置                                          | 说明                |
 | ------------- | ------------------------------------------------- | ------------------- |
-| 新 Agent 定义 | `.openscience/openscience.jsonc`                  | 添加 `agent` 数组项 |
+| 新 Agent 定义 | `.medhorizon/medhorizon.jsonc`                  | 添加 `agent` 数组项 |
 | 新工具        | `backend/cli/src/tool/my-tool.ts` + `registry.ts` | 新文件 + 一行注册   |
 | Prompt 模板   | `backend/cli/src/agent/prompt/my-agent.txt`       | 独立文本文件        |
-| Skill 工作流  | `.openscience/skills/my-workflow.md`              | 独立 markdown       |
-| Plugin 集成   | `.openscience/openscience.jsonc` → `plugins`      | 配置项              |
+| Skill 工作流  | `.medhorizon/skills/my-workflow.md`              | 独立 markdown       |
+| Plugin 集成   | `.medhorizon/medhorizon.jsonc` → `plugins`      | 配置项              |
 
 ### ⚠️ 轻度侵入（谨慎）
 
@@ -544,7 +546,7 @@ This workflow helps with X, Y, and Z.
 
 ### 步骤 1：定义审查 Agent
 
-编辑 `.openscience/openscience.jsonc`：
+编辑 `.medhorizon/medhorizon.jsonc`：
 
 ```jsonc
 {
@@ -708,7 +710,7 @@ export const TOOLS = [
 
 ### 步骤 4：创建 Skill（可选）
 
-创建 `.openscience/skills/review-pr.md`：
+创建 `.medhorizon/skills/review-pr.md`：
 
 ```markdown
 ---
@@ -813,14 +815,14 @@ await CodeReviewTool.execute({
 
 | 需求                  | 修改文件                                                   | 章节 |
 | --------------------- | ---------------------------------------------------------- | ---- |
-| 添加新 agent 类型     | `.openscience/openscience.jsonc`                           | §1   |
+| 添加新 agent 类型     | `.medhorizon/medhorizon.jsonc`                           | §1   |
 | 自定义 agent 提示词   | `backend/cli/src/agent/prompt/*.txt` + `session/prompt.ts` | §2   |
 | 添加子 agent 委托类型 | `backend/cli/src/tool/task.ts`                             | §3   |
 | 使用 stage + gate     | 工具调用 `stage({name, gate})`                             | §4   |
 | 创建新工具            | `backend/cli/src/tool/my-tool.ts` + `registry.ts`          | §5   |
-| 配置权限              | `.openscience/openscience.jsonc` → `agent[].permission`    | §6   |
-| 集成 MCP plugin       | `.openscience/openscience.jsonc` → `plugins`               | §7   |
-| 创建可复用工作流      | `.openscience/skills/my-workflow.md`                       | §7   |
+| 配置权限              | `.medhorizon/medhorizon.jsonc` → `agent[].permission`    | §6   |
+| 集成 MCP plugin       | `.medhorizon/medhorizon.jsonc` → `plugins`               | §7   |
+| 创建可复用工作流      | `.medhorizon/skills/my-workflow.md`                       | §7   |
 
 ---
 

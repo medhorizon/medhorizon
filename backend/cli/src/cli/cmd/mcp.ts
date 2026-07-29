@@ -163,7 +163,7 @@ export const McpAuthCommand = cmd({
 
         if (oauthServers.length === 0) {
           prompts.log.warn("No OAuth-capable MCP servers configured")
-          prompts.log.info("Remote MCP servers support OAuth by default. Add a remote server in openscience.json:")
+          prompts.log.info("Remote MCP servers support OAuth by default. Add a remote server in medhorizon.json:")
           prompts.log.info(`
   "mcp": {
     "my-server": {
@@ -381,13 +381,24 @@ export const McpLogoutCommand = cmd({
 })
 
 async function resolveConfigPath(baseDir: string, global = false) {
-  // Check for existing config files (prefer .jsonc over .json, check .openscience/ subdirectory too)
-  const candidates = [path.join(baseDir, "openscience.json"), path.join(baseDir, "openscience.jsonc")]
+  // Prefer MedHorizon config, while continuing to update an existing legacy file.
+  const candidates = [
+    path.join(baseDir, "medhorizon.jsonc"),
+    path.join(baseDir, "medhorizon.json"),
+    path.join(baseDir, "openscience.jsonc"),
+    path.join(baseDir, "openscience.json"),
+  ]
 
   if (!global) {
+    candidates.splice(
+      2,
+      0,
+      path.join(baseDir, ".medhorizon", "medhorizon.jsonc"),
+      path.join(baseDir, ".medhorizon", "medhorizon.json"),
+    )
     candidates.push(
-      path.join(baseDir, ".openscience", "openscience.json"),
       path.join(baseDir, ".openscience", "openscience.jsonc"),
+      path.join(baseDir, ".openscience", "openscience.json"),
     )
   }
 
@@ -397,8 +408,8 @@ async function resolveConfigPath(baseDir: string, global = false) {
     }
   }
 
-  // Default to openscience.json if none exist
-  return candidates[0]
+  // New files use the canonical root-level JSON name.
+  return path.join(baseDir, "medhorizon.json")
 }
 
 async function addMcpToConfig(name: string, mcpConfig: Config.Mcp, configPath: string) {

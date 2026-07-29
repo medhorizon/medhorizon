@@ -55,10 +55,8 @@ function isManagedAtlasKey(value: string): boolean {
 }
 
 function getSyncedConfigDir(): string {
-  // Use XDG config dir (user-writable) for synced config from dashboard
-  // This avoids needing root/admin permissions unlike /Library/Application Support
-  const xdg = process.env.XDG_CONFIG_HOME || path.join(os.homedir(), ".config")
-  return path.join(xdg, "openscience")
+  // Global.Path.config has already migrated the XDG directory from legacy names.
+  return Global.Path.config
 }
 
 // Seed the synced-secret set from the on-disk snapshot at import. preload-env.ts
@@ -284,7 +282,7 @@ function withAtlasOnPath(env: Record<string, string>): Record<string, string> {
 }
 
 export namespace OpenScience {
-  const filepath = path.join(Global.Path.data, "openscience-session.json")
+  const filepath = path.join(Global.Path.data, "medhorizon-session.json")
 
   /** Friendly device label sent to the backend. Surfaced in the
    *  user's Devices list so they can identify which machine each row
@@ -551,7 +549,7 @@ export namespace OpenScience {
     // a fresh `logout` process has only the latter.
     const synced = await readSyncedSnapshot()
     for (const [key, value] of syncedSecretValues.entries()) synced.set(key, value)
-    for (const name of ["synced-env.json", "openscience-synced.json"]) {
+    for (const name of ["synced-env.json", "medhorizon-synced.json", "openscience-synced.json"]) {
       try {
         await fs.unlink(path.join(getSyncedConfigDir(), name))
       } catch {}
@@ -753,7 +751,7 @@ export namespace OpenScience {
 
   /** Write a file atomically (temp + rename) so a crash mid-write can never
    *  leave a torn file — a torn synced-env.json silently drops managed keys, and
-   *  a torn openscience-synced.json throws during config load and bricks the CLI
+   *  a torn medhorizon-synced.json throws during config load and bricks the CLI
    *  until it's removed by hand. */
   async function atomicWrite(filepath: string, content: string, options?: { mode?: number }): Promise<void> {
     // Unique per call (not just per PID): two concurrent syncs in the SAME
@@ -892,7 +890,7 @@ export namespace OpenScience {
           const managedDir = getSyncedConfigDir()
           await fs.mkdir(managedDir, { recursive: true })
           await atomicWrite(
-            path.join(managedDir, "openscience-synced.json"),
+            path.join(managedDir, "medhorizon-synced.json"),
             JSON.stringify({ $schema: "https://syntheticsciences.ai/config.json", ...data.config }, null, 2),
             { mode: 0o600 },
           )

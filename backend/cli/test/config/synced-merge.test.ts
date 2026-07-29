@@ -6,12 +6,12 @@ import { Instance } from "../../src/project/instance"
 import { Global } from "../../src/global"
 import { tmpdir } from "../fixture/fixture"
 
-// The Atlas sync writes openscience-synced.json into the user's XDG config dir; it's
+// The Atlas sync writes medhorizon-synced.json into the user's XDG config dir; it's
 // read fresh per-instance by Config.state(). The user's own config goes in the
 // project's openscience.json (via tmpdir({config})), which is per-test isolated —
 // unlike the global openscience.json, which Config caches process-wide. These tests
 // exercise the real Config load path end-to-end (#159 / #142).
-const syncedConfig = path.join(Global.Path.config, "openscience-synced.json")
+const syncedConfig = path.join(Global.Path.config, "medhorizon-synced.json")
 
 async function writeSynced(obj: object) {
   await fs.mkdir(path.dirname(syncedConfig), { recursive: true })

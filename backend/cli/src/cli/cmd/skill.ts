@@ -266,7 +266,7 @@ const SkillListCommand = cmd({
     }),
   handler: async (args) => {
     // Skill.state() needs project-instance context so it can walk the
-    // .claude/.openscience config dirs alongside the global cache + learned +
+    // .claude/.medhorizon (and legacy) config dirs alongside the global cache + learned +
     // installed dirs. Mirror what ModelsCommand does.
     await Instance.provide({
       directory: process.cwd(),
@@ -417,7 +417,7 @@ const SkillSetEntriesCommand = cmd({
   command: "set-entries <namespace> <entries>",
   describe:
     "override which skills in a namespace surface in the / picker. " +
-    "Writes openscience-skills.json locally for the namespace.",
+    "Writes medhorizon-skills.json locally for the namespace.",
   builder: (yargs: Argv) => {
     return yargs
       .positional("namespace", {
@@ -444,7 +444,7 @@ const SkillSetEntriesCommand = cmd({
       UI.error(`namespace '${ns}' not installed`)
       process.exit(1)
     }
-    await fs.writeFile(path.join(nsDir, "openscience-skills.json"), JSON.stringify({ entries }, null, 2))
+    await fs.writeFile(path.join(nsDir, "medhorizon-skills.json"), JSON.stringify({ entries }, null, 2))
     UI.println(
       `Marked ${entries.length} skill(s) as entries for ${ns}. ` + `Others stay loaded but hidden from / picker.`,
     )

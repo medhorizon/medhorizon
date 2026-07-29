@@ -4,7 +4,7 @@ import path from "node:path"
 import { Global } from "../../src/global"
 import { AccountRoutes } from "../../src/server/routes/account"
 
-const sessionFile = path.join(Global.Path.data, "openscience-session.json")
+const sessionFile = path.join(Global.Path.data, "medhorizon-session.json")
 
 describe("account.session", () => {
   beforeEach(async () => {

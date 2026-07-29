@@ -303,8 +303,8 @@ function projectIdOf(p: any): string | null {
   return p?.project_id ?? p?.id ?? p?.node_id ?? null
 }
 
-// ── local project pin (.openscience/project.json) ─────────────────────────────
-// Written by `openscience project init` / `project merge` and by a successful
+// ── local project pin (.medhorizon/project.json) ──────────────────────────────
+// Written by `medhorizon project init` / `project merge` and by a successful
 // resolve. Read FIRST so a linked repo shows its graph instantly (and offline)
 // without re-hitting the API — closing the gap where the pin was written but
 // never honoured. Lives at the repo root next to .git.
@@ -315,8 +315,8 @@ export interface ProjectPin {
 }
 
 function readProjectPin(root: string): ProjectPin | null {
-  // legacy `.synsci/` pins predate the OpenScience rename; still honored
-  for (const dir of [".openscience", ".synsci"]) {
+  // OpenScience and `.synsci/` pins remain readable after the MedHorizon rename.
+  for (const dir of [".medhorizon", ".openscience", ".synsci"]) {
     try {
       const raw = readFileSync(join(root, dir, "project.json"), "utf8")
       const j = JSON.parse(raw)
@@ -330,7 +330,7 @@ function readProjectPin(root: string): ProjectPin | null {
 /** Trust a pin only when it carries no dedupe key (legacy/back-compat) or its
  *  key matches the repo's freshly-computed key. A pin whose key differs belongs
  *  to a DIFFERENT repo identity (e.g. the remote was re-pointed, or a stale
- *  `.openscience/` was copied in) and must not shadow — or block find-or-create
+ *  `.medhorizon/` was copied in) and must not shadow — or block find-or-create
  *  of — the correct project. */
 export function pinMatchesKey(pin: ProjectPin, key: string): boolean {
   return !pin.dedupe_key || pin.dedupe_key === key
@@ -338,9 +338,9 @@ export function pinMatchesKey(pin: ProjectPin, key: string): boolean {
 
 function writeProjectPin(root: string, projectId: string, key: string): void {
   try {
-    mkdirSync(join(root, ".openscience"), { recursive: true })
+    mkdirSync(join(root, ".medhorizon"), { recursive: true })
     writeFileSync(
-      join(root, ".openscience", "project.json"),
+      join(root, ".medhorizon", "project.json"),
       JSON.stringify({ project_id: projectId, dedupe_key: key, resolved_at: new Date().toISOString() }, null, 2) + "\n",
     )
   } catch {

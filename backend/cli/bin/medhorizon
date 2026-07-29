@@ -93,20 +93,21 @@ function run(target) {
   }
 
   // Clean up files that confuse Bun compiled binaries.
-  // Install dir stays as ~/.openscience/ until the path-migration follow-up PR.
-  const openscienceDir = path.join(os.homedir(), ".openscience")
-  for (const poison of ["package.json", ".gitignore", "bun.lockb", "bunfig.toml"]) {
+  const installs = [path.join(os.homedir(), ".medhorizon"), path.join(os.homedir(), ".openscience")]
+  for (const dir of installs) {
+    for (const poison of ["package.json", ".gitignore", "bun.lockb", "bunfig.toml"]) {
+      try {
+        fs.unlinkSync(path.join(dir, poison))
+      } catch {}
+    }
     try {
-      fs.unlinkSync(path.join(openscienceDir, poison))
+      fs.rmSync(path.join(dir, "node_modules"), { recursive: true })
     } catch {}
   }
-  try {
-    fs.rmSync(path.join(openscienceDir, "node_modules"), { recursive: true })
-  } catch {}
   // Clear macOS extended attributes that cause Bun binaries to hang
   if (os.platform() === "darwin") {
     try {
-      childProcess.spawnSync("xattr", ["-rc", openscienceDir], { stdio: "ignore" })
+      childProcess.spawnSync("xattr", ["-rc", ...installs], { stdio: "ignore" })
     } catch {}
   }
 
@@ -210,11 +211,10 @@ function main() {
     current = parent
   }
 
-  // Check the current curl location, then the legacy OpenScience location.
-  const homes = [
-    path.join(os.homedir(), ".medhorizon", "bin", binaries[0]),
-    path.join(os.homedir(), ".openscience", "bin", binaries[1]),
-  ]
+  // Check both binary names in the current and legacy curl locations.
+  const homes = [".medhorizon", ".openscience"].flatMap((dir) =>
+    binaries.map((binary) => path.join(os.homedir(), dir, "bin", binary)),
+  )
   for (const home of homes) {
     if (isBinary(home)) run(home)
   }

@@ -182,7 +182,7 @@ export async function runLocalModelSetup(input: LocalSetupInput = {}): Promise<s
       const block = LocalProvider.buildProviderConfig({ name, baseURL, apiKey, models: selected })
       await Config.setProvider(id, block as any, input.project ? "project" : "global")
 
-      const scopeLabel = input.project ? "this project's openscience.json" : "your global config"
+      const scopeLabel = input.project ? "this project's medhorizon.json" : "your global config"
       prompts.log.success(`Added ${selected.length} model(s) under provider "${id}" to ${scopeLabel}.`)
 
       // Offer to set a default so `medhorizon run` uses it immediately.
