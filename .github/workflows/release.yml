@@ -50,14 +50,16 @@ jobs:
       - name: Find binary (Unix)
         if: runner.os != 'Windows'
         run: |
-          BINARY=$(find backend/cli/dist -type f -name "openscience" | head -1)
+          BINARY=$(find backend/cli/dist -type f -executable -name "openscience" ! -name "*.map" | head -1)
+          echo "Found binary: $BINARY"
           echo "BINARY=$BINARY" >> $GITHUB_ENV
 
       - name: Find binary (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          $b = Get-ChildItem -Path "backend/cli/dist" -Recurse -Filter "openscience.exe" | Select-Object -First 1
+          $b = Get-ChildItem -Path "backend\cli\dist" -Recurse -Filter "openscience.exe" | Select-Object -First 1
+          Write-Host "Found binary: $($b.FullName)"
           echo "BINARY=$($b.FullName)" >> $env:GITHUB_ENV
 
       - name: Package (Windows)
