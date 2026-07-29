@@ -1,5 +1,9 @@
 # OpenScience 残留清单（MedHorizon / Medho）
 
+> **分支进度（`cursor/medhorizon-rebrand-a983`）**  
+> 第 6 节建议顺序的 **1–3 已落地**：显示层 → 命令面 `medhorizon` → 配置路径 `.medhorizon` / `medhorizon.json*`（保留对 `openscience` / `synsc` 的双读与迁移）。  
+> **未做第 4 步**：`@synsci/*`、provider `synsci`、`x-openscience-*`、SDK `createOpenScienceClient`、`OPENSCIENCE_*` 环境变量名、localStorage 前缀仍保留。
+
 本文档统计仓库中仍出现的 **OpenScience / SynSci / synsci / synsc** 相关内容，按「对外显示」与「核心架构」分类，并注明路径与作用，供后续去品牌 / 重命名时对照修改。
 
 > 统计口径（约）：排除 `bun.lock`、`node_modules`、Landing 内嵌的预构建 docs bundle 后，含 `openscience` 约 **399** 个文件，含 `synsci`/`synsc` 约 **227** 个文件。分布大致为：`backend` ~232 · `frontend` ~119 · `tooling` ~22 · `docs` ~14 · `.github` ~8 · 根目录若干。

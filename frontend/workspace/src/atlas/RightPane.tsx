@@ -286,7 +286,7 @@ function TerminalTab(): JSX.Element {
               "line-height": 1.5,
             }}
           >
-            Terminal access is available only when <code>openscience web</code> is connected to a loopback server.
+            Terminal access is available only when <code>medhorizon web</code> is connected to a loopback server.
           </div>
         }
       >

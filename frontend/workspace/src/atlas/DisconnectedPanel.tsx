@@ -52,7 +52,7 @@ export function DisconnectedPanel(): JSX.Element {
               "white-space": "nowrap",
             }}
           >
-            {server.name} · start it with <code>openscience web</code> or switch servers · retrying…
+            {server.name} · start it with <code>medhorizon web</code> or switch servers · retrying…
           </div>
         </div>
         <button
