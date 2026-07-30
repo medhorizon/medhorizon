@@ -20,3 +20,13 @@ frontend/workspace/e2e/test-results/
 
 # built docs, embedded so openscience.sh/docs serves them (regenerate with: bun run --cwd frontend/landing sync:docs)
 frontend/landing/public/docs/
+
+# Python / test caches (local research-graph sidecar)
+.venv/
+**/.venv/**
+.pytest_cache/
+**/.pytest_cache/**
+__pycache__/
+research-graph/backend/.venv/
+research-graph/.pytest_cache/
+.pytest_cache/

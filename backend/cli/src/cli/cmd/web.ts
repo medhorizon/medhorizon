@@ -9,6 +9,7 @@ import { needsOnboarding, runOnboarding, isConfigured } from "../onboard"
 import fs from "fs/promises"
 import os from "os"
 import path from "path"
+import { startResearchGraphSidecar, stopResearchGraphSidecar } from "../../sidecar/research-graph"
 
 // macOS TCC probe: try to read ~/Desktop, which is one of the canonical
 // dirs blocked unless the running binary has Full Disk Access. An empty
@@ -146,6 +147,8 @@ export const WebCommand = cmd({
 
     const server = Server.listen(opts)
 
+    await startResearchGraphSidecar()
+
     const base = `http://localhost:${server.port}`
     UI.println(UI.Style.TEXT_INFO_BOLD + "  Web interface:    ", UI.Style.TEXT_NORMAL, base)
     UI.empty()
@@ -170,6 +173,7 @@ export const WebCommand = cmd({
     // a stalled server.stop() (long-lived `/event` SSE streams) or an in-flight
     // background config sync (a pending fetch keeps Bun's loop alive) block the
     // exit — a watchdog forces it, and process.exit ignores dangling sockets.
+    stopResearchGraphSidecar()
     const watchdog = setTimeout(() => process.exit(0), 2000)
     watchdog.unref?.()
     try {
