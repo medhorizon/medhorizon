@@ -109,9 +109,19 @@ jobs:
       - name: Package Windows one-click installer
         run: |
           mkdir -p installer
-          cp scripts/install.bat scripts/install.ps1 installer/
+          # install.bat must be ASCII + CRLF for cmd.exe (do not ship UTF-8/LF).
+          python3 - <<'PY'
+          from pathlib import Path
+          src = Path("scripts/install.bat").read_bytes()
+          text = src.replace(b"\r\n", b"\n").replace(b"\r", b"\n").decode("ascii")
+          out = text.replace("\n", "\r\n").encode("ascii")
+          Path("installer/install.bat").write_bytes(out)
+          Path("artifacts/install.bat").write_bytes(out)
+          print("install.bat bytes", len(out), "crlf", out.count(b"\r\n"))
+          PY
+          cp scripts/install.ps1 installer/
+          cp scripts/install.ps1 scripts/install.sh artifacts/
           (cd installer && zip -9 ../artifacts/medhorizon-windows-installer.zip install.bat install.ps1)
-          cp scripts/install.bat scripts/install.ps1 scripts/install.sh artifacts/
           cd artifacts && sha256sum ./* > checksums.txt && cat checksums.txt
 
       - name: Create GitHub Release
@@ -119,13 +129,11 @@ jobs:
         with:
           name: "MedHorizon ${{ github.ref_name }}"
           body: |
-            ## 本版本亮点（v0.3.2）
+            ## 本版本亮点（v0.3.3）
 
-            - **一键安装包完善**：Release 同时提供 `install.bat` + `install.ps1`，以及 Windows 打包 `medhorizon-windows-installer.zip`
-            - Research Graph 侧栏突出卡片（HTTP 接口 + 网关注入，不改核心）
-            - Prettier / CI format 修复
-            - 使用说明：[`research-graph/docs/USAGE.md`](https://github.com/medhorizon/medhorizon/blob/main/research-graph/docs/USAGE.md)
-            - 变更摘要见 [CHANGELOG](https://github.com/medhorizon/medhorizon/blob/main/CHANGELOG.md)
+            - **修复 Windows `install.bat`**：纯 ASCII + CRLF，避免 UTF-8/LF 在 cmd 下乱码/失败
+            - Release 打包时强制写出 CRLF 的 `install.bat`
+            - 其余同 v0.3.2：一键安装包、`install.ps1`/`install.sh`、平台二进制
 
             ## 一键安装
 
