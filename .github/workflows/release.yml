@@ -106,34 +106,73 @@ jobs:
           sha256sum ./* > checksums.txt
           cat checksums.txt
 
+      - name: Package Windows one-click installer
+        run: |
+          mkdir -p installer artifacts
+          # install.bat / install.ps1 must be ASCII + CRLF for Windows cmd/PowerShell.
+          python3 - <<'PY'
+          from pathlib import Path
+
+          def rewrite(src: str, *dests: str) -> None:
+              raw = Path(src).read_bytes()
+              text = raw.replace(b"\r\n", b"\n").replace(b"\r", b"\n").decode("ascii")
+              out = text.replace("\n", "\r\n").encode("ascii")
+              for dest in dests:
+                  path = Path(dest)
+                  path.parent.mkdir(parents=True, exist_ok=True)
+                  path.write_bytes(out)
+              print(src, "bytes", len(out), "crlf", out.count(b"\r\n"))
+
+          rewrite("scripts/install.bat", "installer/install.bat", "artifacts/install.bat")
+          rewrite("scripts/install.ps1", "installer/install.ps1", "artifacts/install.ps1")
+          PY
+          cp scripts/install.sh artifacts/
+          (cd installer && zip -9 ../artifacts/medhorizon-windows-installer.zip install.bat install.ps1)
+          cd artifacts && sha256sum ./* > checksums.txt && cat checksums.txt
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           name: "MedHorizon ${{ github.ref_name }}"
           body: |
-            ## 安装方法
+            ## 本版本亮点（v0.3.4）
 
-            ### Windows
-            下载 `install.bat`，双击运行，按提示操作。
+            - **修复 Windows 安装脚本编码**：`install.bat` 与 `install.ps1` 均为纯 ASCII + CRLF
+            - Release 打包强制重写两者为 CRLF，避免 UTF-8/LF 在 cmd/PowerShell 下失败
+            - 生成的 `start.bat` 亦为 ASCII + CRLF
+            - 其余同 v0.3.2：一键安装包、平台二进制
+
+            ## 一键安装
+
+            ### Windows（推荐）
+            1. 下载 [`medhorizon-windows-installer.zip`](https://github.com/medhorizon/medhorizon/releases/latest/download/medhorizon-windows-installer.zip)
+            2. 解压后双击 `install.bat`
+            3. 或只下 [`install.bat`](https://github.com/medhorizon/medhorizon/releases/latest/download/install.bat)（会自动拉取 `install.ps1`）
 
             ### macOS (Apple Silicon) / Linux
             ```bash
             curl -fsSL https://raw.githubusercontent.com/medhorizon/medhorizon/main/scripts/install.sh | bash
             ```
+            也可下载 Release 中的 [`install.sh`](https://github.com/medhorizon/medhorizon/releases/latest/download/install.sh) 后执行。
 
             ### 手动安装
-            下载对应平台的压缩包，解压后运行 `medhorizon` 即可启动。
-            首次启动会自动打开浏览器引导填写 API Key。
-
-            ### 本版本产物
+            下载对应平台压缩包，解压后运行 `medhorizon`：
             - `medhorizon-windows-x64.zip`
             - `medhorizon-macos-arm64.tar.gz`
             - `medhorizon-linux-x64.tar.gz`
+
+            首次启动会自动打开浏览器引导填写 API Key。
+
+            ### Research Graph（可选）
+            ```bash
+            cd research-graph && PYTHONPATH=. python3 -m uvicorn backend.main:app --host 127.0.0.1 --port 8000
+            cd research-graph/frontend && npm install && npm run dev -- --host 127.0.0.1 --port 5173
+            python3 research-graph/scripts/medhorizon-gateway.py   # 侧栏卡片 → :5199
+            ```
 
             ---
             完整说明见 [README](https://github.com/medhorizon/medhorizon#readme)
           files: |
             artifacts/*
-            scripts/install.bat
           draft: false
           prerelease: false
