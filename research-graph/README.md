@@ -52,6 +52,12 @@ PYTHONPATH=. backend/.venv/bin/pytest backend/tests -q
 | `local` | Module SQLite/Supabase only |
 | `atlas` / `hybrid` | Plugin may project summaries via existing MedHorizon `/api/atlas/*` bridge; full experiment/GEPA stay local |
 
+## Usage guide (screenshots)
+
+中文可视化使用说明（含启动方式、界面操作与预期结果截图）：
+
+→ [`docs/USAGE.md`](docs/USAGE.md)
+
 ## Plan
 
 See `docs/plans/research-graph-plan.md` in the MedHorizon repo (this module is the implementation).
