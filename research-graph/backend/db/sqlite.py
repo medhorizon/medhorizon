@@ -186,6 +186,7 @@ CREATE TABLE IF NOT EXISTS session_graph_bindings (
   session_id TEXT NOT NULL,
   user_id TEXT NOT NULL,
   graph_id TEXT NOT NULL,
+  directory TEXT,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL,
   PRIMARY KEY (session_id, user_id)
@@ -231,6 +232,13 @@ class Store:
         self._lock = threading.RLock()
         with self.connect() as conn:
             conn.executescript(SCHEMA)
+            self._migrate(conn)
+
+    @staticmethod
+    def _migrate(conn: sqlite3.Connection) -> None:
+        cols = {row[1] for row in conn.execute("PRAGMA table_info(session_graph_bindings)").fetchall()}
+        if cols and "directory" not in cols:
+            conn.execute("ALTER TABLE session_graph_bindings ADD COLUMN directory TEXT")
 
     @contextmanager
     def connect(self) -> Iterator[sqlite3.Connection]:

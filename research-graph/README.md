@@ -33,7 +33,9 @@ Disable auto-start with `RESEARCH_GRAPH_DISABLE=1`.
 ## MedHorizon stage → node landing
 
 When the Research Graph plugin overlay is enabled, entering a MedHorizon `stage`
-auto-creates a mirror node (`meta.medhorizon_stage`). See
+auto-creates a mirror node (`meta.medhorizon_stage`). In the graph UI you can
+**double-click** a stage node to open the MedHorizon session, or **right-click →
+在此开分支** to fork at that stage. See
 [`docs/STAGE_LANDING.md`](./docs/STAGE_LANDING.md).
 
 

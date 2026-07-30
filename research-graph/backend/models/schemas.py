@@ -232,15 +232,24 @@ class StageLandIn(WriteMeta):
     title: str | None = None
     content: str | None = None
     create_graph_title: str | None = None
+    directory: str | None = None
 
 
 class SessionBindIn(WriteMeta):
     session_id: str
     graph_id: str
+    directory: str | None = None
 
 
 class SessionBindOut(BaseModel):
     session_id: str
     graph_id: str
+    directory: str | None = None
     created_at: str
     updated_at: str
+
+
+class NodeBranchIn(WriteMeta):
+    restore_files: bool = True
+    directory: str | None = None
+

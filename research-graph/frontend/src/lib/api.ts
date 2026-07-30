@@ -35,6 +35,42 @@ export type Node = {
   summary?: string
   lifecycle: string
   revision: number
+  tags?: string[]
+  meta?: {
+    medhorizon_stage?: {
+      name?: string
+      index?: number
+      part_id?: string
+      session_id?: string
+      message_id?: string
+      directory?: string
+      status?: string
+      summary?: string
+    }
+  }
+}
+
+export type MedhorizonNav = {
+  node_id: string
+  graph_id: string
+  session_id?: string | null
+  message_id?: string | null
+  part_id?: string | null
+  stage_name?: string | null
+  directory?: string | null
+  can_open: boolean
+  can_branch: boolean
+  open_url?: string | null
+  open_url_gateway?: string | null
+  hint?: string | null
+}
+
+export type MedhorizonBranch = {
+  source_session_id: string
+  session: { id: string; title?: string }
+  restored: boolean
+  open_url: string
+  open_url_gateway?: string
 }
 
 export type Edge = {
@@ -111,4 +147,10 @@ export const api = {
       cta: { label: string; href: string }
     }>("/integration/sidebar-card"),
   manifest: () => request<Record<string, unknown>>("/integration/manifest"),
+  medhorizonNav: (nodeId: string) => request<MedhorizonNav>(`/api/nodes/${nodeId}/medhorizon`),
+  medhorizonBranch: (nodeId: string, restoreFiles = true) =>
+    request<MedhorizonBranch>(`/api/nodes/${nodeId}/medhorizon/branch`, {
+      method: "POST",
+      body: JSON.stringify({ restore_files: restoreFiles, reason: "ui-branch" }),
+    }),
 }

@@ -18,6 +18,7 @@ export const atlasStage = tool({
     title: tool.schema.string().optional(),
     content: tool.schema.string().optional(),
     create_graph_title: tool.schema.string().optional(),
+    directory: tool.schema.string().optional(),
     idempotency_key: tool.schema.string().optional(),
     reason: tool.schema.string().optional(),
   },
@@ -27,6 +28,7 @@ export const atlasStage = tool({
       message_id: ctx.messageID,
       idempotency_key: args.idempotency_key,
       reason: args.reason || "atlas_stage tool",
+      directory: args.directory,
     }
     try {
       if (args.action === "protocol") {
