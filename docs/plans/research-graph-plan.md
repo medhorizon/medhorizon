@@ -41,11 +41,11 @@ npm --version
 
 ### 当前状态
 
-- **状态**：规划中，尚未开始实现
+- **状态**：Phase 1–7 模块骨架已落地（local SQLite 可跑通）
 - **最后更新**：2026-07-30
-- **已完成**：无
-- **当前阶段**：Phase 1（基础设施）
-- **下一步**：创建独立模块目录并执行 `supabase/schema.sql`
+- **已完成**：独立模块 `research-graph/`（schema、FastAPI、CRUD、实验、GEPA、前端、Plugin/Skills）
+- **当前阶段**：Checkpoint / 联调与可选 Supabase 部署
+- **下一步**：配置真实 Supabase/OpenAI；用 `OPENSCIENCE_CONFIG_DIR` 挂载 plugin 做端到端联调
 
 ### 路径缩写
 
@@ -602,6 +602,6 @@ medhorizon web
 
 <!-- 进度记录从这里开始 -->
 
-_尚无记录。_
+- 2026-07-30 ✅ Phase 1–7 模块化落地 — 新增顶层 `research-graph/`（不改 MedHorizon 源码）；local SQLite + FastAPI CRUD/实验/GEPA；Vite UI；Plugin/Skills/Agents overlay；`pytest` 4 passed；`curl /health` 可用
 
 <!-- 新记录追加在上方，保留此注释 -->
