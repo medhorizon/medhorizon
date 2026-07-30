@@ -168,8 +168,8 @@ for (const item of targets) {
       autoloadTsconfig: true,
       autoloadPackageJson: true,
       target: name.replace(pkg.name, "bun") as any,
-      outfile: `dist/${name}/bin/openscience`,
-      execArgv: [`--user-agent=openscience/${Script.version}`, "--use-system-ca", "--"],
+      outfile: `dist/${name}/bin/medhorizon`,
+      execArgv: [`--user-agent=medhorizon/${Script.version}`, "--use-system-ca", "--"],
       windows: {},
     },
     entrypoints: ["./src/index.ts"],
@@ -182,7 +182,7 @@ for (const item of targets) {
   })
 
   if (item.os === "linux" && item.arch === "arm64") {
-    const report = await assertLinuxArm64PageSize(`dist/${name}/bin/openscience`)
+    const report = await assertLinuxArm64PageSize(`dist/${name}/bin/medhorizon`)
     console.log(`verified ${name} has ${report.loads} ELF load segments compatible with 64KB-page kernels`)
   }
 
@@ -202,7 +202,7 @@ for (const item of targets) {
         // the repo the workflow ran from (case-sensitive)
         repository: {
           type: "git",
-          url: "git+https://github.com/synthetic-sciences/openscience.git",
+          url: "git+https://github.com/medhorizon/medhorizon.git",
         },
       },
       null,
@@ -215,7 +215,7 @@ for (const item of targets) {
 if (Script.release) {
   const checksums: string[] = []
   for (const key of Object.keys(binaries)) {
-    const archiveName = key.replace(`${pkg.name}-`, "openscience-") + (key.includes("linux") ? ".tar.gz" : ".zip")
+    const archiveName = key.replace(`${pkg.name}-`, "medhorizon-") + (key.includes("linux") ? ".tar.gz" : ".zip")
     if (key.includes("linux")) {
       await $`tar -czf ${path.resolve(dir, `dist/${archiveName}`)} *`.cwd(`dist/${key}/bin`)
     } else {

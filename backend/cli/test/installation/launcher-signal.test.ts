@@ -3,12 +3,12 @@ import os from "node:os"
 import path from "node:path"
 import { chmod, copyFile, mkdtemp, rm, writeFile } from "node:fs/promises"
 
-// The launcher (backend/cli/bin/openscience) is a plain CJS Node script. When
+// The launcher (backend/cli/bin/medhorizon) is a plain CJS Node script. When
 // the resolved binary is killed by a signal (SIGSEGV/SIGILL on some ARM64
 // hosts, per #190), spawnSync returns status: null, signal: "SIG...", and the
 // launcher must not silently exit 0 — see the task brief for the confirmed
 // root cause.
-const launcherSource = path.join(__dirname, "../../bin/openscience")
+const launcherSource = path.join(__dirname, "../../bin/medhorizon")
 
 describe("launcher signal handling (#190)", () => {
   test("exits non-zero with an actionable diagnostic when the binary is killed by a signal", async () => {
@@ -25,7 +25,7 @@ describe("launcher signal handling (#190)", () => {
     // script/publish.ts) ships a package.json with no "type" field, so real
     // installs default to CommonJS — copying to a bare temp dir (no ambient
     // package.json) reproduces that real-world resolution instead.
-    const launcherCopy = path.join(tmpBin, "openscience")
+    const launcherCopy = path.join(tmpBin, "medhorizon")
 
     try {
       // A shell script that signals itself SEGV. isBinary() in the launcher

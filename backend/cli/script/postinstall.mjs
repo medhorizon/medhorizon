@@ -64,7 +64,7 @@ function linuxKernelProblem(platform, release = os.release()) {
   const major = Number(match[1])
   const minor = Number(match[2])
   if (major > 5 || (major === 5 && minor >= 1)) return undefined
-  return `Linux kernel ${release} is unsupported; OpenScience's bundled runtime requires kernel 5.1 or newer`
+  return `Linux kernel ${release} is unsupported; MedHorizon's bundled runtime requires kernel 5.1 or newer`
 }
 
 function pageSize(platform) {
@@ -78,7 +78,7 @@ function linuxArm64PageSizeProblem(platform, arch, detectedPageSize) {
   const bytes = Number.parseInt(String(detectedPageSize), 10)
   if (!Number.isFinite(bytes) || bytes === 4096) return undefined
   return [
-    `Linux ARM64 page size ${bytes} is unsupported by OpenScience's Bun-compiled executable`,
+    `Linux ARM64 page size ${bytes} is unsupported by MedHorizon's Bun-compiled executable`,
     "use a kernel or VM configured with 4 KB pages",
     "upstream status: https://github.com/oven-sh/bun/issues/17627",
   ].join("; ")
@@ -93,7 +93,7 @@ function platformPackageNames(platform, arch, musl = detectMusl(platform)) {
 
 function findBinary() {
   const { platform, arch } = detectPlatformAndArch()
-  const binaryName = platform === "windows" ? "openscience.exe" : "openscience"
+  const binaryNames = platform === "windows" ? ["medhorizon.exe", "openscience.exe"] : ["medhorizon", "openscience"]
 
   // Try the libc-compatible native package first, followed by an x64 baseline
   // build for older CPUs. Never select a package for the wrong architecture.
@@ -103,13 +103,10 @@ function findBinary() {
     try {
       const packageJsonPath = require.resolve(`${packageName}/package.json`)
       const packageDir = path.dirname(packageJsonPath)
-      const binaryPath = path.join(packageDir, "bin", binaryName)
-
-      if (!fs.existsSync(binaryPath)) {
-        continue
+      for (const binaryName of binaryNames) {
+        const binaryPath = path.join(packageDir, "bin", binaryName)
+        if (fs.existsSync(binaryPath)) return { binaryPath, binaryName }
       }
-
-      return { binaryPath, binaryName }
     } catch {
       continue
     }
@@ -147,7 +144,7 @@ function symlinkBinary(sourcePath, binaryName) {
   const { targetPath } = prepareBinDirectory(binaryName)
 
   fs.symlinkSync(sourcePath, targetPath)
-  console.log(`openscience binary symlinked: ${targetPath} -> ${sourcePath}`)
+  console.log(`medhorizon binary symlinked: ${targetPath} -> ${sourcePath}`)
 
   // Verify the file exists after operation
   if (!fs.existsSync(targetPath)) {
@@ -180,7 +177,7 @@ function main() {
     console.log(`Platform binary verified at: ${binaryPath}`)
     console.log("Wrapper script will handle binary execution")
   } catch (error) {
-    console.error("Failed to setup openscience binary:", error.message)
+    console.error("Failed to setup MedHorizon binary:", error.message)
     process.exit(1)
   }
 }

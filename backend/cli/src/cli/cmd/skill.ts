@@ -155,7 +155,7 @@ const SkillEditCommand = cmd({
         const name = args.name as string
         const info = await Skill.get(name)
         if (!info || !(info.location ?? "").includes("/user-skills/")) {
-          UI.error(`No user skill named "${name}". Create one with: openscience skill new ${name}`)
+          UI.error(`No user skill named "${name}". Create one with: medhorizon skill new ${name}`)
           process.exit(1)
           return
         }
@@ -260,13 +260,13 @@ const SkillListCommand = cmd({
   describe: "list available skills",
   builder: (yargs: Argv) =>
     yargs.option("all", {
-      describe: "include bundled OpenScience skills in the listing",
+      describe: "include bundled MedHorizon skills in the listing",
       type: "boolean",
       default: false,
     }),
   handler: async (args) => {
     // Skill.state() needs project-instance context so it can walk the
-    // .claude/.openscience config dirs alongside the global cache + learned +
+    // .claude/.medhorizon (and legacy) config dirs alongside the global cache + learned +
     // installed dirs. Mirror what ModelsCommand does.
     await Instance.provide({
       directory: process.cwd(),
@@ -293,25 +293,25 @@ const SkillListCommand = cmd({
         const totalLearned = learned.length
         const totalBundled = bundled.length
 
-        UI.println(`OpenScience bundled skills: ${totalBundled}`)
+        UI.println(`MedHorizon bundled skills: ${totalBundled}`)
         UI.println(`learned skills: ${totalLearned}`)
         UI.println(`installed skills: ${totalInstalled}`)
         UI.println("")
 
         if (totalBundled === 0) {
           UI.println(
-            "Bundled OpenScience skills did not load. Run `openscience login` and `openscience sync`, then try again.",
+            "Bundled MedHorizon skills did not load. Run `medhorizon login` and `medhorizon sync`, then try again.",
           )
           UI.println("Offline fallback only shows skills already cached on this machine.")
           UI.println("")
         } else if (totalBundled < 100) {
           UI.println(
-            "Only a small bundled skill set is visible; this usually means the full OpenScience skill index was not fetched.",
+            "Only a small bundled skill set is visible; this usually means the full MedHorizon skill index was not fetched.",
           )
-          UI.println("Run `openscience sync` or try again once online/authenticated.")
+          UI.println("Run `medhorizon sync` or try again once online/authenticated.")
           UI.println("")
         } else if (!showAll) {
-          UI.println("Use `openscience skill list --all` to show bundled OpenScience skills.")
+          UI.println("Use `medhorizon skill list --all` to show bundled MedHorizon skills.")
           UI.println("")
         }
 
@@ -329,7 +329,7 @@ const SkillListCommand = cmd({
         }
 
         if (totalLearned === 0 && totalInstalled === 0) {
-          UI.println("Install third-party skills with: openscience skill add <git-url>")
+          UI.println("Install third-party skills with: medhorizon skill add <git-url>")
           return
         }
 
@@ -352,7 +352,7 @@ const SkillListCommand = cmd({
           UI.println("")
         }
 
-        if (totalInstalled > 0) UI.println(`Run \`openscience skill show <namespace>[/<name>]\` for details.`)
+        if (totalInstalled > 0) UI.println(`Run \`medhorizon skill show <namespace>[/<name>]\` for details.`)
       },
     })
   },
@@ -390,7 +390,7 @@ const SkillShowCommand = cmd({
         UI.println(content)
       } catch {
         UI.println("")
-        UI.println(`(SKILL.md not on disk at ${skillPath} — run \`openscience\` to trigger sync)`)
+        UI.println(`(SKILL.md not on disk at ${skillPath} — run \`medhorizon\` to trigger sync)`)
       }
       return
     }
@@ -417,7 +417,7 @@ const SkillSetEntriesCommand = cmd({
   command: "set-entries <namespace> <entries>",
   describe:
     "override which skills in a namespace surface in the / picker. " +
-    "Writes openscience-skills.json locally for the namespace.",
+    "Writes medhorizon-skills.json locally for the namespace.",
   builder: (yargs: Argv) => {
     return yargs
       .positional("namespace", {
@@ -444,7 +444,7 @@ const SkillSetEntriesCommand = cmd({
       UI.error(`namespace '${ns}' not installed`)
       process.exit(1)
     }
-    await fs.writeFile(path.join(nsDir, "openscience-skills.json"), JSON.stringify({ entries }, null, 2))
+    await fs.writeFile(path.join(nsDir, "medhorizon-skills.json"), JSON.stringify({ entries }, null, 2))
     UI.println(
       `Marked ${entries.length} skill(s) as entries for ${ns}. ` + `Others stay loaded but hidden from / picker.`,
     )

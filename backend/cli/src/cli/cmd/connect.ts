@@ -25,7 +25,7 @@ async function syncAndReport() {
   // the backend rejected the key. Never leave "authenticated" looking healthy
   // while every request silently fails — say what happened and against which host.
   if (!(await OpenScience.getSession())) {
-    prompts.log.warn(`${API_BASE} rejected your saved key. Run \`openscience login\` to re-authenticate.`)
+    prompts.log.warn(`${API_BASE} rejected your saved key. Run \`medhorizon login\` to re-authenticate.`)
     return
   }
   prompts.log.warn(
@@ -94,7 +94,7 @@ async function manualKeyLogin(): Promise<boolean> {
   return await finishWithKey(pasted)
 }
 
-/** Core Atlas sign-in, shared by `openscience login` and the setup wizard.
+/** Core Atlas sign-in, shared by `medhorizon login` and the setup wizard.
  *  Returns true if the CLI is authenticated when it finishes. Carries no
  *  intro/outro framing so callers own the surrounding UI. */
 export async function runAtlasLogin(args: { key?: string; browser?: boolean } = {}): Promise<boolean> {
@@ -136,7 +136,7 @@ export const LoginCommand = cmd({
       }),
   async handler(args) {
     UI.empty()
-    prompts.intro("OpenScience")
+    prompts.intro("MedHorizon")
     const ok = await runAtlasLogin({ key: args.key as string | undefined, browser: args.browser as boolean })
     prompts.outro(ok ? "Done" : "Not signed in")
   },
@@ -147,12 +147,12 @@ export const LogoutCommand = cmd({
   describe: "log out of your Atlas account",
   async handler() {
     UI.empty()
-    prompts.intro("OpenScience")
+    prompts.intro("MedHorizon")
 
     const session = await OpenScience.getSession()
     if (!session) {
       prompts.log.warn("Not signed in to Atlas.")
-      prompts.log.info("To remove a saved provider key instead, use `openscience keys rm`.")
+      prompts.log.info("To remove a saved provider key instead, use `medhorizon keys rm`.")
       prompts.outro("Done")
       return
     }
@@ -176,12 +176,12 @@ export const StatusCommand = cmd({
   describe: "show Atlas connection, account, and wallet",
   async handler() {
     UI.empty()
-    prompts.intro("OpenScience")
+    prompts.intro("MedHorizon")
 
     const session = await OpenScience.getSession()
     if (!session) {
       prompts.log.warn("Not connected to Atlas")
-      prompts.log.info("Run `openscience login` to connect, or `openscience keys add` to use your own key.")
+      prompts.log.info("Run `medhorizon login` to connect, or `medhorizon keys add` to use your own key.")
       prompts.outro("Done")
       return
     }
@@ -200,7 +200,7 @@ export const StatusCommand = cmd({
         prompts.log.info(`Subscription: ${result.user.subscription_status}`)
       }
     } else if (!(await OpenScience.getSession())) {
-      prompts.log.warn(`${API_BASE} rejected your saved key. Run \`openscience login\` to re-authenticate.`)
+      prompts.log.warn(`${API_BASE} rejected your saved key. Run \`medhorizon login\` to re-authenticate.`)
     } else {
       prompts.log.warn(
         `Could not reach ${API_BASE} to verify services — the saved session is untested against the backend.`,
@@ -243,12 +243,12 @@ export const SyncCommand = cmd({
   describe: "sync service credentials from your Atlas account",
   async handler() {
     UI.empty()
-    prompts.intro("OpenScience")
+    prompts.intro("MedHorizon")
 
     const session = await OpenScience.getSession()
     if (!session) {
       prompts.log.warn("Not connected")
-      prompts.log.info("Run `openscience login` to authenticate")
+      prompts.log.info("Run `medhorizon login` to authenticate")
       prompts.outro("Done")
       return
     }
@@ -273,12 +273,12 @@ export const DevicesCommand = cmd({
   describe: "list authenticated devices",
   async handler() {
     UI.empty()
-    prompts.intro("OpenScience")
+    prompts.intro("MedHorizon")
 
     const session = await OpenScience.getSession()
     if (!session) {
       prompts.log.warn("Not connected")
-      prompts.log.info("Run `openscience login` to authenticate")
+      prompts.log.info("Run `medhorizon login` to authenticate")
       prompts.outro("Done")
       return
     }

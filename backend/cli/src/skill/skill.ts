@@ -40,7 +40,7 @@ export namespace Skill {
     tags: z.array(z.string()).optional(),
     /** Whether the skill is user-facing (shows in / autocomplete) or an
      *  internal helper used transitively by other skills. Defaults to true.
-     *  Driven by `openscience-skills.json` `entries[]` for URL-installed skills;
+     *  Driven by `medhorizon-skills.json` `entries[]` for URL-installed skills;
      *  bundled / learned skills omit this and are always entries. */
     entry: z.boolean().optional(),
   })
@@ -387,9 +387,20 @@ export namespace Skill {
         const nsDirs = await fs.readdir(installedDir, { withFileTypes: true })
         for (const ns of nsDirs) {
           if (!ns.isDirectory()) continue
-          const manifestPath = path.join(installedDir, ns.name, "openscience-skills.json")
+          const manifests = ["medhorizon-skills.json", "openscience-skills.json"].map((name) =>
+            path.join(installedDir, ns.name, name),
+          )
           try {
-            const raw = await Bun.file(manifestPath).text()
+            const manifest = await (async () => {
+              for (const file of manifests) {
+                if (await Bun.file(file).exists()) return file
+              }
+            })()
+            if (!manifest) {
+              entriesByNs.set(ns.name, null)
+              continue
+            }
+            const raw = await Bun.file(manifest).text()
             const parsed = JSON.parse(raw) as { entries?: unknown }
             if (Array.isArray(parsed.entries)) {
               entriesByNs.set(ns.name, new Set(parsed.entries.filter((e): e is string => typeof e === "string")))

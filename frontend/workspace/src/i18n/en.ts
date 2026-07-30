@@ -121,14 +121,14 @@ export const dict = {
   "provider.connect.status.waiting": "waiting for authorization...",
   "provider.connect.status.failed": "authorization failed: {{error}}",
   "provider.connect.apiKey.description":
-    "enter your {{provider}} API key to connect your account and use {{provider}} models in OpenScience.",
+    "enter your {{provider}} API key to connect your account and use {{provider}} models in MedHorizon.",
   "provider.connect.apiKey.label": "{{provider}} API key",
   "provider.connect.apiKey.placeholder": "API key",
   "provider.connect.apiKey.required": "API key is required",
   "provider.connect.oauth.code.visit.prefix": "visit ",
   "provider.connect.oauth.code.visit.link": "this link",
   "provider.connect.oauth.code.visit.suffix":
-    " to collect your authorization code to connect your account and use {{provider}} models in OpenScience.",
+    " to collect your authorization code to connect your account and use {{provider}} models in MedHorizon.",
   "provider.connect.oauth.code.label": "{{method}} authorization code",
   "provider.connect.oauth.code.placeholder": "authorization code",
   "provider.connect.oauth.code.required": "authorization code is required",
@@ -136,7 +136,7 @@ export const dict = {
   "provider.connect.oauth.auto.visit.prefix": "visit ",
   "provider.connect.oauth.auto.visit.link": "this link",
   "provider.connect.oauth.auto.visit.suffix":
-    " and enter the code below to connect your account and use {{provider}} models in OpenScience.",
+    " and enter the code below to connect your account and use {{provider}} models in MedHorizon.",
   "provider.connect.oauth.auto.confirmationCode": "confirmation code",
   "provider.connect.toast.connected.title": "{{provider}} connected",
   "provider.connect.toast.connected.description": "{{provider}} models are now available to use.",
@@ -240,7 +240,7 @@ export const dict = {
   "dialog.mcp.empty": "no MCPs configured",
 
   "dialog.lsp.empty": "LSPs auto-detected from file types",
-  "dialog.plugins.empty": "plugins configured in openscience.json",
+  "dialog.plugins.empty": "plugins configured in medhorizon.json",
 
   "mcp.status.connected": "connected",
   "mcp.status.failed": "failed",
@@ -253,7 +253,7 @@ export const dict = {
   "dialog.directory.empty": "no folders found",
 
   "dialog.server.title": "servers",
-  "dialog.server.description": "switch which OpenScience server this app connects to.",
+  "dialog.server.description": "switch which MedHorizon server this app connects to.",
   "dialog.server.search.placeholder": "search servers",
   "dialog.server.empty": "no servers yet",
   "dialog.server.add.title": "add a server",
@@ -373,7 +373,7 @@ export const dict = {
   "toast.session.listFailed.title": "failed to load sessions for {{project}}",
 
   "toast.update.title": "update available",
-  "toast.update.description": "a new version of OpenScience ({{version}}) is now available to install.",
+  "toast.update.description": "a new version of MedHorizon ({{version}}) is now available to install.",
   "toast.update.action.installRestart": "install and restart",
   "toast.update.action.notYet": "not yet",
 
@@ -384,7 +384,7 @@ export const dict = {
   "error.page.action.checking": "checking...",
   "error.page.action.checkUpdates": "check for updates",
   "error.page.action.updateTo": "update to {{version}}",
-  "error.page.report.prefix": "please report this error to the OpenScience team",
+  "error.page.report.prefix": "please report this error to the MedHorizon team",
   "error.page.report.discord": "on Discord",
   "error.page.version": "version: {{version}}",
 
@@ -401,8 +401,8 @@ export const dict = {
   "error.chain.responseBody": "response body:\n{{body}}",
   "error.chain.didYouMean": "did you mean: {{suggestions}}",
   "error.chain.modelNotFound": "model not found: {{provider}}/{{model}}",
-  "error.chain.checkConfig": "check your config (openscience.json) provider/model names",
-  "error.chain.mcpFailed": 'MCP server "{{name}}" failed. note, OpenScience does not support MCP authentication yet.',
+  "error.chain.checkConfig": "check your config (medhorizon.json) provider/model names",
+  "error.chain.mcpFailed": 'MCP server "{{name}}" failed. note, MedHorizon does not support MCP authentication yet.',
   "error.chain.providerAuthFailed": "provider authentication failed ({{provider}}): {{message}}",
   "error.chain.providerInitFailed":
     'failed to initialize provider "{{provider}}". check credentials and configuration.',
@@ -527,12 +527,12 @@ export const dict = {
   "sidebar.workspaces.enable": "enable workspaces",
   "sidebar.workspaces.disable": "disable workspaces",
   "sidebar.gettingStarted.title": "getting started",
-  "sidebar.gettingStarted.line1": "OpenScience includes free models so you can start immediately.",
+  "sidebar.gettingStarted.line1": "MedHorizon includes free models so you can start immediately.",
   "sidebar.gettingStarted.line2": "connect any provider to use models, inc. Claude, GPT, Gemini etc.",
   "sidebar.project.recentSessions": "recent sessions",
   "sidebar.project.viewAllSessions": "view all sessions",
 
-  "app.name.desktop": "OpenScience Desktop",
+  "app.name.desktop": "MedHorizon Desktop",
 
   "settings.section.desktop": "desktop",
   "settings.section.server": "server",
@@ -546,11 +546,11 @@ export const dict = {
   "settings.general.section.sounds": "sound effects",
 
   "settings.general.row.language.title": "language",
-  "settings.general.row.language.description": "change the display language for OpenScience",
+  "settings.general.row.language.description": "change the display language for MedHorizon",
   "settings.general.row.appearance.title": "appearance",
-  "settings.general.row.appearance.description": "customise how OpenScience looks on your device",
+  "settings.general.row.appearance.description": "customise how MedHorizon looks on your device",
   "settings.general.row.theme.title": "theme",
-  "settings.general.row.theme.description": "customise how OpenScience is themed.",
+  "settings.general.row.theme.description": "customise how MedHorizon is themed.",
   "settings.general.row.font.title": "font",
   "settings.general.row.font.description": "customise the mono font used in code blocks",
 
@@ -561,13 +561,13 @@ export const dict = {
   "settings.general.row.releaseNotes.description": "show what's new popups after updates",
 
   "settings.updates.row.startup.title": "check for updates on startup",
-  "settings.updates.row.startup.description": "automatically check for updates when OpenScience launches",
+  "settings.updates.row.startup.description": "automatically check for updates when MedHorizon launches",
   "settings.updates.row.check.title": "check for updates",
   "settings.updates.row.check.description": "manually check for updates and install if available",
   "settings.updates.action.checkNow": "check now",
   "settings.updates.action.checking": "checking...",
   "settings.updates.toast.latest.title": "you're up to date",
-  "settings.updates.toast.latest.description": "you're running the latest version of OpenScience.",
+  "settings.updates.toast.latest.description": "you're running the latest version of MedHorizon.",
   "font.option.ibmPlexMono": "IBM Plex Mono",
   "font.option.cascadiaCode": "Cascadia Code",
   "font.option.firaCode": "Fira Code",

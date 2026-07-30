@@ -75,7 +75,7 @@ export const Storage: Component = () => {
         "/settings/storage/location",
         { method: "POST", body: JSON.stringify({ path: target.trim() }) },
       )
-      setStatus(`Data copied to ${res.target}. Restart OpenScience to use the new location.`)
+      setStatus(`Data copied to ${res.target}. Restart MedHorizon to use the new location.`)
       await load()
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
@@ -107,9 +107,7 @@ export const Storage: Component = () => {
       <div class="sticky top-0 z-10 bg-[linear-gradient(to_bottom,var(--surface-raised-stronger-non-alpha)_calc(100%_-_24px),transparent)]">
         <div class="flex flex-col gap-1 px-4 py-8 sm:p-8 max-w-[760px]">
           <h2 class="text-16-medium text-text-strong">Storage</h2>
-          <p class="text-13-regular text-text-weak">
-            Where OpenScience keeps data on disk, and how much space it uses.
-          </p>
+          <p class="text-13-regular text-text-weak">Where MedHorizon keeps data on disk, and how much space it uses.</p>
         </div>
       </div>
 

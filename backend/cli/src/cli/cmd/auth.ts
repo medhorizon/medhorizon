@@ -111,7 +111,7 @@ async function handlePluginAuth(
         const result = await authorize.callback()
         if (result.type === "failed") {
           spinner.stop("Sign-in wasn't completed", 1)
-          prompts.log.info("Declined, timed out, or cancelled. Retry with `openscience keys signin`.")
+          prompts.log.info("Declined, timed out, or cancelled. Retry with `medhorizon keys signin`.")
         } else if (result.type === "success") {
           const saveProvider = result.provider ?? provider
           if ("refresh" in result) {
@@ -281,7 +281,7 @@ export const AuthLoginCommand = cmd({
   describe: "add a provider API key (BYOK)",
   builder: (yargs) =>
     yargs.positional("url", {
-      describe: "openscience auth provider",
+      describe: "MedHorizon auth provider",
       type: "string",
     }),
   async handler(args) {
@@ -366,7 +366,7 @@ export const AuthLoginCommand = cmd({
         let provider: string | symbol | undefined = preselect
         if (preselect && !providers[preselect] && !specialIds.has(preselect)) {
           prompts.log.warn(
-            `${preselect} isn't in the model catalog — the key will be stored, but you'll need to configure the provider in openscience.json. See the docs.`,
+            `${preselect} isn't in the model catalog — the key will be stored, but you'll need to configure the provider in medhorizon.json. See the docs.`,
           )
         }
         if (!provider) {
@@ -383,7 +383,7 @@ export const AuthLoginCommand = cmd({
                 hint: "use your ChatGPT Plus/Pro/Business subscription — no API key",
               },
               // Local models aren't in the models.dev catalog — surface them at the
-              // top so pointing OpenScience at Ollama / LM Studio / any local
+              // top so pointing MedHorizon at Ollama / LM Studio / any local
               // OpenAI-compatible endpoint is a first-class, discoverable choice.
               {
                 value: "local",
@@ -471,7 +471,7 @@ export const AuthLoginCommand = cmd({
           }
 
           prompts.log.warn(
-            `This only stores a credential for ${provider} - you will need to configure it in openscience.json, check the docs for examples.`,
+            `This only stores a credential for ${provider} - you will need to configure it in medhorizon.json, check the docs for examples.`,
           )
         }
 
@@ -480,7 +480,7 @@ export const AuthLoginCommand = cmd({
             "Amazon Bedrock authentication priority:\n" +
               "  1. Bearer token (AWS_BEARER_TOKEN_BEDROCK or /connect)\n" +
               "  2. AWS credential chain (profile, access keys, IAM roles, EKS IRSA)\n\n" +
-              "Configure via openscience.json options (profile, region, endpoint) or\n" +
+              "Configure via medhorizon.json options (profile, region, endpoint) or\n" +
               "AWS environment variables (AWS_PROFILE, AWS_REGION, AWS_ACCESS_KEY_ID, AWS_WEB_IDENTITY_TOKEN_FILE).",
           )
         }
@@ -619,7 +619,7 @@ async function disconnectCodexBackend(): Promise<void> {
   }
 }
 
-/** `openscience connect [codex]` — sign in with a ChatGPT (Codex) subscription.
+/** `medhorizon connect [codex]` — sign in with a ChatGPT (Codex) subscription.
  *  The connect/disconnect verb pair is Codex's; Atlas uses login/logout. */
 export const ConnectCommand = cmd({
   command: "connect [service]",
@@ -644,7 +644,7 @@ export const ConnectCommand = cmd({
   },
 })
 
-/** `openscience disconnect [codex]` — sign out of ChatGPT (Codex): clears the
+/** `medhorizon disconnect [codex]` — sign out of ChatGPT (Codex): clears the
  *  local OAuth credential and best-effort revokes it server-side. */
 export const DisconnectCommand = cmd({
   command: "disconnect [service]",

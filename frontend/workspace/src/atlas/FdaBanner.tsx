@@ -44,9 +44,9 @@ const STEP_TITLE: Record<"mac" | "win" | "linux", string> = {
 }
 
 const STEP_BODY: Record<"mac" | "win" | "linux", string> = {
-  mac: "macOS blocks ~/Desktop · ~/Documents · ~/Downloads from any process that doesn't have Full Disk Access. Add the openscience binary itself to the FDA list — that way it works no matter which shell you launch it from.",
-  win: "Run openscience from Windows Terminal / PowerShell — not a sandboxed Microsoft Store shell.",
-  linux: "Run openscience from a system shell, not a confined Snap/Flatpak terminal.",
+  mac: "macOS blocks ~/Desktop · ~/Documents · ~/Downloads from any process that doesn't have Full Disk Access. Add the medhorizon binary itself to the FDA list — that way it works no matter which shell you launch it from.",
+  win: "Run medhorizon from Windows Terminal / PowerShell — not a sandboxed Microsoft Store shell.",
+  linux: "Run medhorizon from a system shell, not a confined Snap/Flatpak terminal.",
 }
 
 /**
@@ -198,10 +198,10 @@ function FdaSheet(props: {
             <li>Open Privacy &amp; Security → Full Disk Access</li>
             <li>
               Click <strong>+</strong>, press <code style={kbd()}>⌘⇧G</code>, paste{" "}
-              <code style={kbd()}>/opt/homebrew/bin/openscience</code>, hit Enter, Open
+              <code style={kbd()}>/opt/homebrew/bin/medhorizon</code>, hit Enter, Open
             </li>
-            <li>Toggle the openscience entry on</li>
-            <li>Restart OpenScience (kill + relaunch) — recheck below</li>
+            <li>Toggle the medhorizon entry on</li>
+            <li>Restart MedHorizon (kill + relaunch) — recheck below</li>
           </ol>
         </Show>
         <div style={{ display: "flex", gap: "8px", "padding-top": "4px" }}>

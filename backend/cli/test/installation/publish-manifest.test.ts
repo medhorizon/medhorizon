@@ -24,5 +24,9 @@ describe("wrapper package manifest", () => {
       "@synsci/openscience-darwin-arm64": "1.2.3",
       "@synsci/openscience-linux-x64": "1.2.3",
     })
+    expect(manifest.bin).toEqual({
+      medhorizon: "./bin/medhorizon",
+      openscience: "./bin/medhorizon",
+    })
   })
 })

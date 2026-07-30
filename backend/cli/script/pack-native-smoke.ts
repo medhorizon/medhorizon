@@ -50,7 +50,7 @@ for (const name of platformNames) {
   platformManifest.version = npmVersion(String(platformManifest.version))
   packageVersion = platformManifest.version
   await fs.writeFile(path.join(directory, "package.json"), JSON.stringify(platformManifest, null, 2) + "\n")
-  await fs.chmod(path.join(directory, "bin", "openscience"), 0o755)
+  await fs.chmod(path.join(directory, "bin", "medhorizon"), 0o755)
   binaries[name] = `file:${await pack(directory)}`
 }
 

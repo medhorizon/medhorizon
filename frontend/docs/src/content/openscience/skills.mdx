@@ -4,7 +4,7 @@ description: "250+ bundled research skills, direct access to around 30 scientifi
 icon: "book-open"
 ---
 
-A **skill** is a portable instruction bundle the agent loads into a session to prime it for a domain. OpenScience ships more than 250 of them, spanning the surface a working scientist actually hits.
+A **skill** is a portable instruction bundle the agent loads into a session to prime it for a domain. MedHorizon ships more than 250 of them, spanning the surface a working scientist actually hits.
 
 ## Built-in categories
 
@@ -19,7 +19,7 @@ A **skill** is a portable instruction bundle the agent loads into a session to p
 | Figures | Publication-quality plots and layouts. |
 | Cloud compute | Modal, Tinker, and other GPU backends. |
 
-Run `openscience skill list --all` to print the full bundled set, grouped by category.
+Run `medhorizon skill list --all` to print the full bundled set, grouped by category.
 
 ## Scientific databases
 
@@ -29,20 +29,20 @@ The major scientific databases are wired in as tools, not skills: UniProt, PDB, 
 
 | Command | Use |
 | --- | --- |
-| `openscience skill list` | Show learned and installed skills; `--all` includes the bundled set. |
-| `openscience skill show <ns>[/<name>]` | Namespace summary, or a single skill's full `SKILL.md`. |
-| `openscience skill add <url>` | Install every skill from a public git repo; `gh:owner/repo` shorthand works. Runs a safety review. |
-| `openscience skill new <name>` | Scaffold a local user skill. |
-| `openscience skill edit <name>` | Open a user skill in `$EDITOR`. |
-| `openscience skill validate <target>` | Check a skill's frontmatter and safety (`--strict` fails on warnings). |
-| `openscience skill set-entries <ns> <entries>` | Choose which skills in a namespace surface in the `/` picker. |
-| `openscience skill remove <target>` | Uninstall a skill or a whole namespace. |
+| `medhorizon skill list` | Show learned and installed skills; `--all` includes the bundled set. |
+| `medhorizon skill show <ns>[/<name>]` | Namespace summary, or a single skill's full `SKILL.md`. |
+| `medhorizon skill add <url>` | Install every skill from a public git repo; `gh:owner/repo` shorthand works. Runs a safety review. |
+| `medhorizon skill new <name>` | Scaffold a local user skill. |
+| `medhorizon skill edit <name>` | Open a user skill in `$EDITOR`. |
+| `medhorizon skill validate <target>` | Check a skill's frontmatter and safety (`--strict` fails on warnings). |
+| `medhorizon skill set-entries <ns> <entries>` | Choose which skills in a namespace surface in the `/` picker. |
+| `medhorizon skill remove <target>` | Uninstall a skill or a whole namespace. |
 
 ## Install third-party skills
 
 ```bash
-openscience skill add gh:anthropics/superpowers
-openscience skill list
+medhorizon skill add gh:anthropics/superpowers
+medhorizon skill list
 ```
 
 Each skill in the repo passes a static safety check and an LLM safety review before it installs; rejected skills are skipped and reported. Installed skills are namespaced by repo, so `remove <namespace>` uninstalls the whole set.
@@ -54,20 +54,20 @@ Skills contributed by the community that install with the command above:
 - **1000 Genomes genotypes** — [`dnaerys/onekgpd-skill`](https://github.com/dnaerys/onekgpd-skill) (MIT). Individual-level queries over the 1000 Genomes cohort (3,202 WGS samples, GRCh38): which individuals carry variants matching given criteria and zygosity, kinship between individuals, and cohort population/pedigree metadata. Queries a public, keyless [Dnaerys](https://dnaerys.org) endpoint (an external service the maintainers don't control), with an offline metadata tier.
 
   ```bash
-  openscience skill add gh:dnaerys/onekgpd-skill
+  medhorizon skill add gh:dnaerys/onekgpd-skill
   ```
 
 ## Write your own
 
 ```bash
-openscience skill new leakage-checks --description "Checklists for spotting data leakage" --editor
+medhorizon skill new leakage-checks --description "Checklists for spotting data leakage" --editor
 ```
 
-A skill is a `SKILL.md` file with `name`, `description`, and `category` frontmatter and an instruction body. Iterate with `openscience skill edit` and check it with `openscience skill validate`.
+A skill is a `SKILL.md` file with `name`, `description`, and `category` frontmatter and an instruction body. Iterate with `medhorizon skill edit` and check it with `medhorizon skill validate`.
 
 ## Pin skills to a project
 
-Point the project config at extra skill folders with `skills.paths` in `openscience.json` at the project root:
+Point the project config at extra skill folders with `skills.paths` in `medhorizon.json` at the project root:
 
 ```json
 {

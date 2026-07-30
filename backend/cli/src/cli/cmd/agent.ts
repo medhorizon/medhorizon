@@ -98,7 +98,7 @@ const AgentCreateCommand = cmd({
             scope = scopeResult
           }
           targetPath = path.join(
-            scope === "global" ? Global.Path.config : path.join(Instance.worktree, ".openscience"),
+            scope === "global" ? Global.Path.config : path.join(Instance.worktree, ".medhorizon"),
             "agent",
           )
         }

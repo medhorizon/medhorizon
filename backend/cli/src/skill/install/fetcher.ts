@@ -23,7 +23,8 @@ export interface FetchResult {
   sha: string
   tmpDir: string
   manifest: SkillEntry[]
-  /** Repo's declared user-facing entry points (from `openscience-skills.json` at
+  /** Repo's declared user-facing entry points (from `medhorizon-skills.json` or
+   *  legacy `openscience-skills.json` at
    *  repo root). Null means the repo didn't declare a manifest — caller
    *  should treat every skill as an entry (backwards-compat). */
   entries: string[] | null
@@ -103,19 +104,23 @@ export async function fetchManifest(parsed: ParsedSkillUrl): Promise<FetchResult
     })
   }
 
-  // Optional manifest: `openscience-skills.json` at repo root listing entries.
+  // Optional manifest: prefer `medhorizon-skills.json`, while reading the
+  // legacy `openscience-skills.json` name.
   // Tolerate malformed JSON (treat as absent rather than failing the install).
   let entries: string[] | null = null
-  try {
-    const manifestPath = path.join(tmpDir, "openscience-skills.json")
-    await stat(manifestPath)
-    const raw = await readFile(manifestPath, "utf-8")
-    const parsedManifest = JSON.parse(raw) as { entries?: unknown }
-    if (Array.isArray(parsedManifest.entries)) {
-      entries = parsedManifest.entries.filter((e): e is string => typeof e === "string")
+  for (const name of ["medhorizon-skills.json", "openscience-skills.json"]) {
+    try {
+      const manifestPath = path.join(tmpDir, name)
+      await stat(manifestPath)
+      const raw = await readFile(manifestPath, "utf-8")
+      const parsedManifest = JSON.parse(raw) as { entries?: unknown }
+      if (Array.isArray(parsedManifest.entries)) {
+        entries = parsedManifest.entries.filter((e): e is string => typeof e === "string")
+        break
+      }
+    } catch {
+      /* missing or malformed — try the next compatible name */
     }
-  } catch {
-    /* missing or malformed — leave entries null */
   }
 
   return { repo: parsed.cloneUrl, sha, tmpDir, manifest, entries }

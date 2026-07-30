@@ -76,7 +76,7 @@ export const RunCommand = cmd({
       })
       .option("attach", {
         type: "string",
-        describe: "attach to a running openscience server (e.g., http://localhost:4096)",
+        describe: "attach to a running MedHorizon server (e.g., http://localhost:4096)",
       })
       .option("port", {
         type: "number",

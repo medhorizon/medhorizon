@@ -83,7 +83,7 @@ export default function General() {
   }
 
   const signOut = async () => {
-    if (!window.confirm("Disconnect this local server from OpenScience?")) return
+    if (!window.confirm("Disconnect this local server from MedHorizon?")) return
     setBusy(true)
     try {
       const res = await sdk.client.account.logout()
@@ -141,7 +141,7 @@ export default function General() {
         </Show>
 
         {/* Account */}
-        <Section title="Account" description="Your OpenScience identity and subscription.">
+        <Section title="Account" description="Your MedHorizon identity and subscription.">
           <div class="border border-border-weak-base rounded-[4px] overflow-hidden bg-surface-base/40">
             <Row title="Email">
               <span class="text-13-regular text-text-strong">
@@ -161,7 +161,7 @@ export default function General() {
                 manage billing
               </Button>
             </Row>
-            <Row title="Session" description="Disconnect this machine from OpenScience.">
+            <Row title="Session" description="Disconnect this machine from MedHorizon.">
               <Button
                 size="small"
                 variant="secondary"
@@ -175,7 +175,7 @@ export default function General() {
               <div class="px-4 py-3">
                 <p class="text-12-regular text-text-weak">
                   Signed out — run{" "}
-                  <code style={{ "font-family": FONT_CODE, "font-size": "11px" }}>openscience connect login</code> in a
+                  <code style={{ "font-family": FONT_CODE, "font-size": "11px" }}>medhorizon connect login</code> in a
                   terminal to reconnect this machine.
                 </p>
               </div>
@@ -228,7 +228,7 @@ export default function General() {
         </Section>
 
         {/* Licensing */}
-        <Section title="Licensing" description="How you intend to use outputs from OpenScience.">
+        <Section title="Licensing" description="How you intend to use outputs from MedHorizon.">
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
             <IntentCard
               active={prefs()?.intent === "non-commercial"}

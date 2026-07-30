@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="assets/wordmark.svg" alt="Medho" width="440">
+<img src="assets/wordmark.svg" alt="MedHorizon" width="440">
 
 ### 支持可控节点与人机协作的 AI Agent 工作台
 
@@ -16,9 +16,9 @@
 
 ---
 
-Medho 是一个 AI 科研工作台。你给它一个目标，它会完成文献阅读、假设形成、代码编写与运行、实验执行、数据库查询，最后生成报告——就像一个有能力的协作者那样工作。
+MedHorizon 是一个 AI 科研工作台。你给它一个目标，它会完成文献阅读、假设形成、代码编写与运行、实验执行、数据库查询，最后生成报告——就像一个有能力的协作者那样工作。
 
-在原版 OpenScience 的基础上，Medho 新增了**可控节点（Stage Graph）**系统：将长任务拆分为多个阶段，支持在关键节点暂停等待人类确认，并可随时跳转到任意节点重新开始。
+在原版 OpenScience 的基础上，MedHorizon 新增了**可控节点（Stage Graph）**系统：将长任务拆分为多个阶段，支持在关键节点暂停等待人类确认，并可随时跳转到任意节点重新开始。
 
 ---
 
@@ -68,7 +68,7 @@ Ready to enter stage "证据搜集"?
 
 1. 下载 [`install.bat`](https://github.com/medhorizon/medhorizon/releases/latest/download/install.bat)
 2. 双击运行，等待安装完成（约 1 分钟）
-3. 双击桌面的 **Medho** 图标启动
+3. 双击桌面的 **MedHorizon** 图标启动
 4. 浏览器自动打开 → 填写 API Key → 开始使用
 
 > 无需安装 Git、Node.js、Python 等任何依赖。
@@ -82,7 +82,7 @@ curl -fsSL https://raw.githubusercontent.com/medhorizon/medhorizon/main/scripts/
 安装完成后运行：
 
 ```bash
-medho
+medhorizon
 ```
 
 ### 🛠️ 开发者安装（从源码构建）
@@ -90,11 +90,10 @@ medho
 需要 [Bun](https://bun.sh) 1.3+：
 
 ```bash
-git clone https://github.com/medhorizon/medho.git
-cd medho
+git clone https://github.com/medhorizon/medhorizon.git
+cd medhorizon
 bun install
-cp .openscience/openscience.example.jsonc .openscience/openscience.jsonc
-# 编辑 openscience.jsonc，填入你的 API key
+# 编辑 .medhorizon/medhorizon.jsonc，填入你的 API key
 ```
 
 ---
@@ -168,7 +167,9 @@ export ANTHROPIC_API_KEY=sk-ant-...
 
 ### 1. 自定义 Agent 类型
 
-**定义位置**：`.openscience/openscience.jsonc` 中的 `agent` 字段
+**定义位置**：`.medhorizon/medhorizon.jsonc` 中的 `agent` 字段
+
+> 旧的 `.openscience/` 项目配置仍会被读取；新配置请写入 `.medhorizon/`。
 
 ```jsonc
 {
@@ -211,7 +212,7 @@ if (agent.name === "my-agent") {
 
 **方法 B — 直接在配置中写**：
 
-在 `.openscience/openscience.jsonc` 的 `agent[].prompt` 字段直接写完整提示词（适合短提示）。
+在 `.medhorizon/medhorizon.jsonc` 的 `agent[].prompt` 字段直接写完整提示词（适合短提示）。
 
 ---
 
@@ -343,7 +344,7 @@ export const TOOLS = [...existingTools, MyTool]
 
 ### 7. Plugin 与 Skill 系统
 
-**Plugin（MCP 集成）**，在 `.openscience/openscience.jsonc` 中：
+**Plugin（MCP 集成）**，在 `.medhorizon/medhorizon.jsonc` 中：
 
 ```jsonc
 {
@@ -357,7 +358,7 @@ export const TOOLS = [...existingTools, MyTool]
 }
 ```
 
-**Skill（可复用工作流）**，在 `.openscience/skills/my-workflow.md` 中：
+**Skill（可复用工作流）**，在 `.medhorizon/skills/my-workflow.md` 中：
 
 ```markdown
 ---
@@ -380,10 +381,10 @@ description: Custom workflow for...
 
 **✅ 零侵入（推荐）**：
 
-- 添加新 agent 定义（`.openscience/openscience.jsonc`）
+- 添加新 agent 定义（`.medhorizon/medhorizon.jsonc`）
 - 添加新工具（`tool/` 下新文件 + `registry.ts` 一行注册）
 - 添加 prompt 文件（`agent/prompt/*.txt`）
-- 添加 skill（`.openscience/skills/*.md`）
+- 添加 skill（`.medhorizon/skills/*.md`）
 
 **⚠️ 轻度侵入（仅修改 1-2 处）**：
 
@@ -411,7 +412,7 @@ description: Custom workflow for...
 ## 项目结构
 
 ```
-medho/
+medhorizon/
 ├── backend/cli/src/
 │   ├── session/
 │   │   └── stage.ts          # Stage 核心逻辑（新增）
@@ -425,8 +426,8 @@ medho/
 │   └── atlas/
 │       └── StagesPanel.tsx   # Stages 面板（新增）
 ├── tooling/sdk/              # TypeScript SDK
-├── .openscience/
-│   ├── openscience.jsonc     # 项目配置（自定义 agent/plugin/skill）
+├── .medhorizon/
+│   ├── medhorizon.jsonc     # 项目配置（自定义 agent/plugin/skill）
 │   └── skills/               # 可复用工作流
 ├── CUSTOMIZATION.md          # 自定义详细指南
 └── README.md

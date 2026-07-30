@@ -198,7 +198,7 @@ export function FileExplorer(): JSX.Element {
         const msg = String(err?.body?.message ?? err?.message ?? (typeof err === "string" ? err : "") ?? "")
         const status = err?.response?.status ?? err?.status ?? err?.statusCode
         if (status === 403 || /permission denied|full disk access/i.test(msg)) {
-          setPermissionError(msg || "OpenScience cannot read this directory")
+          setPermissionError(msg || "MedHorizon cannot read this directory")
         }
         return [] as FileNode[]
       }

@@ -47,19 +47,19 @@ jobs:
       - name: Find binary (Unix)
         if: runner.os != 'Windows'
         run: |
-          BINARY=$(find backend/cli/dist -type f -name "openscience" ! -name "*.map" | head -1)
+          BINARY=$(find backend/cli/dist -type f -name "medhorizon" ! -name "*.map" | head -1)
           echo "Found binary: $BINARY"
           if [ -z "$BINARY" ]; then
             echo "Error: Binary not found"
             exit 1
           fi
-          echo "BINARY=$BINARY" >> $GITHUB_ENV
+          echo "BINARY=$BINARY" >> "$GITHUB_ENV"
 
       - name: Find binary (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          $b = Get-ChildItem -Path "backend\cli\dist" -Recurse -Filter "openscience.exe" | Select-Object -First 1
+          $b = Get-ChildItem -Path "backend\cli\dist" -Recurse -Filter "medhorizon.exe" | Select-Object -First 1
           if (-not $b) {
             Write-Error "Error: Binary not found"
             exit 1
@@ -72,22 +72,22 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path release
-          Copy-Item $env:BINARY release\medho.exe
-          Compress-Archive -Path release\medho.exe -DestinationPath medho-${{ matrix.target }}.zip
+          Copy-Item $env:BINARY release\medhorizon.exe
+          Compress-Archive -Path release\medhorizon.exe -DestinationPath medhorizon-${{ matrix.target }}.zip
 
       - name: Package (Unix)
         if: runner.os != 'Windows'
         run: |
           mkdir -p release
-          cp "$BINARY" release/medho
-          chmod +x release/medho
-          tar -czf medho-${{ matrix.target }}.tar.gz -C release medho
+          cp "$BINARY" release/medhorizon
+          chmod +x release/medhorizon
+          tar -czf medhorizon-${{ matrix.target }}.tar.gz -C release medhorizon
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: medho-${{ matrix.target }}
-          path: medho-${{ matrix.target }}.${{ matrix.archive }}
+          name: medhorizon-${{ matrix.target }}
+          path: medhorizon-${{ matrix.target }}.${{ matrix.archive }}
 
   release:
     needs: build
@@ -103,27 +103,32 @@ jobs:
       - name: Create checksums
         run: |
           cd artifacts
-          sha256sum * > checksums.txt
+          sha256sum ./* > checksums.txt
           cat checksums.txt
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          name: "Medho ${{ github.ref_name }}"
+          name: "MedHorizon ${{ github.ref_name }}"
           body: |
             ## 安装方法
 
             ### Windows
             下载 `install.bat`，双击运行，按提示操作。
 
-            ### macOS / Linux
+            ### macOS (Apple Silicon) / Linux
             ```bash
             curl -fsSL https://raw.githubusercontent.com/medhorizon/medhorizon/main/scripts/install.sh | bash
             ```
 
             ### 手动安装
-            下载对应平台的压缩包，解压后双击 `medho` 即可启动。
+            下载对应平台的压缩包，解压后运行 `medhorizon` 即可启动。
             首次启动会自动打开浏览器引导填写 API Key。
+
+            ### 本版本产物
+            - `medhorizon-windows-x64.zip`
+            - `medhorizon-macos-arm64.tar.gz`
+            - `medhorizon-linux-x64.tar.gz`
 
             ---
             完整说明见 [README](https://github.com/medhorizon/medhorizon#readme)

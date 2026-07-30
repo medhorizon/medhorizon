@@ -121,14 +121,14 @@ export const dict = {
   "provider.connect.status.waiting": "Ожидание авторизации...",
   "provider.connect.status.failed": "Ошибка авторизации: {{error}}",
   "provider.connect.apiKey.description":
-    "Введите ваш API ключ {{provider}} для подключения аккаунта и использования моделей {{provider}} в OpenScience.",
+    "Введите ваш API ключ {{provider}} для подключения аккаунта и использования моделей {{provider}} в MedHorizon.",
   "provider.connect.apiKey.label": "{{provider}} API ключ",
   "provider.connect.apiKey.placeholder": "API ключ",
   "provider.connect.apiKey.required": "API ключ обязателен",
   "provider.connect.oauth.code.visit.prefix": "Посетите ",
   "provider.connect.oauth.code.visit.link": "эту ссылку",
   "provider.connect.oauth.code.visit.suffix":
-    " чтобы получить код авторизации для подключения аккаунта и использования моделей {{provider}} в OpenScience.",
+    " чтобы получить код авторизации для подключения аккаунта и использования моделей {{provider}} в MedHorizon.",
   "provider.connect.oauth.code.label": "{{method}} код авторизации",
   "provider.connect.oauth.code.placeholder": "Код авторизации",
   "provider.connect.oauth.code.required": "Код авторизации обязателен",
@@ -136,7 +136,7 @@ export const dict = {
   "provider.connect.oauth.auto.visit.prefix": "Посетите ",
   "provider.connect.oauth.auto.visit.link": "эту ссылку",
   "provider.connect.oauth.auto.visit.suffix":
-    " и введите код ниже для подключения аккаунта и использования моделей {{provider}} в OpenScience.",
+    " и введите код ниже для подключения аккаунта и использования моделей {{provider}} в MedHorizon.",
   "provider.connect.oauth.auto.confirmationCode": "Код подтверждения",
   "provider.connect.toast.connected.title": "{{provider}} подключён",
   "provider.connect.toast.connected.description": "Модели {{provider}} теперь доступны.",
@@ -239,7 +239,7 @@ export const dict = {
   "dialog.mcp.empty": "MCP не настроены",
 
   "dialog.lsp.empty": "LSP автоматически обнаружены по типам файлов",
-  "dialog.plugins.empty": "Плагины настроены в openscience.json",
+  "dialog.plugins.empty": "Плагины настроены в medhorizon.json",
 
   "mcp.status.connected": "подключено",
   "mcp.status.failed": "ошибка",
@@ -252,7 +252,7 @@ export const dict = {
   "dialog.directory.empty": "Папки не найдены",
 
   "dialog.server.title": "Серверы",
-  "dialog.server.description": "Переключите сервер OpenScience к которому подключается приложение.",
+  "dialog.server.description": "Переключите сервер MedHorizon к которому подключается приложение.",
   "dialog.server.search.placeholder": "Поиск серверов",
   "dialog.server.empty": "Серверов пока нет",
   "dialog.server.add.title": "Добавить сервер",
@@ -373,7 +373,7 @@ export const dict = {
   "toast.session.listFailed.title": "Не удалось загрузить сессии для {{project}}",
 
   "toast.update.title": "Доступно обновление",
-  "toast.update.description": "Новая версия OpenScience ({{version}}) доступна для установки.",
+  "toast.update.description": "Новая версия MedHorizon ({{version}}) доступна для установки.",
   "toast.update.action.installRestart": "Установить и перезапустить",
   "toast.update.action.notYet": "Пока нет",
 
@@ -384,7 +384,7 @@ export const dict = {
   "error.page.action.checking": "Проверка...",
   "error.page.action.checkUpdates": "Проверить обновления",
   "error.page.action.updateTo": "Обновить до {{version}}",
-  "error.page.report.prefix": "Пожалуйста, сообщите об этой ошибке команде OpenScience",
+  "error.page.report.prefix": "Пожалуйста, сообщите об этой ошибке команде MedHorizon",
   "error.page.report.discord": "в Discord",
   "error.page.version": "Версия: {{version}}",
 
@@ -401,9 +401,9 @@ export const dict = {
   "error.chain.responseBody": "Тело ответа:\n{{body}}",
   "error.chain.didYouMean": "Возможно, вы имели в виду: {{suggestions}}",
   "error.chain.modelNotFound": "Модель не найдена: {{provider}}/{{model}}",
-  "error.chain.checkConfig": "Проверьте названия провайдера/модели в конфиге (openscience.json)",
+  "error.chain.checkConfig": "Проверьте названия провайдера/модели в конфиге (medhorizon.json)",
   "error.chain.mcpFailed":
-    'MCP сервер "{{name}}" завершился с ошибкой. Обратите внимание, что OpenScience пока не поддерживает MCP авторизацию.',
+    'MCP сервер "{{name}}" завершился с ошибкой. Обратите внимание, что MedHorizon пока не поддерживает MCP авторизацию.',
   "error.chain.providerAuthFailed": "Ошибка аутентификации провайдера ({{provider}}): {{message}}",
   "error.chain.providerInitFailed":
     'Не удалось инициализировать провайдера "{{provider}}". Проверьте учётные данные и конфигурацию.',
@@ -513,13 +513,13 @@ export const dict = {
   "sidebar.workspaces.enable": "Включить рабочие пространства",
   "sidebar.workspaces.disable": "Отключить рабочие пространства",
   "sidebar.gettingStarted.title": "Начало работы",
-  "sidebar.gettingStarted.line1": "OpenScience включает бесплатные модели, чтобы вы могли начать сразу.",
+  "sidebar.gettingStarted.line1": "MedHorizon включает бесплатные модели, чтобы вы могли начать сразу.",
   "sidebar.gettingStarted.line2":
     "Подключите любого провайдера для использования моделей, включая Claude, GPT, Gemini и др.",
   "sidebar.project.recentSessions": "Недавние сессии",
   "sidebar.project.viewAllSessions": "Посмотреть все сессии",
 
-  "app.name.desktop": "OpenScience Desktop",
+  "app.name.desktop": "MedHorizon Desktop",
   "settings.section.desktop": "Приложение",
   "settings.section.server": "Сервер",
   "settings.tab.general": "Основные",
@@ -532,11 +532,11 @@ export const dict = {
   "settings.general.section.sounds": "Звуковые эффекты",
 
   "settings.general.row.language.title": "Язык",
-  "settings.general.row.language.description": "Изменить язык отображения OpenScience",
+  "settings.general.row.language.description": "Изменить язык отображения MedHorizon",
   "settings.general.row.appearance.title": "Внешний вид",
-  "settings.general.row.appearance.description": "Настройте как OpenScience выглядит на вашем устройстве",
+  "settings.general.row.appearance.description": "Настройте как MedHorizon выглядит на вашем устройстве",
   "settings.general.row.theme.title": "Тема",
-  "settings.general.row.theme.description": "Настройте оформление OpenScience.",
+  "settings.general.row.theme.description": "Настройте оформление MedHorizon.",
   "settings.general.row.font.title": "Шрифт",
   "settings.general.row.font.description": "Настройте моноширинный шрифт для блоков кода",
   "settings.general.layout.showChanges.title": "show changes view",
@@ -546,13 +546,13 @@ export const dict = {
   "settings.general.row.releaseNotes.description": 'Показывать всплывающие окна "Что нового" после обновлений',
 
   "settings.updates.row.startup.title": "Проверять обновления при запуске",
-  "settings.updates.row.startup.description": "Автоматически проверять обновления при запуске OpenScience",
+  "settings.updates.row.startup.description": "Автоматически проверять обновления при запуске MedHorizon",
   "settings.updates.row.check.title": "Проверить обновления",
   "settings.updates.row.check.description": "Проверить обновления вручную и установить, если доступны",
   "settings.updates.action.checkNow": "Проверить сейчас",
   "settings.updates.action.checking": "Проверка...",
   "settings.updates.toast.latest.title": "У вас последняя версия",
-  "settings.updates.toast.latest.description": "Вы используете последнюю версию OpenScience.",
+  "settings.updates.toast.latest.description": "Вы используете последнюю версию MedHorizon.",
   "font.option.ibmPlexMono": "IBM Plex Mono",
   "font.option.cascadiaCode": "Cascadia Code",
   "font.option.firaCode": "Fira Code",

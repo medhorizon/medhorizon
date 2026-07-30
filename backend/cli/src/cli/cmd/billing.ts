@@ -17,11 +17,11 @@ const BillingShowCommand = cmd({
   describe: "show credit balance and key routing",
   async handler() {
     UI.empty()
-    prompts.intro("openscience billing")
+    prompts.intro("medhorizon billing")
 
     const session = await OpenScience.getSession()
     if (!session) {
-      prompts.log.warn("Not authenticated. Run `openscience login` first.")
+      prompts.log.warn("Not authenticated. Run `medhorizon login` first.")
       prompts.outro("Done")
       return
     }
@@ -49,7 +49,7 @@ const BillingTopupCommand = cmd({
   describe: "open web billing to add credits",
   async handler() {
     UI.empty()
-    prompts.intro("openscience billing")
+    prompts.intro("medhorizon billing")
     prompts.log.info(`Open: ${PLAN_URL}`)
     prompts.log.info("Credit top-ups: $50 or $200, one-time or recurring monthly.")
     prompts.log.info("BYOK works on every plan — bring your own provider keys at any tier.")

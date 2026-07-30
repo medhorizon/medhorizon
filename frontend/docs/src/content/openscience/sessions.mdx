@@ -10,20 +10,20 @@ A **session** is a single agent conversation: a thread of prompts and replies, t
 
 | Entrypoint | Use |
 | --- | --- |
-| `openscience` | Open the [browser workspace](/openscience/workspace) in the current directory. |
-| `openscience run [message..]` | Send one prompt from the terminal, stream the result, and exit. Good for pipelines, CI, and git hooks. |
-| `openscience serve` | Start a headless server (no browser) for `run --attach` to target. |
+| `medhorizon` | Open the [browser workspace](/openscience/workspace) in the current directory. |
+| `medhorizon run [message..]` | Send one prompt from the terminal, stream the result, and exit. Good for pipelines, CI, and git hooks. |
+| `medhorizon serve` | Start a headless server (no browser) for `run --attach` to target. |
 
-The workspace is interactive; `openscience run` is the one to script. Each produces a session you can resume from either surface.
+The workspace is interactive; `medhorizon run` is the one to script. Each produces a session you can resume from either surface.
 
 ## One-shot runs
 
 ```bash
-openscience run "Set up a DFT optimization for this structure" -f data/sample.cif
-git diff | openscience run "Review this diff for race conditions"
+medhorizon run "Set up a DFT optimization for this structure" -f data/sample.cif
+git diff | medhorizon run "Review this diff for race conditions"
 ```
 
-Piped stdin is appended to the message. `openscience run` supports:
+Piped stdin is appended to the message. `medhorizon run` supports:
 
 | Flag | Use |
 | --- | --- |
@@ -44,20 +44,20 @@ To pick up a file, always use `-f`; `--attach` targets a server, it does not fet
 ## Continue or resume
 
 ```bash
-openscience session list                       # recent sessions (-n 10 to cap, --format json)
-openscience run -c "Now add tests for the refactored module"
-openscience run -s ses_8f2ka91xk "Rerun the sweep with lr=3e-4"
+medhorizon session list                       # recent sessions (-n 10 to cap, --format json)
+medhorizon run -c "Now add tests for the refactored module"
+medhorizon run -s ses_8f2ka91xk "Rerun the sweep with lr=3e-4"
 ```
 
 `session list` prints a table of ids, titles, and update times (paged through `less` in a terminal). In the workspace, the same sessions appear in the session history pane, where you can also queue prompts and undo from any message.
 
 ## Attach to a running server
 
-Leave `openscience serve` (or the workspace) running and drive it from another terminal:
+Leave `medhorizon serve` (or the workspace) running and drive it from another terminal:
 
 ```bash
-openscience run --attach http://localhost:4096 "Summarize today's results"      # new session on the server
-openscience run --attach http://localhost:4096 -s ses_8f2ka91xk "Continue"      # a specific session (-c: latest)
+medhorizon run --attach http://localhost:4096 "Summarize today's results"      # new session on the server
+medhorizon run --attach http://localhost:4096 -s ses_8f2ka91xk "Continue"      # a specific session (-c: latest)
 ```
 
 The run shares the server's sessions, so work started in the browser continues from the terminal and vice versa.
@@ -65,8 +65,8 @@ The run shares the server's sessions, so work started in the browser continues f
 ## Export and import
 
 ```bash
-openscience export ses_8f2ka91xk > session.json   # no id: interactive picker
-openscience import session.json
+medhorizon export ses_8f2ka91xk > session.json   # no id: interactive picker
+medhorizon import session.json
 ```
 
 `export` writes the full session as JSON to stdout; `import` loads it on another machine. Useful for sharing reproductions or attaching a transcript to an issue.

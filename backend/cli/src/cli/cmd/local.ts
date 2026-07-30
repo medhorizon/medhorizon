@@ -182,10 +182,10 @@ export async function runLocalModelSetup(input: LocalSetupInput = {}): Promise<s
       const block = LocalProvider.buildProviderConfig({ name, baseURL, apiKey, models: selected })
       await Config.setProvider(id, block as any, input.project ? "project" : "global")
 
-      const scopeLabel = input.project ? "this project's openscience.json" : "your global config"
+      const scopeLabel = input.project ? "this project's medhorizon.json" : "your global config"
       prompts.log.success(`Added ${selected.length} model(s) under provider "${id}" to ${scopeLabel}.`)
 
-      // Offer to set a default so `openscience run` uses it immediately.
+      // Offer to set a default so `medhorizon run` uses it immediately.
       const firstModel = `${id}/${selected[0]}`
       const makeDefault =
         input.setDefault ??
@@ -208,7 +208,7 @@ export async function runLocalModelSetup(input: LocalSetupInput = {}): Promise<s
 
       Provider.invalidate()
       if (input.intro !== false && interactive) prompts.outro("Done")
-      prompts.log.message(`Use it now:  openscience run --model ${firstModel} "hello"`)
+      prompts.log.message(`Use it now:  medhorizon run --model ${firstModel} "hello"`)
       return id
 
       function cancel(): null {
@@ -256,7 +256,7 @@ const ListCommand = cmd({
           Provider.isLocalBaseURL(p?.options?.baseURL ?? p?.api),
         )
         if (!locals.length) {
-          UI.println("No local model providers configured. Add one with `openscience local add`.")
+          UI.println("No local model providers configured. Add one with `medhorizon local add`.")
           return
         }
         for (const [id, p] of locals) {
@@ -293,7 +293,7 @@ export const LocalCommand = cmd({
   describe: "manage local models (Ollama, LM Studio, OpenAI-compatible endpoints)",
   builder: (yargs: Argv) => yargs.command(AddCommand).command(ListCommand).command(RemoveCommand).demandCommand(0),
   handler: async () => {
-    // Bare `openscience local` runs the add wizard (AddCommand is the $0 default,
+    // Bare `medhorizon local` runs the add wizard (AddCommand is the $0 default,
     // but demandCommand(0) lets this handler run when no subcommand is given).
     UI.empty()
     await runLocalModelSetup({})

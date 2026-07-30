@@ -5,7 +5,7 @@ import { Global } from "../src/global"
 import { OpenScience } from "../src/openscience"
 
 const queue = path.join(Global.Path.data, "usage-queue.jsonl")
-const session = path.join(Global.Path.data, "openscience-session.json")
+const session = path.join(Global.Path.data, "medhorizon-session.json")
 
 afterEach(async () => {
   await fs.rm(queue, { force: true }).catch(() => {})

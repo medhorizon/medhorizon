@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-APP=openscience
+APP=medhorizon
 
 MUTED='\033[0;2m'
 RED='\033[0;31m'
@@ -9,7 +9,7 @@ NC='\033[0m' # No Color
 
 usage() {
     cat <<EOF
-OpenScience Installer
+MedHorizon Installer
 
 Usage: install [options]
 
@@ -21,9 +21,9 @@ Options:
         --no-atlas          Don't offer to install the Atlas CLI companion
 
 Examples:
-    curl -fsSL https://openscience.sh/install | bash
-    curl -fsSL https://openscience.sh/install | bash -s -- --version 1.0.180
-    ./install --binary /path/to/openscience
+    curl -fsSL https://raw.githubusercontent.com/medhorizon/medhorizon/main/install | bash
+    curl -fsSL https://raw.githubusercontent.com/medhorizon/medhorizon/main/install | bash -s -- --version 1.0.180
+    ./install --binary /path/to/medhorizon
 EOF
 }
 
@@ -71,7 +71,7 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-INSTALL_DIR=$HOME/.openscience/bin
+INSTALL_DIR=$HOME/.medhorizon/bin
 mkdir -p "$INSTALL_DIR"
 
 # If --binary is provided, skip all download/detection logic
@@ -173,10 +173,10 @@ else
     fi
 
     if [ -z "$requested_version" ]; then
-        url="https://github.com/synthetic-sciences/OpenScience/releases/latest/download/$filename"
+        url="https://github.com/medhorizon/medhorizon/releases/latest/download/$filename"
         # The || fallback keeps set -e from killing the script inside the
         # assignment when curl fails, so the message below can print.
-        specific_version=$(curl -fsS https://api.github.com/repos/synthetic-sciences/OpenScience/releases/latest | sed -n 's/.*"tag_name": *"v\([^"]*\)".*/\1/p') || specific_version=""
+        specific_version=$(curl -fsS https://api.github.com/repos/medhorizon/medhorizon/releases/latest | sed -n 's/.*"tag_name": *"v\([^"]*\)".*/\1/p') || specific_version=""
 
         if [[ -z "$specific_version" ]]; then
             echo -e "${RED}Failed to fetch version information${NC}"
@@ -185,14 +185,14 @@ else
     else
         # Strip leading 'v' if present
         requested_version="${requested_version#v}"
-        url="https://github.com/synthetic-sciences/OpenScience/releases/download/v${requested_version}/$filename"
+        url="https://github.com/medhorizon/medhorizon/releases/download/v${requested_version}/$filename"
         specific_version=$requested_version
 
         # Verify the release exists before downloading
-        http_status=$(curl -sI -o /dev/null -w "%{http_code}" "https://github.com/synthetic-sciences/OpenScience/releases/tag/v${requested_version}")
+        http_status=$(curl -sI -o /dev/null -w "%{http_code}" "https://github.com/medhorizon/medhorizon/releases/tag/v${requested_version}")
         if [ "$http_status" = "404" ]; then
             echo -e "${RED}Error: Release v${requested_version} not found${NC}"
-            echo -e "${MUTED}Available releases: https://github.com/synthetic-sciences/OpenScience/releases${NC}"
+            echo -e "${MUTED}Available releases: https://github.com/medhorizon/medhorizon/releases${NC}"
             exit 1
         fi
     fi
@@ -213,11 +213,11 @@ print_message() {
 }
 
 check_version() {
-    if command -v openscience >/dev/null 2>&1; then
-        openscience_path=$(which openscience)
+    if command -v medhorizon >/dev/null 2>&1; then
+        medhorizon_path=$(which medhorizon)
 
         ## Check the installed version
-        installed_version=$(openscience --version 2>/dev/null || echo "")
+        installed_version=$(medhorizon --version 2>/dev/null || echo "")
 
         if [[ "$installed_version" != "$specific_version" ]]; then
             print_message info "${MUTED}Installed version: ${NC}$installed_version."
@@ -269,7 +269,7 @@ download_with_progress() {
     fi
 
     local tmp_dir=${TMPDIR:-/tmp}
-    local basename="${tmp_dir}/openscience_install_$$"
+    local basename="${tmp_dir}/medhorizon_install_$$"
     local tracefile="${basename}.trace"
 
     rm -f "$tracefile"
@@ -319,8 +319,8 @@ download_with_progress() {
 }
 
 download_and_install() {
-    print_message info "\n${MUTED}Installing ${NC}openscience ${MUTED}version: ${NC}$specific_version"
-    local tmp_dir="${TMPDIR:-/tmp}/openscience_install_$$"
+    print_message info "\n${MUTED}Installing ${NC}MedHorizon ${MUTED}version: ${NC}$specific_version"
+    local tmp_dir="${TMPDIR:-/tmp}/medhorizon_install_$$"
     mkdir -p "$tmp_dir"
 
     if [[ "$os" == "windows" ]] || ! [ -t 2 ] || ! download_with_progress "$url" "$tmp_dir/$filename"; then
@@ -370,10 +370,10 @@ download_and_install() {
     fi
 
     # Bun --compile appends .exe for win32 targets, so the archive entry is
-    # openscience.exe there. Git Bash resolves `openscience` to the .exe.
-    local bin_name="openscience"
+    # medhorizon.exe there. Git Bash resolves `medhorizon` to the .exe.
+    local bin_name="medhorizon"
     if [ "$os" = "windows" ]; then
-        bin_name="openscience.exe"
+        bin_name="medhorizon.exe"
     fi
     mv "$tmp_dir/$bin_name" "$INSTALL_DIR"
     chmod 755 "${INSTALL_DIR}/${bin_name}"
@@ -381,9 +381,9 @@ download_and_install() {
 }
 
 install_from_binary() {
-    print_message info "\n${MUTED}Installing ${NC}openscience ${MUTED}from: ${NC}$binary_path"
-    cp "$binary_path" "${INSTALL_DIR}/openscience"
-    chmod 755 "${INSTALL_DIR}/openscience"
+    print_message info "\n${MUTED}Installing ${NC}MedHorizon ${MUTED}from: ${NC}$binary_path"
+    cp "$binary_path" "${INSTALL_DIR}/medhorizon"
+    chmod 755 "${INSTALL_DIR}/medhorizon"
 }
 
 if [ -n "$binary_path" ]; then
@@ -401,9 +401,9 @@ add_to_path() {
     if grep -Fxq "$command" "$config_file"; then
         print_message info "Command already exists in $config_file, skipping write."
     elif [[ -w $config_file ]]; then
-        echo -e "\n# openscience" >> "$config_file"
+        echo -e "\n# medhorizon" >> "$config_file"
         echo "$command" >> "$config_file"
-        print_message info "${MUTED}Successfully added ${NC}openscience ${MUTED}to \$PATH in ${NC}$config_file"
+        print_message info "${MUTED}Successfully added ${NC}medhorizon ${MUTED}to \$PATH in ${NC}$config_file"
     else
         print_message warning "Manually add the directory to $config_file (or similar):"
         print_message info "  $command"
@@ -478,14 +478,11 @@ if [ "${GITHUB_ACTIONS-}" == "true" ] && [ -n "${GITHUB_PATH-}" ]; then
     print_message info "Added $INSTALL_DIR to \$GITHUB_PATH"
 fi
 
-# An `openscience` from another package manager can sit earlier on PATH and
-# shadow this install — most commonly the deprecated @synsci/cli npm package,
-# whose stale bin link also blocks `npm i -g @synsci/openscience` with EEXIST.
-shadow=$(command -v openscience 2>/dev/null || true)
-if [[ -n "$shadow" && "$shadow" != "$INSTALL_DIR/openscience" ]]; then
-    print_message warning "Another openscience binary at ${shadow} may shadow this install."
-    print_message info "${MUTED}If it was installed by npm (the deprecated ${NC}@synsci/cli${MUTED} package), remove it with:${NC}"
-    print_message info "  npm rm -g @synsci/cli"
+# A `medhorizon` from another package manager can sit earlier on PATH and
+# shadow this standalone install.
+shadow=$(command -v medhorizon 2>/dev/null || true)
+if [[ -n "$shadow" && "$shadow" != "$INSTALL_DIR/medhorizon" ]]; then
+    print_message warning "Another medhorizon binary at ${shadow} may shadow this install."
 fi
 
 # Offer the Atlas CLI companion (research graph — maps, runs, shared library).
@@ -511,15 +508,14 @@ if [ "$no_atlas" != true ] && [ -z "${OPENSCIENCE_NO_ATLAS:-}" ] && [ -z "${CI:-
 fi
 
 echo -e ""
-echo -e "${MUTED}                    ${NC}OpenScience"
-echo -e "${MUTED}                    by Synthetic Sciences${NC}"
+echo -e "${MUTED}                    ${NC}MedHorizon"
 echo -e ""
 echo -e ""
-echo -e "${MUTED}OpenScience includes free models, to start:${NC}"
+echo -e "${MUTED}MedHorizon includes free models, to start:${NC}"
 echo -e ""
 echo -e "cd <project>  ${MUTED}# Open directory${NC}"
-echo -e "openscience         ${MUTED}# Run command${NC}"
+echo -e "medhorizon         ${MUTED}# Run command${NC}"
 echo -e ""
-echo -e "${MUTED}For more information visit ${NC}https://openscience.sh/docs"
+echo -e "${MUTED}For more information visit ${NC}https://github.com/medhorizon/medhorizon#readme"
 echo -e ""
 echo -e ""

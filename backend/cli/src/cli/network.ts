@@ -28,7 +28,7 @@ export async function resolveNetworkOptions(args: NetworkOptions) {
   const config = await Config.global()
   if (config?.server?.hostname || config?.server?.mdns) {
     console.warn(
-      "openscience: server.hostname / server.mdns in your config are no longer supported — the server always binds to localhost (127.0.0.1).",
+      "medhorizon: server.hostname / server.mdns in your config are no longer supported — the server always binds to localhost (127.0.0.1).",
     )
   }
   const portExplicitlySet = process.argv.includes("--port")

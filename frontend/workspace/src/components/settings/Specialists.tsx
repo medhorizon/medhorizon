@@ -107,7 +107,7 @@ export default function Specialists() {
     <PanelScroll>
       <PanelHeader
         title="Specialists"
-        description="The specialist modes you can switch between while you work. Built-in specialists ship with OpenScience; custom ones are defined in your config."
+        description="The specialist modes you can switch between while you work. Built-in specialists ship with MedHorizon; custom ones are defined in your config."
         toolbar={
           <Show when={!creating()}>
             <Toolbar>

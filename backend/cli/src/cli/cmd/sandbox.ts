@@ -103,7 +103,7 @@ const EnableCommand = cmd({
     })
     await showStatus()
     UI.empty()
-    UI.println(`${S.TEXT_DIM}Verify it holds:  openscience sandbox test${S.TEXT_NORMAL}`)
+    UI.println(`${S.TEXT_DIM}Verify it holds:  medhorizon sandbox test${S.TEXT_NORMAL}`)
   },
 })
 

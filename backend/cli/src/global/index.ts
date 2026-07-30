@@ -4,35 +4,38 @@ import { xdgData, xdgCache, xdgConfig, xdgState } from "xdg-basedir"
 import path from "path"
 import os from "os"
 
-const app = "openscience"
+const app = "medhorizon"
 
-// Migration shim: installs created before the OpenScience rename kept their
-// state under the legacy "synsc" XDG dirs. On boot, if the new dir does not
-// exist yet and the legacy one does, move it into place; if the move fails
-// (permissions, cross-device), keep reading the legacy dir so nothing is lost.
-const legacy = "synsc"
+// Migration shim: installs created before the MedHorizon rename kept their
+// state under "openscience" (and earlier "synsc") XDG dirs. On boot, if the
+// new dir does not exist yet and a legacy one does, move it into place; if the
+// move fails (permissions, cross-device), keep reading the legacy dir so
+// nothing is lost.
+const legacies = ["openscience", "synsc"] as const
 const detectedLegacyConflicts: Array<{ legacy: string; current: string }> = []
 
 function migrateDir(base: string): string {
   const next = path.join(base, app)
-  const old = path.join(base, legacy)
-  if (!existsSync(next) && existsSync(old)) {
-    try {
-      renameSync(old, next)
-    } catch {
-      return old
+  for (const legacy of legacies) {
+    const old = path.join(base, legacy)
+    if (!existsSync(next) && existsSync(old)) {
+      try {
+        renameSync(old, next)
+      } catch {
+        return old
+      }
     }
-  }
-  // Both dirs existing means the legacy one was restored (backup, dotfiles)
-  // after the new dir was created. Record the conflict for `openscience
-  // doctor`; printing here spammed every command, including `--version`.
-  if (existsSync(next) && existsSync(old)) {
-    detectedLegacyConflicts.push({ legacy: old, current: next })
+    // Both dirs existing means the legacy one was restored (backup, dotfiles)
+    // after the new dir was created. Record the conflict for `medhorizon
+    // doctor`; printing here spammed every command, including `--version`.
+    if (existsSync(next) && existsSync(old)) {
+      detectedLegacyConflicts.push({ legacy: old, current: next })
+    }
   }
   return next
 }
 
-// Same shim for individual files that carried the legacy name.
+// Same shim for individual files that carried a legacy name.
 function migrateFile(dir: string, oldName: string, newName: string) {
   const next = path.join(dir, newName)
   const old = path.join(dir, oldName)
@@ -62,11 +65,15 @@ function resolveDataDir(): string {
 
 const data = resolveDataDir()
 
-// Legacy file names inside the migrated dirs (pre-rename releases).
-migrateFile(data, "synsci-session.json", "openscience-session.json")
-migrateFile(config, "synsc-synced.json", "openscience-synced.json")
-migrateFile(config, "synsc.jsonc", "openscience.jsonc")
-migrateFile(config, "synsc.json", "openscience.json")
+// Legacy file names inside the migrated dirs (oldest → newest).
+migrateFile(data, "synsci-session.json", "medhorizon-session.json")
+migrateFile(data, "openscience-session.json", "medhorizon-session.json")
+migrateFile(config, "synsc-synced.json", "medhorizon-synced.json")
+migrateFile(config, "openscience-synced.json", "medhorizon-synced.json")
+migrateFile(config, "synsc.jsonc", "medhorizon.jsonc")
+migrateFile(config, "synsc.json", "medhorizon.json")
+migrateFile(config, "openscience.jsonc", "medhorizon.jsonc")
+migrateFile(config, "openscience.json", "medhorizon.json")
 
 export namespace Global {
   export const LegacyConflicts = detectedLegacyConflicts as readonly { legacy: string; current: string }[]

@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 
-// `npx synsci`: the OpenScience install wizard.
+// `npx synsci`: the MedHorizon install wizard.
 //
 // The npm package (and this bin) keep the historical `synsci` name so the
 // one-liner everyone knows keeps working; everything it installs is the
-// OpenScience CLI (`@synsci/openscience`, binary `openscience`), optionally with the
+// MedHorizon CLI (`@synsci/openscience`, binary `medhorizon`), optionally with the
 // Atlas managed platform on top.
 
 // Hard guard against recursive invocation. If a check ever resolves to the
@@ -54,18 +54,9 @@ const SHOW_CURSOR = "\x1b[?25h"
 const CLEAR_LINE = "\x1b[2K\r"
 
 const LOGO = [
-  "███████╗██╗   ██╗███╗   ██╗████████╗██╗  ██╗███████╗████████╗██╗ ██████╗",
-  "██╔════╝╚██╗ ██╔╝████╗  ██║╚══██╔══╝██║  ██║██╔════╝╚══██╔══╝██║██╔════╝",
-  "███████╗ ╚████╔╝ ██╔██╗ ██║   ██║   ███████║█████╗     ██║   ██║██║     ",
-  "╚════██║  ╚██╔╝  ██║╚██╗██║   ██║   ██╔══██║██╔══╝     ██║   ██║██║     ",
-  "███████║   ██║   ██║ ╚████║   ██║   ██║  ██║███████╗   ██║   ██║╚██████╗",
-  "╚══════╝   ╚═╝   ╚═╝  ╚═══╝   ╚═╝   ╚═╝  ╚═╝╚══════╝   ╚═╝   ╚═╝ ╚═════╝",
-  "███████╗ ██████╗██╗███████╗███╗   ██╗ ██████╗███████╗███████╗",
-  "██╔════╝██╔════╝██║██╔════╝████╗  ██║██╔════╝██╔════╝██╔════╝",
-  "███████╗██║     ██║█████╗  ██╔██╗ ██║██║     █████╗  ███████╗",
-  "╚════██║██║     ██║██╔══╝  ██║╚██╗██║██║     ██╔══╝  ╚════██║",
-  "███████║╚██████╗██║███████╗██║ ╚████║╚██████╗███████╗███████║",
-  "╚══════╝ ╚═════╝╚═╝╚══════╝╚═╝  ╚═══╝ ╚═════╝╚══════╝╚══════╝",
+  "╔══════════════════════════════════════╗",
+  "║              MEDHORIZON              ║",
+  "╚══════════════════════════════════════╝",
 ]
 
 function ok(msg) {
@@ -140,22 +131,30 @@ function isLauncherPath(p) {
   }
 }
 
-// Returns the absolute path to the real @synsci/openscience binary (`openscience`).
+// Returns the absolute path to the real @synsci/openscience binary (`medhorizon`).
 // Only trusts canonical install locations (no `$PATH` walk) to avoid picking
 // up dev shims or workspace symlinks. Each candidate is verified by invoking
 // `--version` so half-broken installs are skipped instead of accepted.
 function resolveCli() {
   const candidates = []
   // 1. Global npm prefix (where `npm i -g @synsci/openscience` puts it).
-  // On Windows the global bin dir is the prefix itself and the entry is an
-  // openscience.cmd shim; on POSIX it's <prefix>/bin/openscience.
+  // On Windows the global bin dir is the prefix itself and the entry is a
+  // medhorizon.cmd shim; on POSIX it's <prefix>/bin/medhorizon.
   const prefix = runQuiet("npm prefix -g")
   if (prefix) {
-    if (process.platform === "win32") candidates.push(join(prefix, "openscience.cmd"))
-    else candidates.push(join(prefix, "bin", "openscience"))
+    if (process.platform === "win32") {
+      candidates.push(join(prefix, "medhorizon.cmd"), join(prefix, "openscience.cmd"))
+    } else {
+      candidates.push(join(prefix, "bin", "medhorizon"), join(prefix, "bin", "openscience"))
+    }
   }
-  // 2. ~/.openscience/bin/openscience (curl-installer location, POSIX only)
-  if (process.platform !== "win32") candidates.push(join(homedir(), ".openscience", "bin", "openscience"))
+  // 2. Curl-installer locations (canonical, then the legacy compatibility path).
+  if (process.platform !== "win32") {
+    candidates.push(
+      join(homedir(), ".medhorizon", "bin", "medhorizon"),
+      join(homedir(), ".openscience", "bin", "openscience"),
+    )
+  }
 
   for (const cand of candidates) {
     if (!existsSync(cand) || isLauncherPath(cand)) continue
@@ -173,7 +172,7 @@ function resolveCli() {
   return null
 }
 
-// The deprecated `@synsci/cli` package links the same `openscience` bin. npm
+// The deprecated `@synsci/cli` package links the legacy `openscience` alias. npm
 // refuses to overwrite a bin file owned by another package (EEXIST), so a
 // stale global install dead-ends the upgrade — and its old binary shadows the
 // real one on PATH. `npm ls` exits nonzero when the package is absent but
@@ -264,14 +263,12 @@ async function main() {
   console.log()
   for (const line of LOGO) console.log(`   ${CYAN}${line}${RESET}`)
   console.log()
-  console.log(
-    `   ${BOLD}Synthetic Sciences${RESET} ${DIM}OpenScience, the open-source AI research workspace · Atlas, the research platform${RESET}`,
-  )
+  console.log(`   ${BOLD}MedHorizon${RESET} ${DIM}AI research workbench · Atlas, the research platform${RESET}`)
   console.log()
 
-  // --- Step 1: Install or upgrade the OpenScience CLI ---
+  // --- Step 1: Install or upgrade the MedHorizon CLI ---
   if (hasDeprecatedCli()) {
-    const s = spinner("Removing the deprecated @synsci/cli so it can't shadow the openscience command...")
+    const s = spinner("Removing deprecated @synsci/cli so it can't block the medhorizon install...")
     if (runQuiet("npm rm -g @synsci/cli") !== null) {
       s.ok("Removed the deprecated @synsci/cli")
     } else {
@@ -284,13 +281,13 @@ async function main() {
     const raw = runFileQuiet(cliPath, ["--version"]) || "unknown"
     const isDev = raw === "local" || raw.includes("-")
     if (isDev) {
-      ok(`openscience ${DIM}(dev build)${RESET}`)
+      ok(`medhorizon ${DIM}(dev build)${RESET}`)
     } else {
       const s = spinner("Checking for updates...")
       const current = raw.replace(/[^0-9.]/g, "")
       const latest = runQuiet(`npm view @synsci/openscience@${OPENSCIENCE_NPM_TAG} version`)
       if (!latest || current === latest) {
-        s.ok(`openscience ${current} ${DIM}(up to date)${RESET}`)
+        s.ok(`medhorizon ${current} ${DIM}(up to date)${RESET}`)
       } else {
         s.update(`Upgrading ${current} → ${latest}...`)
         try {
@@ -302,7 +299,7 @@ async function main() {
       }
     }
   } else {
-    const s = spinner("Installing OpenScience...")
+    const s = spinner("Installing MedHorizon...")
     try {
       try {
         execSync(`npm i -g ${OPENSCIENCE_NPM_SPEC}`, { stdio: "pipe" })
@@ -313,14 +310,14 @@ async function main() {
         const stderr = e && e.stderr ? String(e.stderr) : ""
         const conflict = stderr.includes("EEXIST") && (stderr.includes("@synsci/cli") || hasDeprecatedCli())
         if (!conflict) throw e
-        s.update("Removing the deprecated @synsci/cli so it can't shadow the openscience command...")
+        s.update("Removing deprecated @synsci/cli so it can't block the medhorizon install...")
         runQuiet("npm rm -g @synsci/cli")
-        s.update("Retrying the OpenScience install...")
+        s.update("Retrying the MedHorizon install...")
         execSync(`npm i -g ${OPENSCIENCE_NPM_SPEC}`, { stdio: "pipe" })
       }
       cliPath = resolveCli()
-      if (!cliPath) throw new Error("openscience not on PATH after install")
-      s.ok("Installed OpenScience")
+      if (!cliPath) throw new Error("medhorizon not on PATH after install")
+      s.ok("Installed MedHorizon")
     } catch {
       // The standalone installer is a bash script; on native Windows there's
       // no bash to pipe it into, so don't suggest a fallback that can't run.
@@ -330,18 +327,22 @@ async function main() {
         process.exit(1)
       }
       // Global npm installs commonly fail on permissions. Fall back to the
-      // standalone installer, which lands in ~/.openscience/bin without sudo
+      // standalone installer, which lands in ~/.medhorizon/bin without sudo
       // (resolveCli already checks that location).
       s.update("npm -g failed, trying the standalone installer...")
       try {
-        execSync("curl -fsSL https://openscience.sh/install | bash", { stdio: "pipe" })
+        execSync("curl -fsSL https://raw.githubusercontent.com/medhorizon/medhorizon/main/install | bash", {
+          stdio: "pipe",
+        })
         cliPath = resolveCli()
-        if (!cliPath) throw new Error("openscience not found after install")
-        s.ok("Installed OpenScience")
+        if (!cliPath) throw new Error("medhorizon not found after install")
+        s.ok("Installed MedHorizon")
       } catch (e2) {
         s.fail(`Install failed${e2 && e2.message ? ": " + e2.message : ""}`)
         console.log(`\n  Try manually: ${CYAN}npm i -g ${OPENSCIENCE_NPM_SPEC}${RESET}`)
-        console.log(`  or:           ${CYAN}curl -fsSL https://openscience.sh/install | bash${RESET}\n`)
+        console.log(
+          `  or:           ${CYAN}curl -fsSL https://raw.githubusercontent.com/medhorizon/medhorizon/main/install | bash${RESET}\n`,
+        )
         process.exit(1)
       }
     }
@@ -352,10 +353,10 @@ async function main() {
   console.log(`  ${BOLD}How do you want to run it?${RESET}`)
   console.log()
   console.log(
-    `    ${BOLD}1${RESET}  ${CYAN}OpenScience${RESET}         ${DIM}free and open source, bring your own API keys, no account${RESET}`,
+    `    ${BOLD}1${RESET}  ${CYAN}MedHorizon${RESET}         ${DIM}free and open source, bring your own API keys, no account${RESET}`,
   )
   console.log(
-    `    ${BOLD}2${RESET}  ${CYAN}OpenScience + Atlas${RESET} ${DIM}managed models, wallet billing, research graph & compute${RESET}`,
+    `    ${BOLD}2${RESET}  ${CYAN}MedHorizon + Atlas${RESET} ${DIM}managed models, wallet billing, research graph & compute${RESET}`,
   )
   console.log(
     `    ${BOLD}3${RESET}  ${CYAN}Atlas CLI${RESET}           ${DIM}just the Atlas research CLI — maps, runs, and compute from the terminal${RESET}`,
@@ -381,9 +382,7 @@ async function main() {
       ok("Connected to Atlas")
     } else {
       console.log()
-      console.log(
-        `  ${DIM}Connect your Atlas account for managed credentials:${RESET} ${CYAN}openscience connect login${RESET}`,
-      )
+      console.log(`  ${DIM}Connect your Atlas account for managed credentials:${RESET} ${CYAN}medhorizon login${RESET}`)
     }
     console.log()
     console.log(`  ${BOLD}Next steps${RESET}`)

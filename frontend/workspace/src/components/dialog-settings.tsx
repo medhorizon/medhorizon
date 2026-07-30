@@ -123,7 +123,7 @@ export const DialogSettings: Component = () => {
             </For>
           </div>
           <div class="flex flex-col gap-0.5 px-2.5 pt-2 text-text-weak">
-            <span class="text-12-medium">OpenScience</span>
+            <span class="text-12-medium">MedHorizon</span>
             <span class="text-11-regular">v{platform.version}</span>
           </div>
         </nav>

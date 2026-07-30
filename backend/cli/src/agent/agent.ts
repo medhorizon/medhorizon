@@ -175,6 +175,7 @@ export namespace Agent {
             },
             edit: {
               "*": "deny",
+              [path.join(".medhorizon", "plans", "*.md")]: "allow",
               [path.join(".openscience", "plans", "*.md")]: "allow",
               [path.relative(Instance.worktree, path.join(Global.Path.data, path.join("plans", "*.md")))]: "allow",
             },

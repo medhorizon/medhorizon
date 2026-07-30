@@ -52,7 +52,7 @@ See [docs/notes/verification.md](docs/notes/verification.md) for the full list, 
 
 ```bash
 ./backend/cli/script/build.ts --single
-./backend/cli/dist/@synsci/openscience-<platform>/bin/openscience
+./backend/cli/dist/@synsci/openscience-<platform>/bin/medhorizon
 ```
 
 Replace `<platform>` with your platform, for example `darwin-arm64` or `linux-x64`.

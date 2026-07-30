@@ -23,11 +23,11 @@ This skill is loaded from the global home directory.
   )
 }
 
-test("discovers skills from .openscience/skill/ directory", async () => {
+test("discovers skills from .medhorizon/skill/ directory", async () => {
   await using tmp = await tmpdir({
     git: true,
     init: async (dir) => {
-      const skillDir = path.join(dir, ".openscience", "skill", "test-skill")
+      const skillDir = path.join(dir, ".medhorizon", "skill", "test-skill")
       await Bun.write(
         path.join(skillDir, "SKILL.md"),
         `---

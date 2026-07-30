@@ -40,7 +40,7 @@ export function DisconnectedPanel(): JSX.Element {
           <div
             style={{ "font-family": FONT_SANS, "font-size": "12.5px", "font-weight": 500, color: "var(--color-text)" }}
           >
-            Can't reach your local OpenScience server
+            Can't reach your local MedHorizon server
           </div>
           <div
             style={{
@@ -52,7 +52,7 @@ export function DisconnectedPanel(): JSX.Element {
               "white-space": "nowrap",
             }}
           >
-            {server.name} · start it with <code>openscience web</code> or switch servers · retrying…
+            {server.name} · start it with <code>medhorizon web</code> or switch servers · retrying…
           </div>
         </div>
         <button

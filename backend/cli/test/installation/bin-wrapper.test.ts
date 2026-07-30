@@ -7,7 +7,7 @@ import {
 } from "../../script/postinstall.mjs"
 
 const require = createRequire(import.meta.url)
-const wrapper = require("../../bin/openscience") as {
+const wrapper = require("../../bin/medhorizon") as {
   exitCodeForResult(result: { status: number | null; signal: NodeJS.Signals | null }): number
   expectedPlatformPackages(platform: string, arch: string, musl: boolean): string[]
   linuxArm64PageSizeProblem(platform: string, arch: string, pageSize?: string): string | undefined

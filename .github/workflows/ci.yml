@@ -93,7 +93,7 @@ jobs:
       - name: Launcher parses
         run: node --check tooling/launcher/bin/synsci.mjs
       - name: npm bin wrapper parses
-        run: node --check backend/cli/bin/openscience
+        run: node --check backend/cli/bin/medhorizon
       - name: Install script parses
         run: bash -n install && bash -n frontend/landing/public/install
       - name: Install script copies are in sync

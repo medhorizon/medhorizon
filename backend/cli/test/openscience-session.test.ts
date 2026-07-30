@@ -4,7 +4,7 @@ import fs from "fs/promises"
 import { Global } from "../src/global"
 import { OpenScience } from "../src/openscience"
 
-const file = path.join(Global.Path.data, "openscience-session.json")
+const file = path.join(Global.Path.data, "medhorizon-session.json")
 
 afterEach(async () => {
   await fs.rm(file, { force: true }).catch(() => {})

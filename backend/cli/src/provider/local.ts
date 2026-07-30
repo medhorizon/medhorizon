@@ -4,7 +4,7 @@
  * a custom base URL.
  *
  * A local runtime is registered exactly like any other provider: a config block
- * under `openscience.json` → `provider.<id>` using the `@ai-sdk/openai-compatible`
+ * under `medhorizon.json` → `provider.<id>` using the `@ai-sdk/openai-compatible`
  * package, a `baseURL` (e.g. http://localhost:11434/v1), a throwaway api key
  * (most local servers ignore it, but the SDK requires a non-empty value), and a
  * `models` map. This module builds that block, discovers the models a running
@@ -203,7 +203,7 @@ export namespace LocalProvider {
     return results.filter((r): r is Detected => Array.isArray(r.models) && r.models.length > 0)
   }
 
-  /** Build the `openscience.json` → `provider.<id>` block for a local endpoint.
+  /** Build the `medhorizon.json` → `provider.<id>` block for a local endpoint.
    *  Uses `@ai-sdk/openai-compatible`, pins the baseURL + a throwaway key, and
    *  registers each model at zero cost (local inference is free / never metered).
    *  Conservative capability + limit defaults; the user can refine per-model. */

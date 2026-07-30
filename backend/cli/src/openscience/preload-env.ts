@@ -23,7 +23,11 @@ import { loadProjectDotenv } from "./dotenv"
 
 function syncedEnvPath(): string {
   const xdg = process.env.XDG_CONFIG_HOME || path.join(os.homedir(), ".config")
-  return path.join(xdg, "openscience", "synced-env.json")
+  const candidates = ["medhorizon", "openscience", "synsc"].map((dir) => path.join(xdg, dir, "synced-env.json"))
+  for (const file of candidates) {
+    if (fs.existsSync(file)) return file
+  }
+  return candidates[0]
 }
 
 // The shipped binary disables Bun's ambient .env auto-load (autoloadDotenv:false)

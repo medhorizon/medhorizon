@@ -117,7 +117,7 @@ export namespace Install {
         // Persist the repo's entry manifest (or absence thereof) so the
         // loader can filter user-facing skills from internal helpers.
         if (entries !== null) {
-          await fs.writeFile(path.join(nsDir, "openscience-skills.json"), JSON.stringify({ entries }, null, 2))
+          await fs.writeFile(path.join(nsDir, "medhorizon-skills.json"), JSON.stringify({ entries }, null, 2))
         }
         for (const skill of surviving) {
           const skillDir = path.join(skillsDir, skill.name)

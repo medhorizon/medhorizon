@@ -362,7 +362,7 @@ const ProviderCard: Component<{
             secret
           />
           <p class="text-11-regular text-text-weak/70">
-            Encrypted at rest under ~/.openscience/ · never returned to the browser.
+            Encrypted at rest under ~/.medhorizon/ · never returned to the browser.
           </p>
         </div>
       </Show>

@@ -7,12 +7,12 @@ ENV BUN_RUNTIME_TRANSPILER_CACHE_PATH=${BUN_RUNTIME_TRANSPILER_CACHE_PATH}
 RUN apk add libgcc libstdc++ ripgrep
 
 FROM base AS build-amd64
-COPY dist/openscience-linux-x64-baseline-musl/bin/openscience /usr/local/bin/openscience
+COPY dist/openscience-linux-x64-baseline-musl/bin/medhorizon /usr/local/bin/medhorizon
 
 FROM base AS build-arm64
-COPY dist/openscience-linux-arm64-musl/bin/openscience /usr/local/bin/openscience
+COPY dist/openscience-linux-arm64-musl/bin/medhorizon /usr/local/bin/medhorizon
 
 ARG TARGETARCH
 FROM build-${TARGETARCH}
-RUN openscience --version
-ENTRYPOINT ["openscience"]
+RUN medhorizon --version
+ENTRYPOINT ["medhorizon"]

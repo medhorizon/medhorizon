@@ -427,7 +427,7 @@ Output exactly this Markdown structure, keeping every section (write "(none)" wh
 
     // Persist the handoff so a fresh agent/process can pick up from one curated file
     // instead of re-reading the whole project. Default is a PER-SESSION file at
-    // .openscience/handoffs/<sessionID>.md — one writer per file, so parallel sessions
+    // .medhorizon/handoffs/<sessionID>.md — one writer per file, so parallel sessions
     // and subagents never clobber each other (no shared mutable "latest"; the caller
     // knows its session id, and a human can `ls -t` for the newest). /handoff <path>
     // overrides with an explicit file. Best-effort — a write failure never blocks it.
@@ -462,7 +462,7 @@ Output exactly this Markdown structure, keeping every section (write "(none)" wh
         if ((input.trigger ?? "manual") !== "manual") noteCompaction({ sessionID: input.sessionID, before, reclaimed })
         const root = path.resolve(Instance.worktree)
         const custom = input.handoffFile?.trim()
-        const defaultTarget = path.resolve(root, ".openscience", "handoffs", `${input.sessionID}.md`)
+        const defaultTarget = path.resolve(root, ".medhorizon", "handoffs", `${input.sessionID}.md`)
         // Confine a user-supplied /handoff path to the worktree (no absolute / ".."
         // escape); on escape, fall back to the default per-session file.
         const resolved = custom ? path.resolve(root, custom) : defaultTarget

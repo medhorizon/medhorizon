@@ -14,7 +14,7 @@ import {
 import { tmpdir } from "../fixture/fixture"
 
 const realFetch = globalThis.fetch
-const sessionPath = path.join(Global.Path.data, "openscience-session.json")
+const sessionPath = path.join(Global.Path.data, "medhorizon-session.json")
 
 afterEach(async () => {
   globalThis.fetch = realFetch
