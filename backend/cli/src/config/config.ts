@@ -1465,9 +1465,13 @@ export namespace Config {
   }
 
   function globalConfigFile() {
-    const candidates = ["medhorizon.jsonc", "medhorizon.json", "openscience.jsonc", "openscience.json", "config.json"].map(
-      (file) => path.join(Global.Path.config, file),
-    )
+    const candidates = [
+      "medhorizon.jsonc",
+      "medhorizon.json",
+      "openscience.jsonc",
+      "openscience.json",
+      "config.json",
+    ].map((file) => path.join(Global.Path.config, file))
     for (const file of candidates) {
       if (existsSync(file)) return file
     }

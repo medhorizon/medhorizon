@@ -20,9 +20,6 @@ jobs:
           - os: macos-latest
             target: macos-arm64
             archive: tar.gz
-          - os: macos-13
-            target: macos-x64
-            archive: tar.gz
           - os: ubuntu-latest
             target: linux-x64
             archive: tar.gz
@@ -56,7 +53,7 @@ jobs:
             echo "Error: Binary not found"
             exit 1
           fi
-          echo "BINARY=$BINARY" >> $GITHUB_ENV
+          echo "BINARY=$BINARY" >> "$GITHUB_ENV"
 
       - name: Find binary (Windows)
         if: runner.os == 'Windows'
@@ -106,7 +103,7 @@ jobs:
       - name: Create checksums
         run: |
           cd artifacts
-          sha256sum * > checksums.txt
+          sha256sum ./* > checksums.txt
           cat checksums.txt
 
       - name: Create GitHub Release
@@ -119,14 +116,19 @@ jobs:
             ### Windows
             下载 `install.bat`，双击运行，按提示操作。
 
-            ### macOS / Linux
+            ### macOS (Apple Silicon) / Linux
             ```bash
             curl -fsSL https://raw.githubusercontent.com/medhorizon/medhorizon/main/scripts/install.sh | bash
             ```
 
             ### 手动安装
-            下载对应平台的压缩包，解压后双击 `medhorizon` 即可启动。
+            下载对应平台的压缩包，解压后运行 `medhorizon` 即可启动。
             首次启动会自动打开浏览器引导填写 API Key。
+
+            ### 本版本产物
+            - `medhorizon-windows-x64.zip`
+            - `medhorizon-macos-arm64.tar.gz`
+            - `medhorizon-linux-x64.tar.gz`
 
             ---
             完整说明见 [README](https://github.com/medhorizon/medhorizon#readme)

@@ -498,11 +498,11 @@ This workflow helps with X, Y, and Z.
 
 | 修改类型      | 文件位置                                          | 说明                |
 | ------------- | ------------------------------------------------- | ------------------- |
-| 新 Agent 定义 | `.medhorizon/medhorizon.jsonc`                  | 添加 `agent` 数组项 |
+| 新 Agent 定义 | `.medhorizon/medhorizon.jsonc`                    | 添加 `agent` 数组项 |
 | 新工具        | `backend/cli/src/tool/my-tool.ts` + `registry.ts` | 新文件 + 一行注册   |
 | Prompt 模板   | `backend/cli/src/agent/prompt/my-agent.txt`       | 独立文本文件        |
-| Skill 工作流  | `.medhorizon/skills/my-workflow.md`              | 独立 markdown       |
-| Plugin 集成   | `.medhorizon/medhorizon.jsonc` → `plugins`      | 配置项              |
+| Skill 工作流  | `.medhorizon/skills/my-workflow.md`               | 独立 markdown       |
+| Plugin 集成   | `.medhorizon/medhorizon.jsonc` → `plugins`        | 配置项              |
 
 ### ⚠️ 轻度侵入（谨慎）
 
@@ -815,14 +815,14 @@ await CodeReviewTool.execute({
 
 | 需求                  | 修改文件                                                   | 章节 |
 | --------------------- | ---------------------------------------------------------- | ---- |
-| 添加新 agent 类型     | `.medhorizon/medhorizon.jsonc`                           | §1   |
+| 添加新 agent 类型     | `.medhorizon/medhorizon.jsonc`                             | §1   |
 | 自定义 agent 提示词   | `backend/cli/src/agent/prompt/*.txt` + `session/prompt.ts` | §2   |
 | 添加子 agent 委托类型 | `backend/cli/src/tool/task.ts`                             | §3   |
 | 使用 stage + gate     | 工具调用 `stage({name, gate})`                             | §4   |
 | 创建新工具            | `backend/cli/src/tool/my-tool.ts` + `registry.ts`          | §5   |
-| 配置权限              | `.medhorizon/medhorizon.jsonc` → `agent[].permission`    | §6   |
-| 集成 MCP plugin       | `.medhorizon/medhorizon.jsonc` → `plugins`               | §7   |
-| 创建可复用工作流      | `.medhorizon/skills/my-workflow.md`                       | §7   |
+| 配置权限              | `.medhorizon/medhorizon.jsonc` → `agent[].permission`      | §6   |
+| 集成 MCP plugin       | `.medhorizon/medhorizon.jsonc` → `plugins`                 | §7   |
+| 创建可复用工作流      | `.medhorizon/skills/my-workflow.md`                        | §7   |
 
 ---
 

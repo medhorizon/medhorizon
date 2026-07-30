@@ -407,7 +407,7 @@ export const dict = {
   "error.chain.modelNotFound": "Modèle introuvable : {{provider}}/{{model}}",
   "error.chain.checkConfig": "Vérifiez votre configuration (medhorizon.json) pour les noms de fournisseur/modèle",
   "error.chain.mcpFailed":
-    "Le serveur MCP \"{{name}}\" a échoué. Notez que MedHorizon ne supporte pas encore l'authentification MCP.",
+    'Le serveur MCP "{{name}}" a échoué. Notez que MedHorizon ne supporte pas encore l\'authentification MCP.',
   "error.chain.providerAuthFailed": "Échec de l'authentification du fournisseur ({{provider}}) : {{message}}",
   "error.chain.providerInitFailed":
     'Échec de l\'initialisation du fournisseur "{{provider}}". Vérifiez les identifiants et la configuration.',

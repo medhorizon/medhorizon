@@ -32,7 +32,7 @@ Run this skill when:
 2. **Create or link the graph** (idempotent — safe to re-run; returns the
    existing graph if one already exists):
    ```bash
-   openscience project init --format=json
+   medhorizon project init --format=json
    ```
    On success this prints `{"project_id":"<id>"}` and writes `.medhorizon/project.json`
    at the repo root so the canvas links to it immediately.
@@ -61,5 +61,5 @@ Run this skill when:
   the same graph for the same repo.
 - **Repo-rooted:** run it from anywhere inside the repo — it resolves to the git
   top-level.
-- **Do not** hand-edit `.medhorizon/project.json`; let `openscience project init` manage
-  it (use `openscience project merge` to pick a canonical root if duplicates exist).
+- **Do not** hand-edit `.medhorizon/project.json`; let `medhorizon project init` manage
+  it (use `medhorizon project merge` to pick a canonical root if duplicates exist).

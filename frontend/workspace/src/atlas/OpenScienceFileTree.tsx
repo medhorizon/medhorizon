@@ -239,8 +239,8 @@ export function OpenScienceFileTree(props: { onOpen?: (path: string) => void }):
                     }}
                   >
                     <Show when={isMac()} fallback={<>{permissionError()}</>}>
-                      Grant <strong>Full Disk Access</strong> to MedHorizon in System Settings → Privacy &amp;
-                      Security, then refresh.
+                      Grant <strong>Full Disk Access</strong> to MedHorizon in System Settings → Privacy &amp; Security,
+                      then refresh.
                     </Show>
                   </div>
                   <Show when={isMac()}>

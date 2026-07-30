@@ -35,6 +35,12 @@ case "$OS" in
   *)      err "不支持的系统: $OS" ;;
 esac
 
+
+# v0.2+ ships Apple Silicon only for macOS (no macos-x64 artifact).
+if [ "$PLATFORM" = "macos" ] && [ "$ARCH" = "x64" ]; then
+  err "当前 Release 不提供 Intel Mac (macos-x64) 包，请使用 Apple Silicon 或从源码构建。"
+fi
+
 ASSET_NAME="medhorizon-${PLATFORM}-${ARCH}.tar.gz"
 step "平台: $PLATFORM-$ARCH"
 

@@ -835,9 +835,7 @@ export default function Landing() {
                 <Cta href={GITHUB} external>
                   Star on GitHub
                 </Cta>
-                <span className="font-terminal text-[12.5px] text-foreground/60">
-                  github.com/medhorizon/medhorizon
-                </span>
+                <span className="font-terminal text-[12.5px] text-foreground/60">github.com/medhorizon/medhorizon</span>
               </div>
             </Reveal>
           </div>
@@ -1046,9 +1044,7 @@ export default function Landing() {
 
         {/* Giant clipped wordmark, the closing brand moment. */}
         <div className="relative h-[13vw] min-h-[90px] max-h-[200px] overflow-hidden" aria-hidden>
-          <div className="footer-watermark absolute left-1/2 -translate-x-1/2 top-[0.04em] text-center">
-            MedHorizon
-          </div>
+          <div className="footer-watermark absolute left-1/2 -translate-x-1/2 top-[0.04em] text-center">MedHorizon</div>
         </div>
       </footer>
     </div>

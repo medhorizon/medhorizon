@@ -1681,7 +1681,8 @@ export namespace OpenScience {
       })
       if (!res.ok) return null
       const body = (await res.json()) as
-        Array<Record<string, unknown>> | { transactions?: Array<Record<string, unknown>> }
+        | Array<Record<string, unknown>>
+        | { transactions?: Array<Record<string, unknown>> }
       const rows = Array.isArray(body) ? body : (body.transactions ?? [])
       return rows.slice(0, limit).map((r) => ({
         id: String(r["id"] ?? ""),
