@@ -41,3 +41,10 @@ __pycache__/
 # Internal planning docs (specs/plans) stay local, not in the repo
 docs/superpowers/
 legacy-chat-ui/
+
+# Python sidecar local env / caches
+.venv/
+**/.venv/
+.pytest_cache/
+**/.pytest_cache/
+research-graph/data/

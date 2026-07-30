@@ -60,16 +60,24 @@ Ready to enter stage "证据搜集"?
 
 所有新功能不修改核心框架（processor / llm / compaction），通过消息部件（append-only message parts）扩展状态，利用现有 `Question.ask` 基础设施实现门控，无需新增路由或 SSE 事件。
 
+### 🕸️ Research Graph（v0.3.0，可选）
+
+独立模块 `research-graph/`：研究图画布、实验规格与运行、GEPA 优化与人工门控。**不修改 MedHorizon 核心**，通过插件配置叠加启用。
+
+- 使用说明（截图）：[`research-graph/docs/USAGE.md`](./research-graph/docs/USAGE.md)
+- 模块说明：[`research-graph/README.md`](./research-graph/README.md)
+
 ---
 
 ## 安装
 
 ### 🖥️ Windows（一键安装，推荐）
 
-1. 下载 [`install.bat`](https://github.com/medhorizon/medhorizon/releases/latest/download/install.bat)
-2. 双击运行，等待安装完成（约 1 分钟）
-3. 双击桌面的 **MedHorizon** 图标启动
-4. 浏览器自动打开 → 填写 API Key → 开始使用
+1. 下载 [`medhorizon-windows-installer.zip`](https://github.com/medhorizon/medhorizon/releases/latest/download/medhorizon-windows-installer.zip)（含 `install.bat` + `install.ps1`）
+2. 解压后双击 `install.bat`，按提示完成安装
+3. 或直接下载 [`install.bat`](https://github.com/medhorizon/medhorizon/releases/latest/download/install.bat)（会自动拉取 `install.ps1`）
+4. 双击桌面的 **MedHorizon** 图标启动
+5. 浏览器自动打开 → 填写 API Key → 开始使用
 
 > 无需安装 Git、Node.js、Python 等任何依赖。
 
