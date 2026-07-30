@@ -111,6 +111,12 @@ jobs:
         with:
           name: "MedHorizon ${{ github.ref_name }}"
           body: |
+            ## 本版本亮点（v0.3.0）
+
+            - **Research Graph** 可选模块：研究图 / 实验 / GEPA 人机门控（`research-graph/`，不改动核心）
+            - 使用说明（含截图）：[`research-graph/docs/USAGE.md`](https://github.com/medhorizon/medhorizon/blob/main/research-graph/docs/USAGE.md)
+            - 变更摘要见 [CHANGELOG](https://github.com/medhorizon/medhorizon/blob/main/CHANGELOG.md)
+
             ## 安装方法
 
             ### Windows
@@ -124,6 +130,12 @@ jobs:
             ### 手动安装
             下载对应平台的压缩包，解压后运行 `medhorizon` 即可启动。
             首次启动会自动打开浏览器引导填写 API Key。
+
+            ### Research Graph（可选）
+            ```bash
+            cd research-graph/backend && python3 -m uvicorn app.main:app --host 127.0.0.1 --port 8000
+            cd research-graph/frontend && npm install && npm run dev -- --host 127.0.0.1 --port 5173
+            ```
 
             ### 本版本产物
             - `medhorizon-windows-x64.zip`
