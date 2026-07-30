@@ -182,6 +182,14 @@ CREATE TABLE IF NOT EXISTS sync_outbox (
   last_error TEXT,
   created_at TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS session_graph_bindings (
+  session_id TEXT NOT NULL,
+  user_id TEXT NOT NULL,
+  graph_id TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (session_id, user_id)
+);
 CREATE TABLE IF NOT EXISTS idempotency_keys (
   key TEXT PRIMARY KEY,
   user_id TEXT NOT NULL,
@@ -195,6 +203,7 @@ CREATE INDEX IF NOT EXISTS idx_experiments_graph_status ON experiments(graph_id,
 CREATE INDEX IF NOT EXISTS idx_runs_exp_status ON experiment_runs(experiment_id, status);
 CREATE INDEX IF NOT EXISTS idx_provenance_session ON provenance_events(session_id);
 CREATE INDEX IF NOT EXISTS idx_outbox_status ON sync_outbox(status);
+CREATE INDEX IF NOT EXISTS idx_session_bind ON session_graph_bindings(session_id);
 """
 
 JSON_COLS = {

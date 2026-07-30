@@ -103,7 +103,19 @@ def manifest(settings: Settings = Depends(get_settings)):
                 },
             }
         ],
-        "plugin_tools": ["atlas_graph", "atlas_experiment", "atlas_gepa", "atlas_sync", "atlas_sidebar"],
+        "plugin_tools": [
+            "atlas_graph",
+            "atlas_experiment",
+            "atlas_gepa",
+            "atlas_sync",
+            "atlas_sidebar",
+            "atlas_stage",
+        ],
+        "stage_landing": {
+            "protocol": f"{api}/api/stages/protocol",
+            "land": f"{api}/api/stages/land",
+            "bind": f"{api}/api/sessions/bind",
+        },
         "env": {
             "RESEARCH_GRAPH_API": api,
             "RESEARCH_GRAPH_UI": ui,

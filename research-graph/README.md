@@ -30,7 +30,12 @@ From v0.3.6, GitHub Releases ship a PyInstaller binary built via `sidecar/build.
 
 Disable auto-start with `RESEARCH_GRAPH_DISABLE=1`.
 
-## Quick start
+## MedHorizon stage → node landing
+
+When the Research Graph plugin overlay is enabled, entering a MedHorizon `stage`
+auto-creates a mirror node (`meta.medhorizon_stage`). See
+[`docs/STAGE_LANDING.md`](./docs/STAGE_LANDING.md).
+
 
 ```bash
 cd research-graph
