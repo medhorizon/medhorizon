@@ -41,11 +41,11 @@ npm --version
 
 ### 当前状态
 
-- **状态**：Phase 4 完成；正在执行 Phase 5
+- **状态**：Phase 5 完成；正在执行 Phase 6
 - **最后更新**：2026-07-30
-- **已完成**：Phase 1–4
-- **当前阶段**：Phase 5（文件/导入导出/部署文档）
-- **下一步**：artifact download、deploy configs、outbox 去重测试
+- **已完成**：Phase 1–5
+- **当前阶段**：Phase 6（研究实验管理）
+- **下一步**：ExperimentSpec 完整字段、result node、runner 限制
 
 
 ### 路径缩写
@@ -477,11 +477,12 @@ medhorizon web
 
 **目标文件**：`[BACK]/routers/artifacts.py`、`[FRONT]/pages/*`、`[PLUGIN]/tools/*`
 
-- [ ] 私有 Storage bucket、artifact manifest、节点 Markdown 导入和 graph JSON 导出。
-- [ ] 增加 `atlas_sync` outbox 查看和重试，不阻塞本地保存。
-- [ ] 独立服务部署到 Railway/Fly.io，独立前端部署到 Vercel；MedHorizon 仍按原方式部署。
+- [x] 私有 Storage bucket、artifact manifest、节点 Markdown 导入和 graph JSON 导出。
+- [x] 增加 `atlas_sync` outbox 查看和重试，不阻塞本地保存。
+- [x] 独立服务部署到 Railway/Fly.io，独立前端部署到 Vercel；MedHorizon 仍按原方式部署。
+  - 提供 `Dockerfile` / `fly.toml` / `frontend/vercel.json` / `DEPLOY.md`（真实账号由操作者执行）。
 
-**验证边界**：上传/下载/导出可用；断网后恢复同步且不产生重复节点。
+**验证边界**：上传/下载/导出可用；断网后恢复同步且不产生重复节点。 ✅
 
 ### Phase 6：研究实验管理（3–5 天）
 
@@ -606,6 +607,7 @@ medhorizon web
 
 <!-- 进度记录从这里开始 -->
 
+- 2026-07-30 ✅ Phase 5 文件/同步/部署文档 — artifact download+hash 去重、outbox retry、Fly/Vercel 配置
 - 2026-07-30 ✅ Phase 4 AI 功能 — embedding/search 拆分、AIChat、异步 embedding、无 Key 503；tests green
 - 2026-07-30 ✅ Phase 3 图谱可视化 — Markdown I/O、filter/颜色、experiment link、archive；frontend build ok；12 passed
 - 2026-07-30 ✅ Phase 2 核心 CRUD — 拆分 nodes/edges、archive/export、revision/idempotency、研究链测试；11 passed

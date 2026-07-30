@@ -7,6 +7,7 @@ import re
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, Form, UploadFile
+from fastapi.responses import FileResponse
 
 from backend.config import Settings, get_settings
 from backend.db.sqlite import Store, get_store, now, uid
@@ -53,7 +54,16 @@ async def upload_artifact(
 
     name = file.filename or "artifact.bin"
     target = data_dir / f"{digest[:16]}_{name}"
-    target.write_bytes(raw)
+    # Content-addressed: identical bytes reuse the same file path
+    if not target.exists():
+        target.write_bytes(raw)
+    existing = [
+        a
+        for a in store.list("artifacts", user_id=user.id)
+        if a.get("content_hash") == digest and a.get("graph_id") == graph_id
+    ]
+    if existing:
+        return existing[0]
     row = store.insert(
         "artifacts",
         {
@@ -66,28 +76,49 @@ async def upload_artifact(
             "storage_path": str(target),
             "size": len(raw),
             "content_hash": digest,
-            "manifest": {"scanned": True},
+            "manifest": {"scanned": True, "private_bucket": "local-artifacts"},
             "created_at": now(),
         },
     )
     if graph_id:
-        store.insert(
-            "sync_outbox",
-            {
-                "id": uid(),
-                "user_id": user.id,
-                "entity_type": "artifact",
-                "entity_id": row["id"],
-                "operation": "upsert",
-                "payload": {"artifact_id": row["id"], "graph_id": graph_id, "name": name},
-                "status": "pending",
-                "attempts": 0,
-                "next_retry_at": None,
-                "last_error": None,
-                "created_at": now(),
-            },
-        )
+        pending = [
+            o
+            for o in store.list("sync_outbox", where={"status": "pending"}, user_id=user.id)
+            if o.get("entity_id") == row["id"]
+        ]
+        if not pending:
+            store.insert(
+                "sync_outbox",
+                {
+                    "id": uid(),
+                    "user_id": user.id,
+                    "entity_type": "artifact",
+                    "entity_id": row["id"],
+                    "operation": "upsert",
+                    "payload": {"artifact_id": row["id"], "graph_id": graph_id, "name": name, "content_hash": digest},
+                    "status": "pending",
+                    "attempts": 0,
+                    "next_retry_at": None,
+                    "last_error": None,
+                    "created_at": now(),
+                },
+            )
     return row
+
+
+@router.get("/api/artifacts/{artifact_id}/download")
+def download_artifact(
+    artifact_id: str,
+    user: User = Depends(current_user),
+    store: Store = Depends(store_dep),
+):
+    row = store.get("artifacts", artifact_id, user.id)
+    if not row:
+        raise not_found("artifact not found")
+    path = Path(row["storage_path"])
+    if not path.exists():
+        raise not_found("artifact file missing")
+    return FileResponse(path, filename=row["name"], media_type=row.get("mime") or "application/octet-stream")
 
 
 @router.get("/api/sync/outbox")
