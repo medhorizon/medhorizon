@@ -19,7 +19,12 @@ export function AIChat(props: { graphId: string }) {
         ))}
       </div>
       <div className="row">
-        <input style={{ flex: 1 }} value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Ask about this graph" />
+        <input
+          style={{ flex: 1 }}
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
+          placeholder="Ask about this graph"
+        />
         <button
           type="button"
           onClick={async () => {

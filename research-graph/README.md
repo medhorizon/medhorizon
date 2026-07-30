@@ -45,13 +45,13 @@ Disable by unsetting those env vars — no MedHorizon rollback required.
 Research Graph exposes an **HTTP integration contract** and injects a featured
 card into MedHorizon’s session sidebar **without modifying MedHorizon source**.
 
-| Surface | URL / command |
-|---------|----------------|
-| Card JSON | `GET http://127.0.0.1:8000/integration/sidebar-card` |
-| Manifest | `GET http://127.0.0.1:8000/integration/manifest` |
-| Embed script | `GET http://127.0.0.1:8000/embed/sidebar-card.js` |
-| Bookmarklet | `http://127.0.0.1:8000/embed/bookmarklet` |
-| Iframe card | `http://127.0.0.1:5173/embed/card` |
+| Surface               | URL / command                                                                         |
+| --------------------- | ------------------------------------------------------------------------------------- |
+| Card JSON             | `GET http://127.0.0.1:8000/integration/sidebar-card`                                  |
+| Manifest              | `GET http://127.0.0.1:8000/integration/manifest`                                      |
+| Embed script          | `GET http://127.0.0.1:8000/embed/sidebar-card.js`                                     |
+| Bookmarklet           | `http://127.0.0.1:8000/embed/bookmarklet`                                             |
+| Iframe card           | `http://127.0.0.1:5173/embed/card`                                                    |
 | Gateway (recommended) | `python3 research-graph/scripts/medhorizon-gateway.py` → open `http://127.0.0.1:5199` |
 
 Plugin tool: `atlas_sidebar` (`card` / `manifest` / `inject_hint`).
@@ -72,9 +72,9 @@ PYTHONPATH=. backend/.venv/bin/pytest backend/tests -q
 
 ## Modes
 
-| Mode | Behavior |
-|------|----------|
-| `local` | Module SQLite/Supabase only |
+| Mode               | Behavior                                                                                                    |
+| ------------------ | ----------------------------------------------------------------------------------------------------------- |
+| `local`            | Module SQLite/Supabase only                                                                                 |
 | `atlas` / `hybrid` | Plugin may project summaries via existing MedHorizon `/api/atlas/*` bridge; full experiment/GEPA stay local |
 
 ## Usage guide (screenshots)

@@ -1,4 +1,6 @@
-export function MetricTable(props: { metrics: Array<{ name: string; value: number; split?: string; evaluator?: string }> }) {
+export function MetricTable(props: {
+  metrics: Array<{ name: string; value: number; split?: string; evaluator?: string }>
+}) {
   if (!props.metrics.length) return <p className="muted">No metrics yet.</p>
   return (
     <table className="table">

@@ -16,12 +16,12 @@ category: research
 
 ## Mapping to MedHorizon stage
 
-| Phase | stage gate |
-|-------|------------|
-| Design | yes |
-| Baseline | no |
-| Generate / Evaluate / Critique | no |
-| Select/apply | yes |
-| Report | yes |
+| Phase                          | stage gate |
+| ------------------------------ | ---------- |
+| Design                         | yes        |
+| Baseline                       | no         |
+| Generate / Evaluate / Critique | no         |
+| Select/apply                   | yes        |
+| Report                         | yes        |
 
 Stop on max_iterations, max_candidates, budget, or patience. Use `replay` to branch without erasing history.

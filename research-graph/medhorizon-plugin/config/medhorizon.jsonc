@@ -5,12 +5,12 @@
   //   RESEARCH_GRAPH_MODE=local
   // Plugin under config/plugin/ is auto-discovered. Skills load via skills.paths.
   "skills": {
-    "paths": ["../skills"]
+    "paths": ["../skills"],
   },
   "permission": {
     "research_graph_write": "ask",
     "research_graph_experiment": "ask",
     "research_graph_gepa": "ask",
-    "research_graph_sync": "ask"
-  }
+    "research_graph_sync": "ask",
+  },
 }

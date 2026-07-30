@@ -1,4 +1,6 @@
-export function ProvenancePanel(props: { events: Array<{ event_type: string; actor: string; created_at: string; payload?: Record<string, unknown> }> }) {
+export function ProvenancePanel(props: {
+  events: Array<{ event_type: string; actor: string; created_at: string; payload?: Record<string, unknown> }>
+}) {
   if (!props.events.length) return <p className="muted">No provenance events.</p>
   return (
     <div className="stack">
@@ -9,7 +11,9 @@ export function ProvenancePanel(props: { events: Array<{ event_type: string; act
             <span className="muted">{e.actor}</span>
             <span className="muted">{e.created_at}</span>
           </div>
-          <pre style={{ margin: 0, whiteSpace: "pre-wrap", fontSize: "0.8rem" }}>{JSON.stringify(e.payload ?? {}, null, 2)}</pre>
+          <pre style={{ margin: 0, whiteSpace: "pre-wrap", fontSize: "0.8rem" }}>
+            {JSON.stringify(e.payload ?? {}, null, 2)}
+          </pre>
         </div>
       ))}
     </div>
