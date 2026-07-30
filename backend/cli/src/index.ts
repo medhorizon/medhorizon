@@ -4,6 +4,8 @@
 // their own module-init time. Without this, the SDK constructs at
 // import time with empty env (sync only catches up later in middleware).
 import "./openscience/preload-env"
+// Bind Research Graph API env early so the built-in plugin resolves the sidecar.
+import "./sidecar/research-graph"
 
 import yargs from "yargs"
 import { hideBin } from "yargs/helpers"

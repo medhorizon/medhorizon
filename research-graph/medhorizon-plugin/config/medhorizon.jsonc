@@ -1,0 +1,14 @@
+{
+  // External overlay for MedHorizon — set:
+  //   OPENSCIENCE_CONFIG_DIR=<absolute>/research-graph/medhorizon-plugin/config
+  //   RESEARCH_GRAPH_API=http://127.0.0.1:8000
+  //   RESEARCH_GRAPH_MODE=local
+  // Plugin under config/plugin/ is auto-discovered.
+  // Skills under config/skills/**/SKILL.md are auto-scanned from this config dir.
+  "permission": {
+    "research_graph_write": "ask",
+    "research_graph_experiment": "ask",
+    "research_graph_gepa": "ask",
+    "research_graph_sync": "ask",
+  },
+}

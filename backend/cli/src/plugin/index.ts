@@ -11,6 +11,7 @@ import { CodexAuthPlugin } from "./codex"
 import { Session } from "../session"
 import { NamedError } from "@synsci/util/error"
 import { CopilotAuthPlugin } from "./copilot"
+import { ResearchGraphPlugin } from "./research-graph"
 
 export namespace Plugin {
   const log = Log.create({ service: "plugin" })
@@ -28,7 +29,7 @@ export namespace Plugin {
   const INSTALL_TIMEOUT_MS = Number(process.env["OPENSCIENCE_PLUGIN_INSTALL_TIMEOUT_MS"]) || 30_000
 
   // Built-in plugins that are directly imported (not installed from npm)
-  const INTERNAL_PLUGINS: PluginInstance[] = [CodexAuthPlugin, CopilotAuthPlugin]
+  const INTERNAL_PLUGINS: PluginInstance[] = [CodexAuthPlugin, CopilotAuthPlugin, ResearchGraphPlugin]
 
   // Install a plugin package, but never wait longer than INSTALL_TIMEOUT_MS — a
   // hung `bun add` (unreachable registry, missing package) must not block plugin
