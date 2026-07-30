@@ -2,7 +2,8 @@ import { tool } from "@synsci/plugin"
 import { mode, rgFetch, ResearchGraphUnavailable } from "../atlas_bridge"
 
 export const atlasSync = tool({
-  description: "Inspect Research Graph sync outbox / capability and retry pending Atlas projections. Ask on retry/commit.",
+  description:
+    "Inspect Research Graph sync outbox / capability and retry pending Atlas projections. Ask on retry/commit.",
   args: {
     action: tool.schema.enum(["capability", "outbox", "retry"]),
     item_id: tool.schema.string().optional(),

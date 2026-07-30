@@ -23,11 +23,7 @@ const KIND_COLOR: Record<string, string> = {
   conclusion: "#d06b6b",
 }
 
-export function GraphCanvas(props: {
-  nodes: Node[]
-  edges: Edge[]
-  onSelect?: (node: Node | null) => void
-}) {
+export function GraphCanvas(props: { nodes: Node[]; edges: Edge[]; onSelect?: (node: Node | null) => void }) {
   const initialNodes: FlowNode[] = useMemo(
     () =>
       props.nodes.map((n, i) => ({

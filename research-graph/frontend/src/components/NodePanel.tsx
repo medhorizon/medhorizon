@@ -15,9 +15,7 @@ export function NodePanel(props: {
       <div className="row">
         <strong>{props.node.kind}</strong>
         <span className={`badge ${props.node.lifecycle}`}>{props.node.lifecycle}</span>
-        {props.experimentId ? (
-          <a href={`/experiments/${props.experimentId}`}>Open experiment</a>
-        ) : null}
+        {props.experimentId ? <a href={`/experiments/${props.experimentId}`}>Open experiment</a> : null}
       </div>
       <label className="stack">
         Title

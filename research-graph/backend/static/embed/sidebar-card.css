@@ -5,8 +5,7 @@
   padding: 12px 12px 14px;
   border-radius: 12px;
   border: 1px solid rgba(61, 155, 110, 0.45);
-  background:
-    linear-gradient(165deg, rgba(28, 58, 44, 0.95) 0%, rgba(16, 24, 20, 0.98) 70%);
+  background: linear-gradient(165deg, rgba(28, 58, 44, 0.95) 0%, rgba(16, 24, 20, 0.98) 70%);
   color: #e8efe9;
   font-family: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);

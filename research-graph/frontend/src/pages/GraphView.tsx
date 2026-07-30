@@ -37,7 +37,7 @@ export function GraphView() {
   const visible = filter === "all" ? nodes : nodes.filter((n) => n.kind === filter || n.lifecycle === filter)
   const linkedExperiment =
     selected?.kind === "experiment"
-      ? experiments.find((e) => e.title === selected.title) ?? experiments[0]
+      ? (experiments.find((e) => e.title === selected.title) ?? experiments[0])
       : experiments.find((e) => e.hypothesis_node_id === selected?.id)
 
   return (
@@ -83,7 +83,12 @@ export function GraphView() {
             </option>
           ))}
         </select>
-        <input placeholder="Node title" value={nodeTitle} onChange={(e) => setNodeTitle(e.target.value)} style={{ flex: 1 }} />
+        <input
+          placeholder="Node title"
+          value={nodeTitle}
+          onChange={(e) => setNodeTitle(e.target.value)}
+          style={{ flex: 1 }}
+        />
         <button
           type="button"
           onClick={async () => {

@@ -26,11 +26,14 @@ export function SidebarCard(props: { compact?: boolean }) {
   useEffect(() => {
     let alive = true
     const load = () =>
-      api.sidebarCard().then((data) => {
-        if (alive) setCard(data)
-      }).catch(() => {
-        if (alive) setCard({ ...empty, mode: "offline", subtitle: "侧车未连接" })
-      })
+      api
+        .sidebarCard()
+        .then((data) => {
+          if (alive) setCard(data)
+        })
+        .catch(() => {
+          if (alive) setCard({ ...empty, mode: "offline", subtitle: "侧车未连接" })
+        })
     load()
     const timer = setInterval(load, 15000)
     return () => {

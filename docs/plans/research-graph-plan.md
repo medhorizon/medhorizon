@@ -47,17 +47,16 @@ npm --version
 - **当前阶段**：完成交付
 - **下一步**：操作者配置真实 Supabase/OpenAI 并按 `DEPLOY.md` 部署（可选）
 
-
 ### 路径缩写
 
-| 缩写 | 完整路径 |
-|------|----------|
-| `[ROOT]` | `research-graph/` |
-| `[BACK]` | `research-graph/backend/` |
-| `[FRONT]` | `research-graph/frontend/src/` |
-| `[PLUGIN]` | `research-graph/medhorizon-plugin/` |
-| `[SQL]` | `research-graph/supabase/schema.sql` |
-| `[MED]` | `D:/claude work/medhorizon/` |
+| 缩写       | 完整路径                             |
+| ---------- | ------------------------------------ |
+| `[ROOT]`   | `research-graph/`                    |
+| `[BACK]`   | `research-graph/backend/`            |
+| `[FRONT]`  | `research-graph/frontend/src/`       |
+| `[PLUGIN]` | `research-graph/medhorizon-plugin/`  |
+| `[SQL]`    | `research-graph/supabase/schema.sql` |
+| `[MED]`    | `D:/claude work/medhorizon/`         |
 
 ---
 
@@ -254,18 +253,18 @@ CREATE TABLE sync_outbox (
 
 ### 3.1 原有 endpoint（保留）
 
-| 方法 | 路径 | 功能 |
-|------|------|------|
-| GET | `/health` | 健康检查 |
-| GET/POST/DELETE | `/api/graphs` | 图谱列表、创建、删除 |
-| GET | `/api/graphs/{id}` | 图谱详情 |
-| GET | `/api/graphs/{id}/tree` | 子图 |
-| GET/POST/PATCH/DELETE | `/api/nodes`、`/api/nodes/{id}` | 节点 CRUD |
-| POST/DELETE | `/api/edges`、`/api/edges/{id}` | 边 CRUD |
-| POST | `/api/search/semantic` | 语义搜索 |
-| POST | `/api/ai/summarize`、`suggest-links`、`chat`、`generate-hypothesis` | AI 辅助 |
-| POST | `/api/artifacts/upload` | artifact 上传 |
-| GET | `/api/graphs/{id}/export` | JSON 导出 |
+| 方法                  | 路径                                                                | 功能                 |
+| --------------------- | ------------------------------------------------------------------- | -------------------- |
+| GET                   | `/health`                                                           | 健康检查             |
+| GET/POST/DELETE       | `/api/graphs`                                                       | 图谱列表、创建、删除 |
+| GET                   | `/api/graphs/{id}`                                                  | 图谱详情             |
+| GET                   | `/api/graphs/{id}/tree`                                             | 子图                 |
+| GET/POST/PATCH/DELETE | `/api/nodes`、`/api/nodes/{id}`                                     | 节点 CRUD            |
+| POST/DELETE           | `/api/edges`、`/api/edges/{id}`                                     | 边 CRUD              |
+| POST                  | `/api/search/semantic`                                              | 语义搜索             |
+| POST                  | `/api/ai/summarize`、`suggest-links`、`chat`、`generate-hypothesis` | AI 辅助              |
+| POST                  | `/api/artifacts/upload`                                             | artifact 上传        |
+| GET                   | `/api/graphs/{id}/export`                                           | JSON 导出            |
 
 ### 3.2 实验 endpoint（新增）
 
@@ -314,12 +313,12 @@ GEPA 迭代必须记录 parent candidate、rollout run、evaluator 版本、prim
 
 ### 4.1 模型选择（原有策略保留）
 
-| 用途 | 模型 |
-|------|------|
-| 摘要、格式化 | `gpt-4o-mini` |
-| 关联发现、假设生成 | `gpt-4o` |
-| RAG 问答 | `gpt-4o` |
-| 文本向量化 | `text-embedding-3-small` |
+| 用途                  | 模型                                   |
+| --------------------- | -------------------------------------- |
+| 摘要、格式化          | `gpt-4o-mini`                          |
+| 关联发现、假设生成    | `gpt-4o`                               |
+| RAG 问答              | `gpt-4o`                               |
+| 文本向量化            | `text-embedding-3-small`               |
 | GEPA candidate/critic | 可配置，必须记录 provider/model 和成本 |
 
 ### 4.2 GEPA 循环
@@ -340,15 +339,15 @@ GEPA（Generalized Evolutionary Prompt Adaptation）优化的是 prompt/program/
 
 GEPA skill 调用现有 `stage` 工具，不修改 `StageTool`：
 
-| 阶段 | gate | 结果 |
-|------|------|------|
-| Design | 是 | 假设、目标、预算审阅 |
-| Baseline | 否 | 基线和 evaluator 固化 |
-| Generate candidates | 否 | 候选及校验结果 |
-| Evaluate | 否 | rollout、metrics、artifact |
-| Critique | 否 | 失败样本和改进建议 |
-| Select/apply | 是 | 用户批准后应用候选 |
-| Report | 是 | 结果写入 graph 并导出 |
+| 阶段                | gate | 结果                       |
+| ------------------- | ---- | -------------------------- |
+| Design              | 是   | 假设、目标、预算审阅       |
+| Baseline            | 否   | 基线和 evaluator 固化      |
+| Generate candidates | 否   | 候选及校验结果             |
+| Evaluate            | 否   | rollout、metrics、artifact |
+| Critique            | 否   | 失败样本和改进建议         |
+| Select/apply        | 是   | 用户批准后应用候选         |
+| Report              | 是   | 结果写入 graph 并导出      |
 
 Stage jump 只重启会话分支；GEPA 旧 iteration 和 artifact 永远保留，不覆盖历史。
 
@@ -416,12 +415,12 @@ medhorizon web
 
 ### 6.2 工具契约
 
-| 工具 | 读操作 | 写操作 | 默认权限 |
-|------|--------|--------|----------|
-| `atlas_graph` | list/get/search/tree | create/update/edge/export | 读自动，写 ask |
-| `atlas_experiment` | spec/run/metrics | approve/start/finish/artifact | 执行 ask |
-| `atlas_gepa` | status/iteration/report | generate/apply/stop | 全部 ask |
-| `atlas_sync` | capability/outbox | retry/commit | ask |
+| 工具               | 读操作                  | 写操作                        | 默认权限       |
+| ------------------ | ----------------------- | ----------------------------- | -------------- |
+| `atlas_graph`      | list/get/search/tree    | create/update/edge/export     | 读自动，写 ask |
+| `atlas_experiment` | spec/run/metrics        | approve/start/finish/artifact | 执行 ask       |
+| `atlas_gepa`       | status/iteration/report | generate/apply/stop           | 全部 ask       |
+| `atlas_sync`       | capability/outbox       | retry/commit                  | ask            |
 
 每个写操作必须传 `idempotency_key`、`reason`、`session_id` 和 `message_id`；sidecar 不可用时返回 `RESEARCH_GRAPH_UNAVAILABLE`，不得伪造成功。
 
@@ -553,13 +552,13 @@ OPENSCIENCE_CONFIG_DIR=D:/claude work/research-graph/medhorizon-plugin/config
 
 ## 九、成本估算（个人使用）
 
-| 项目 | 免费额度 | 超出费用 |
-|------|----------|----------|
-| Supabase Free | 500MB DB、1GB Storage、50k MAU | Pro 计划按官方价格 |
-| OpenAI Embedding | 按 token | 约 $0.02 / 百万 token |
-| GPT-4o-mini | 按 token | 约 $0.15 / 百万输入 token |
-| GPT-4o | 按 token | 约 $2.50 / 百万输入 token |
-| GEPA rollout | 取决于候选数和 budget | 每次 run 在报告中显示 |
+| 项目             | 免费额度                       | 超出费用                  |
+| ---------------- | ------------------------------ | ------------------------- |
+| Supabase Free    | 500MB DB、1GB Storage、50k MAU | Pro 计划按官方价格        |
+| OpenAI Embedding | 按 token                       | 约 $0.02 / 百万 token     |
+| GPT-4o-mini      | 按 token                       | 约 $0.15 / 百万输入 token |
+| GPT-4o           | 按 token                       | 约 $2.50 / 百万输入 token |
+| GEPA rollout     | 取决于候选数和 budget          | 每次 run 在报告中显示     |
 
 默认先使用 BYOK/local evaluator；managed Atlas 只有在用户批准并通过 budget 检查后执行。
 
@@ -567,17 +566,17 @@ OPENSCIENCE_CONFIG_DIR=D:/claude work/research-graph/medhorizon-plugin/config
 
 ## 十、与 Atlas / MedHorizon 功能对照
 
-| Atlas/MedHorizon 能力 | 本模块对应 |
-|----------------------|------------|
-| `thk_*` 认证 | 复用 MedHorizon/Atlas 登录；独立模式使用 Supabase JWT |
-| Graph list/tree/node/edge | `/api/graphs`、`/api/graphs/{id}/tree`、`/api/nodes`、`/api/edges` |
-| `AtlasNode.kind/lifecycle` | `nodes.kind/lifecycle`，保留 staged/committed/archived |
-| parent/child | `edges.relation='parent'` |
-| ExperimentSpec/Run | `experiments`、`experiment_runs`、`run_metrics` |
-| GEPA lineage | `gepa_runs`、`gepa_iterations`、`gepa_candidates` |
-| session stage | 复用 MedHorizon `stage`/StagesPanel，不复制到 graph 表 |
-| Atlas bridge | `[PLUGIN]/atlas_bridge.ts` 调用现有 `/api/atlas/*` |
-| Atlas cloud storage | `sync_outbox` 异步投影；本地完整数据仍可导出 |
+| Atlas/MedHorizon 能力      | 本模块对应                                                         |
+| -------------------------- | ------------------------------------------------------------------ |
+| `thk_*` 认证               | 复用 MedHorizon/Atlas 登录；独立模式使用 Supabase JWT              |
+| Graph list/tree/node/edge  | `/api/graphs`、`/api/graphs/{id}/tree`、`/api/nodes`、`/api/edges` |
+| `AtlasNode.kind/lifecycle` | `nodes.kind/lifecycle`，保留 staged/committed/archived             |
+| parent/child               | `edges.relation='parent'`                                          |
+| ExperimentSpec/Run         | `experiments`、`experiment_runs`、`run_metrics`                    |
+| GEPA lineage               | `gepa_runs`、`gepa_iterations`、`gepa_candidates`                  |
+| session stage              | 复用 MedHorizon `stage`/StagesPanel，不复制到 graph 表             |
+| Atlas bridge               | `[PLUGIN]/atlas_bridge.ts` 调用现有 `/api/atlas/*`                 |
+| Atlas cloud storage        | `sync_outbox` 异步投影；本地完整数据仍可导出                       |
 
 ---
 

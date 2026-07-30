@@ -35,28 +35,28 @@ python3 research-graph/scripts/medhorizon-gateway.py
 
 备选：打开 http://127.0.0.1:8000/embed/bookmarklet ，用书签在已打开的 MedHorizon 页注入。
 
-| 接口 | 预期 |
-|------|------|
-| `GET /integration/manifest` | 集成契约，`modifies_core: false` |
-| `GET /integration/sidebar-card` | 突出卡片 JSON（图谱/实验/待门控计数 + CTA） |
-| `GET /embed/sidebar-card.js` | 注入脚本（查找 `.session-sidebar` 并 prepend 卡片） |
+| 接口                            | 预期                                                |
+| ------------------------------- | --------------------------------------------------- |
+| `GET /integration/manifest`     | 集成契约，`modifies_core: false`                    |
+| `GET /integration/sidebar-card` | 突出卡片 JSON（图谱/实验/待门控计数 + CTA）         |
+| `GET /embed/sidebar-card.js`    | 注入脚本（查找 `.session-sidebar` 并 prepend 卡片） |
 
 浏览器打开：
 
-| 入口 | URL | 预期 |
-|------|-----|------|
-| 前端 UI | http://127.0.0.1:5173 | 看到左侧导航：Graphs / Experiments / Search+AI |
-| API 健康检查 | http://127.0.0.1:8000/health | `{"status":"ok"}` |
-| OpenAPI | http://127.0.0.1:8000/docs | Swagger 文档 |
+| 入口         | URL                          | 预期                                           |
+| ------------ | ---------------------------- | ---------------------------------------------- |
+| 前端 UI      | http://127.0.0.1:5173        | 看到左侧导航：Graphs / Experiments / Search+AI |
+| API 健康检查 | http://127.0.0.1:8000/health | `{"status":"ok"}`                              |
+| OpenAPI      | http://127.0.0.1:8000/docs   | Swagger 文档                                   |
 
 开发鉴权：前端自动带 `Authorization: Bearer local-dev`；本地可跳过 JWT。
 
 可选环境变量：
 
-| 变量 | 作用 |
-|------|------|
-| `DATABASE_URL` | 未设置时用 `research-graph/backend/data/research_graph.db` |
-| `OPENAI_API_KEY` | 未设置时 Search / AI Chat 返回 **503**（属预期） |
+| 变量                 | 作用                                                           |
+| -------------------- | -------------------------------------------------------------- |
+| `DATABASE_URL`       | 未设置时用 `research-graph/backend/data/research_graph.db`     |
+| `OPENAI_API_KEY`     | 未设置时 Search / AI Chat 返回 **503**（属预期）               |
 | `RESEARCH_GRAPH_API` | MedHorizon 插件调用本 API 的基址，默认 `http://127.0.0.1:8000` |
 
 ---
@@ -173,9 +173,9 @@ python3 research-graph/scripts/medhorizon-gateway.py
 
 **预期结果**
 
-| 条件 | 预期 |
-|------|------|
-| 已配置 `OPENAI_API_KEY` | 返回检索片段 / 对话回复 |
+| 条件                       | 预期                                                          |
+| -------------------------- | ------------------------------------------------------------- |
+| 已配置 `OPENAI_API_KEY`    | 返回检索片段 / 对话回复                                       |
 | **未**配置 Key（本地默认） | API **503**，界面提示不可用 —— **这是正常行为**，不是前端坏了 |
 
 ![06 Search + AI — 入口界面](./screenshots/06-search-ai.png)
@@ -186,17 +186,17 @@ python3 research-graph/scripts/medhorizon-gateway.py
 
 常用端点（均在 `http://127.0.0.1:8000`）：
 
-| 方法 | 路径 | 预期 |
-|------|------|------|
-| GET | `/health` | `{"status":"ok"}` |
-| GET | `/graphs` | 图数组 |
-| GET | `/graphs/{id}` | 含 `nodes` / `edges` |
-| GET | `/experiments` | 实验列表 |
-| POST | `/experiments/{id}/runs` | 创建 run |
-| POST | `/gepa/runs` | 创建 GEPA，常进入 `awaiting_gate` |
+| 方法 | 路径                     | 预期                                         |
+| ---- | ------------------------ | -------------------------------------------- |
+| GET  | `/health`                | `{"status":"ok"}`                            |
+| GET  | `/graphs`                | 图数组                                       |
+| GET  | `/graphs/{id}`           | 含 `nodes` / `edges`                         |
+| GET  | `/experiments`           | 实验列表                                     |
+| POST | `/experiments/{id}/runs` | 创建 run                                     |
+| POST | `/gepa/runs`             | 创建 GEPA，常进入 `awaiting_gate`            |
 | POST | `/gepa/runs/{id}/decide` | `{"decision":"accept","candidate_id":"..."}` |
-| GET | `/artifacts` | 制品列表；可下载 |
-| POST | `/sync/outbox` | 写入同步 outbox |
+| GET  | `/artifacts`             | 制品列表；可下载                             |
+| POST | `/sync/outbox`           | 写入同步 outbox                              |
 
 无 Key 时 AI 相关路由返回 503；带错误 JWT 时受保护路由返回 401。
 
@@ -225,13 +225,13 @@ export RESEARCH_GRAPH_API=http://127.0.0.1:8000
 
 按顺序自测，结果应与上图一致：
 
-1. [ ] Dashboard 能列出/创建图 → 见图 01  
-2. [ ] Graph 能增改节点并导出 Markdown → 见图 02  
-3. [ ] 能创建实验并关联图 → 见图 03  
-4. [ ] 能保存 Spec、创建 Run → 见图 04  
-5. [ ] GEPA 进入 `awaiting_gate` 并可门控 → 见图 05 / 07  
-6. [ ] Search/AI 无 Key 时明确失败（503）→ 见图 06  
-7. [ ] `/health` 与 CRUD API 正常 → 见图 08  
+1. [ ] Dashboard 能列出/创建图 → 见图 01
+2. [ ] Graph 能增改节点并导出 Markdown → 见图 02
+3. [ ] 能创建实验并关联图 → 见图 03
+4. [ ] 能保存 Spec、创建 Run → 见图 04
+5. [ ] GEPA 进入 `awaiting_gate` 并可门控 → 见图 05 / 07
+6. [ ] Search/AI 无 Key 时明确失败（503）→ 见图 06
+7. [ ] `/health` 与 CRUD API 正常 → 见图 08
 
 自动化测试（后端）：
 
@@ -245,18 +245,18 @@ cd research-graph/backend && python3 -m pytest -q
 
 ## 10. 截图索引
 
-| 文件 | 页面 | 说明 |
-|------|------|------|
-| `screenshots/01-dashboard.png` | Graphs | 列表 + 创建 |
-| `screenshots/02-graph-view.png` | Graph 画布 | 多类型节点 |
-| `screenshots/03-experiments.png` | Experiments | 列表 + 创建 |
-| `screenshots/04-experiment-view.png` | Experiment | Spec / Runs |
-| `screenshots/05-gepa-awaiting.png` | GEPA | 门控等待 |
-| `screenshots/06-search-ai.png` | Search+AI | 双栏入口 |
-| `screenshots/07-gepa-candidates.png` | GEPA | 候选示意 |
-| `screenshots/08-api-responses.png` | API | 响应示意 |
-| `screenshots/09-sidebar-card-rg-ui.png` | RG 侧栏 | 模块内突出卡片 |
+| 文件                                                | 页面            | 说明             |
+| --------------------------------------------------- | --------------- | ---------------- |
+| `screenshots/01-dashboard.png`                      | Graphs          | 列表 + 创建      |
+| `screenshots/02-graph-view.png`                     | Graph 画布      | 多类型节点       |
+| `screenshots/03-experiments.png`                    | Experiments     | 列表 + 创建      |
+| `screenshots/04-experiment-view.png`                | Experiment      | Spec / Runs      |
+| `screenshots/05-gepa-awaiting.png`                  | GEPA            | 门控等待         |
+| `screenshots/06-search-ai.png`                      | Search+AI       | 双栏入口         |
+| `screenshots/07-gepa-candidates.png`                | GEPA            | 候选示意         |
+| `screenshots/08-api-responses.png`                  | API             | 响应示意         |
+| `screenshots/09-sidebar-card-rg-ui.png`             | RG 侧栏         | 模块内突出卡片   |
 | `screenshots/10-sidebar-card-medhorizon-inject.png` | MedHorizon 注入 | 会话侧栏顶部卡片 |
-| `screenshots/11-embed-card.png` | `/embed/card` | iframe 嵌入面 |
+| `screenshots/11-embed-card.png`                     | `/embed/card`   | iframe 嵌入面    |
 
 截图由本地 `127.0.0.1:5173` + 演示库实际渲染采集（部分 API/候选页为同源数据的静态示意页，布局与真实 UI 一致）。

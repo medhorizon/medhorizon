@@ -47,7 +47,9 @@ export function Dashboard() {
           <Link key={g.id} to={`/graphs/${g.id}`} className="panel row" style={{ color: "inherit" }}>
             <strong>{g.title}</strong>
             <span className="muted">rev {g.revision}</span>
-            <span className={`badge ${g.archived ? "archived" : "committed"}`}>{g.archived ? "archived" : "active"}</span>
+            <span className={`badge ${g.archived ? "archived" : "committed"}`}>
+              {g.archived ? "archived" : "active"}
+            </span>
           </Link>
         ))}
         {!graphs.length ? <p className="muted">No graphs yet.</p> : null}

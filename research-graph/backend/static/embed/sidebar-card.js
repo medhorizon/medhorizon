@@ -1,15 +1,12 @@
 /* Research Graph — inject into MedHorizon session sidebar without core edits.
  * Loaded by gateway rewrite or bookmarklet.
  */
-(function () {
+;(function () {
   if (window.__RG_SIDEBAR_CARD__) return
   window.__RG_SIDEBAR_CARD__ = true
 
   const script = document.currentScript
-  const api =
-    (script && script.dataset && script.dataset.rgApi) ||
-    window.__RG_API__ ||
-    "http://127.0.0.1:8000"
+  const api = (script && script.dataset && script.dataset.rgApi) || window.__RG_API__ || "http://127.0.0.1:8000"
   const cssHref = api.replace(/\/$/, "") + "/embed/sidebar-card.css"
   const cardHref = api.replace(/\/$/, "") + "/integration/sidebar-card"
 
@@ -51,13 +48,13 @@
       (data.subtitle || "") +
       "</p>" +
       '<div class="rg-card-metrics">' +
-      '<div><strong>' +
+      "<div><strong>" +
       (metrics.graphs ?? 0) +
       "</strong><span>图谱</span></div>" +
-      '<div><strong>' +
+      "<div><strong>" +
       (metrics.experiments ?? 0) +
       "</strong><span>实验</span></div>" +
-      '<div><strong>' +
+      "<div><strong>" +
       (metrics.gepa_awaiting_gate ?? 0) +
       "</strong><span>待门控</span></div>" +
       "</div>" +
@@ -76,11 +73,7 @@
   }
 
   function escapeHtml(s) {
-    return String(s)
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
+    return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;")
   }
 
   function findSidebar() {
