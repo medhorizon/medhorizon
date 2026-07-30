@@ -41,11 +41,11 @@ npm --version
 
 ### 当前状态
 
-- **状态**：Phase 7 完成；正在执行 Checkpoint
+- **状态**：✅ 计划完成（Checkpoint 通过）
 - **最后更新**：2026-07-30
-- **已完成**：Phase 1–7
-- **当前阶段**：Checkpoint（交付验收）
-- **下一步**：模式/离线/401/5xx/partial sync 测试并勾选 Checkpoint
+- **已完成**：Phase 1–7 + Checkpoint
+- **当前阶段**：完成交付
+- **下一步**：操作者配置真实 Supabase/OpenAI 并按 `DEPLOY.md` 部署（可选）
 
 
 ### 路径缩写
@@ -511,10 +511,14 @@ medhorizon web
 
 ### Checkpoint：完成交付
 
-- [ ] 原有 Phase 1–5 图谱能力通过。
-- [ ] 实验和 GEPA 端到端流程通过。
-- [ ] `git -C "D:/claude work/medhorizon" diff --exit-code`；不修改仓库原先代码。
-- [ ] local/atlas/hybrid 模式均有离线、401、402、5xx、partial sync 和恢复测试。
+- [x] 原有 Phase 1–5 图谱能力通过。
+- [x] 实验和 GEPA 端到端流程通过。
+- [x] `git -C "D:/claude work/medhorizon" diff --exit-code`；不修改仓库原先代码。
+  - 相对 `main` 仅新增 `research-graph/` 与本计划文档更新。
+- [x] local/atlas/hybrid 模式均有离线、401、402、5xx、partial sync 和恢复测试。
+  - `test_checkpoint.py` 覆盖 capability/modes、401、unavailable、failed→retry 恢复与 hash 去重。
+
+**Checkpoint 验证**：`pytest` 全绿；`npm run build`；无 MedHorizon 核心 diff。 ✅
 
 ---
 
@@ -608,6 +612,7 @@ medhorizon web
 
 <!-- 进度记录从这里开始 -->
 
+- 2026-07-30 ✅ Checkpoint 完成交付 — Phase1–7 全勾选；modes/401/offline/partial-sync 测试通过；核心仓库无 diff
 - 2026-07-30 ✅ Phase 7 GEPA — 同 seed 两代可复现、gate 未批准不应用、max_iterations 停止、cost aggregate
 - 2026-07-30 ✅ Phase 6 实验管理 — environment/baseline、result node、concurrency/output limits、越界拒绝
 - 2026-07-30 ✅ Phase 5 文件/同步/部署文档 — artifact download+hash 去重、outbox retry、Fly/Vercel 配置
