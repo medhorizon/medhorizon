@@ -34,6 +34,14 @@ jobs:
         with:
           bun-version: latest
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
       - name: Install dependencies
         run: bun install
 
@@ -41,7 +49,6 @@ jobs:
         run: bun run script/build.ts --single
         working-directory: backend/cli
         env:
-          # Skip fetching live model list during CI (use cached snapshot if present)
           MODELS_DEV_API_JSON: ""
 
       - name: Find binary (Unix)
@@ -83,11 +90,31 @@ jobs:
           chmod +x release/medhorizon
           tar -czf medhorizon-${{ matrix.target }}.tar.gz -C release medhorizon
 
+      - name: Build Research Graph sidecar
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd research-graph
+          (cd frontend && npm ci --ignore-scripts && npm run build)
+          rm -rf ui && mkdir -p ui && cp -R frontend/dist/. ui/
+          python3 -m pip install -q -r backend/requirements.txt pyinstaller
+          (cd sidecar && PYTHONPATH="$PWD/.." pyinstaller --noconfirm research-graph.spec)
+          TARGET="${{ matrix.target }}"
+          if [ -f sidecar/dist/research-graph.exe ]; then
+            cp sidecar/dist/research-graph.exe "../research-graph-${TARGET}.exe"
+          else
+            cp sidecar/dist/research-graph "../research-graph-${TARGET}"
+            chmod +x "../research-graph-${TARGET}"
+          fi
+          ls -lh ../research-graph-${TARGET}*
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: medhorizon-${{ matrix.target }}
-          path: medhorizon-${{ matrix.target }}.${{ matrix.archive }}
+          path: |
+            medhorizon-${{ matrix.target }}.${{ matrix.archive }}
+            research-graph-${{ matrix.target }}*
 
   release:
     needs: build
@@ -100,10 +127,81 @@ jobs:
           path: artifacts
           merge-multiple: true
 
-      - name: Create checksums
+      - name: Package binary installer archives
+        env:
+          VERSION: ${{ github.ref_name }}
         run: |
+          set -euo pipefail
+          mkdir -p artifacts
+          VERSION="${VERSION#v}"
+          echo "$VERSION" > /tmp/VERSION
+          ls -lah artifacts
+
+          python3 - <<'PY'
+          from pathlib import Path
+
+          def rewrite(src: str, dest: str) -> None:
+              raw = Path(src).read_bytes()
+              text = raw.replace(b"\r\n", b"\n").replace(b"\r", b"\n").decode("ascii")
+              out = text.replace("\n", "\r\n").encode("ascii")
+              path = Path(dest)
+              path.parent.mkdir(parents=True, exist_ok=True)
+              path.write_bytes(out)
+              print(dest, "bytes", len(out), "crlf", out.count(b"\r\n"))
+
+          for name in ("install.bat", "install.ps1", "start.bat"):
+              rewrite(f"scripts/{name}", f"/tmp/win-scripts/{name}")
+          PY
+
+          # Windows installer with MedHorizon + Research Graph sidecar
+          rm -rf /tmp/win-installer
+          mkdir -p /tmp/win-installer
+          unzip -o artifacts/medhorizon-windows-x64.zip -d /tmp/win-installer
+          test -f /tmp/win-installer/medhorizon.exe
+          cp artifacts/research-graph-windows-x64.exe /tmp/win-installer/research-graph.exe
+          cp /tmp/win-scripts/install.bat /tmp/win-scripts/install.ps1 /tmp/win-scripts/start.bat /tmp/win-installer/
+          cp /tmp/VERSION /tmp/win-installer/VERSION
+          (cd /tmp/win-installer && zip -9 "$GITHUB_WORKSPACE/artifacts/medhorizon-windows-installer.zip" \
+            medhorizon.exe research-graph.exe install.bat install.ps1 start.bat VERSION)
+          # also refresh raw windows zip to include sidecar
+          (cd /tmp/win-installer && zip -9 "$GITHUB_WORKSPACE/artifacts/medhorizon-windows-x64.zip" \
+            medhorizon.exe research-graph.exe)
+
+          # Linux installer
+          rm -rf /tmp/linux-installer
+          mkdir -p /tmp/linux-installer
+          tar -xzf artifacts/medhorizon-linux-x64.tar.gz -C /tmp/linux-installer
+          cp artifacts/research-graph-linux-x64 /tmp/linux-installer/research-graph
+          cp scripts/install-local.sh /tmp/linux-installer/install.sh
+          chmod +x /tmp/linux-installer/medhorizon /tmp/linux-installer/research-graph /tmp/linux-installer/install.sh
+          cp /tmp/VERSION /tmp/linux-installer/VERSION
+          tar -czf artifacts/medhorizon-linux-x64-installer.tar.gz -C /tmp/linux-installer \
+            medhorizon research-graph install.sh VERSION
+          tar -czf artifacts/medhorizon-linux-x64.tar.gz -C /tmp/linux-installer \
+            medhorizon research-graph
+
+          # macOS installer
+          rm -rf /tmp/mac-installer
+          mkdir -p /tmp/mac-installer
+          tar -xzf artifacts/medhorizon-macos-arm64.tar.gz -C /tmp/mac-installer
+          cp artifacts/research-graph-macos-arm64 /tmp/mac-installer/research-graph
+          cp scripts/install-local.sh /tmp/mac-installer/install.sh
+          chmod +x /tmp/mac-installer/medhorizon /tmp/mac-installer/research-graph /tmp/mac-installer/install.sh
+          cp /tmp/VERSION /tmp/mac-installer/VERSION
+          tar -czf artifacts/medhorizon-macos-arm64-installer.tar.gz -C /tmp/mac-installer \
+            medhorizon research-graph install.sh VERSION
+          tar -czf artifacts/medhorizon-macos-arm64.tar.gz -C /tmp/mac-installer \
+            medhorizon research-graph
+
+          # drop platform-specific intermediate sidecar names from release assets
+          rm -f artifacts/research-graph-windows-x64.exe \
+                artifacts/research-graph-linux-x64 \
+                artifacts/research-graph-macos-arm64
+
           cd artifacts
           sha256sum ./* > checksums.txt
+          echo "---- artifacts ----"
+          ls -lh
           cat checksums.txt
 
       - name: Create GitHub Release
@@ -111,29 +209,38 @@ jobs:
         with:
           name: "MedHorizon ${{ github.ref_name }}"
           body: |
-            ## 安装方法
+            ## 本版本亮点（v0.3.9）
+
+            - **修复**流式 `tool_calls` 截断导致的 `AI_JSONParseError` / Unterminated string：自动重试该轮，不再硬失败
+            - Research Graph sidecar + 内置插件仍随 MedHorizon 一起启动
+            - Research Graph UI+API：`http://127.0.0.1:8000`
+            - 安装包仍为离线二进制（`medhorizon` + `research-graph`）
+
+            ## 一键安装
 
             ### Windows
-            下载 `install.bat`，双击运行，按提示操作。
+            1. 下载 [`medhorizon-windows-installer.zip`](https://github.com/medhorizon/medhorizon/releases/latest/download/medhorizon-windows-installer.zip)
+            2. 解压后双击 `install.bat`（含 `medhorizon.exe` + `research-graph.exe`）
+            3. 桌面快捷方式启动后会自动拉起 Research Graph sidecar + 插件
 
-            ### macOS (Apple Silicon) / Linux
+            ### macOS (Apple Silicon)
             ```bash
-            curl -fsSL https://raw.githubusercontent.com/medhorizon/medhorizon/main/scripts/install.sh | bash
+            curl -fsSL -o mh.tgz https://github.com/medhorizon/medhorizon/releases/latest/download/medhorizon-macos-arm64-installer.tar.gz
+            mkdir mh && tar -xzf mh.tgz -C mh && cd mh && ./install.sh
             ```
 
-            ### 手动安装
-            下载对应平台的压缩包，解压后运行 `medhorizon` 即可启动。
-            首次启动会自动打开浏览器引导填写 API Key。
+            ### Linux
+            ```bash
+            curl -fsSL -o mh.tgz https://github.com/medhorizon/medhorizon/releases/latest/download/medhorizon-linux-x64-installer.tar.gz
+            mkdir mh && tar -xzf mh.tgz -C mh && cd mh && ./install.sh
+            ```
 
-            ### 本版本产物
-            - `medhorizon-windows-x64.zip`
-            - `medhorizon-macos-arm64.tar.gz`
-            - `medhorizon-linux-x64.tar.gz`
+            ### 关闭 Research Graph
+            设置环境变量 `RESEARCH_GRAPH_DISABLE=1` 可跳过 sidecar 与内置插件。
 
             ---
             完整说明见 [README](https://github.com/medhorizon/medhorizon#readme)
           files: |
             artifacts/*
-            scripts/install.bat
           draft: false
           prerelease: false

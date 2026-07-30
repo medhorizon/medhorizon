@@ -157,6 +157,17 @@ export namespace SessionRetry {
       return error.data.message.includes("Overloaded") ? "Provider is overloaded" : error.data.message
     }
 
+    // Stream mid-chunk JSON failures (tool_calls SSE truncated) often arrive as Unknown.
+    const msg = typeof error.data?.message === "string" ? error.data.message : ""
+    if (
+      msg.includes("AI_JSONParseError") ||
+      msg.includes("JSON parsing failed") ||
+      msg.includes("Unterminated string") ||
+      error.data?.metadata?.code === "AI_JSONParseError"
+    ) {
+      return "Provider stream returned incomplete JSON; retrying"
+    }
+
     const json = iife(() => {
       try {
         if (typeof error.data?.message === "string") {

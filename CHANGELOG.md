@@ -1,10 +1,144 @@
 # Changelog
 
-All notable changes to OpenScience are recorded here. The project follows
-[semantic versioning](https://semver.org). Releases are cut from `main` via the
-`publish` workflow and published to npm as
-[`@synsci/openscience`](https://www.npmjs.com/package/@synsci/openscience); each
-tagged release also ships native binaries for Linux, macOS, and Windows.
+MedHorizon follows [semantic versioning](https://semver.org). GitHub Releases
+(`v0.x`) ship native binaries for Linux, macOS (Apple Silicon), and Windows via
+the `Release` workflow. Upstream OpenScience history is retained below.
+
+## MedHorizon v0.3.9 — 2026-07-30
+
+### Fixed
+
+- **`AI_JSONParseError` / Unterminated string** during streaming `tool_calls`:
+  truncated SSE `chat.completion.chunk` JSON (common with flaky proxies) is now
+  treated as a **retryable** stream fault. MedHorizon auto-retries the turn
+  instead of hard-failing mid Atlas / stage / tool call.
+- Provider fetch wraps `text/event-stream` bodies so a truncated final `data:`
+  line surfaces as `JSONParseError` (retryable) rather than a silent half-chunk.
+
+## MedHorizon v0.3.8 — 2026-07-30
+
+### Added
+
+- **Research Graph plugin built into MedHorizon** (`INTERNAL_PLUGINS`): tools
+  `atlas_*`, stage auto-land hooks, and permissions load with every `medhorizon`
+  start — no `OPENSCIENCE_CONFIG_DIR` required. Set `RESEARCH_GRAPH_DISABLE=1`
+  to skip plugin + sidecar.
+- **Stage → node landing protocol**: MedHorizon `stage` → Research Graph node
+  (`meta.medhorizon_stage`). Docs: `research-graph/docs/STAGE_LANDING.md`.
+- **Graph UI navigate / branch**: double-click a stage node to open the MedHorizon
+  session; right-click → 在此开分支 forks via MedHorizon `stages/jump`.
+- Sidecar binary still ships beside MedHorizon and auto-starts on open.
+
+## MedHorizon v0.3.7 — 2026-07-30
+
+### Fixed
+
+- Research Graph desktop sidecar auth: UI sends `Bearer local-dev`; sidecar
+  defaults to `APP_ENV=development` so Create graph works without Supabase JWT.
+  Fixes the `authorization required` / sidebar `OFFLINE` state on first open.
+
+## MedHorizon v0.3.6 — 2026-07-30
+
+### Added
+
+- **Research Graph bundled into release installers** as a sibling sidecar binary
+  (`research-graph` / `research-graph.exe`) next to MedHorizon.
+- **Auto-start sidecar** when opening MedHorizon (`web` / `serve`, `start.bat`,
+  `start.sh`). UI+API at `http://127.0.0.1:8000`. Set `RESEARCH_GRAPH_DISABLE=1`
+  to skip.
+- PyInstaller packaging under `research-graph/sidecar/` embeds the built SPA.
+
+## MedHorizon v0.3.5 — 2026-07-30
+
+### Changed
+
+- Release **installer archives now embed the MedHorizon binary** (offline install).
+  - Windows: `medhorizon-windows-installer.zip` = `medhorizon.exe` + `install.bat` /
+    `install.ps1` / `start.bat` / `VERSION`
+  - macOS/Linux: `*-installer.tar.gz` = binary + `install.sh` + `VERSION`
+- Install scripts no longer download from GitHub; they copy the local binary.
+- Standalone download-only `install.bat` / `install.ps1` / `install.sh` are no
+  longer published as Release assets.
+
+## MedHorizon v0.3.4 — 2026-07-30
+
+### Fixed
+
+- Windows `install.ps1` is now **ASCII-only with CRLF** (same class of failure as
+  UTF-8/LF `install.bat` under Windows PowerShell/cmd).
+- Generated `start.bat` is written as ASCII + CRLF (no UTF-8 BOM).
+- Release packaging rewrites both `install.bat` and `install.ps1` to CRLF before
+  upload; `.gitattributes` forces `*.ps1` to `eol=crlf`.
+
+## MedHorizon v0.3.3 — 2026-07-30
+
+### Fixed
+
+- Windows `install.bat` is now **ASCII-only with CRLF** line endings so `cmd.exe`
+  does not misparse UTF-8/LF batches from the Release zip.
+- Release packaging rewrites `install.bat` to CRLF before upload; `.gitattributes`
+  forces `*.bat` / `*.cmd` to `eol=crlf`.
+
+## MedHorizon v0.3.2 — 2026-07-30
+
+### Fixed
+
+- Windows one-click installer: Release now ships `install.ps1` alongside
+  `install.bat`, plus `medhorizon-windows-installer.zip`. `install.bat` also
+  auto-downloads `install.ps1` from GitHub when missing.
+- Also attach `install.sh` on the Release for offline/macOS-Linux installs.
+
+### Added
+
+- Research Graph sidebar-card integration and prettier/CI formatting fixes from
+  the v0.3.1 line, bundled into this installer cut.
+
+## MedHorizon v0.3.1 — 2026-07-30
+
+### Added
+
+- **Research Graph ↔ MedHorizon sidebar card** (no core edits): HTTP integration
+  contract (`/integration/manifest`, `/integration/sidebar-card`), embed script
+  that injects a featured card into `.session-sidebar`, and a loopback gateway
+  (`research-graph/scripts/medhorizon-gateway.py`) that proxies MedHorizon UI
+  and injects the script.
+- Plugin tool `atlas_sidebar` + skill `atlas-sidebar` for agents to surface the
+  card / inject hints.
+- Research Graph UI `SidebarCard` + `/embed/card` iframe surface.
+
+### Notes
+
+- Open `http://127.0.0.1:5199` via the gateway (MedHorizon on `:4444`, RG API on
+  `:8000`) to see the card in the session sidebar.
+- Bookmarklet alternative: `http://127.0.0.1:8000/embed/bookmarklet`.
+
+## MedHorizon v0.3.0 — 2026-07-30
+
+### Added
+
+- **Research Graph** optional sidecar (`research-graph/`): independent FastAPI +
+  React module for research graphs, experiments, artifacts, and GEPA loops.
+  Does not modify MedHorizon core; enable via plugin overlay /
+  `OPENSCIENCE_CONFIG_DIR` + `RESEARCH_GRAPH_API`.
+- Graph CRUD with nodes/edges, archive/export, Markdown import/export, and
+  React Flow canvas UI.
+- Experiment specs, runs, result-node promotion back onto the graph.
+- GEPA optimization loop with reproducible seeds, budget/iteration limits, and
+  human gate (accept/reject candidates).
+- Artifact store + sync outbox; local SQLite when Supabase is unset.
+- Visual usage guide with screenshots: `research-graph/docs/USAGE.md`.
+
+### Notes
+
+- Search / AI chat require `OPENAI_API_KEY` on the module backend (503 without).
+- Installers and CLI binaries remain the same three platform targets as v0.2.0.
+
+## MedHorizon v0.2.0 — 2026-07-30
+
+### Changed
+
+- Product rebrand to **MedHorizon** (CLI, UI, config paths with dual-read).
+- Release matrix: Windows x64, macOS arm64, Linux x64 (no macos-x64).
 
 ## v1.2.8 — 2026-07-06
 

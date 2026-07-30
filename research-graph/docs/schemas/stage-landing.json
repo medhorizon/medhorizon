@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "research-graph.stage-landing.v1",
+  "title": "Research Graph stage landing",
+  "type": "object",
+  "required": ["version", "session_id", "stage", "node"],
+  "properties": {
+    "version": { "const": 1 },
+    "graph_id": { "type": "string" },
+    "session_id": { "type": "string" },
+    "message_id": { "type": ["string", "null"] },
+    "stage": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": { "type": "string" },
+        "index": { "type": ["integer", "null"] },
+        "part_id": { "type": ["string", "null"] },
+        "status": { "type": ["string", "null"] },
+        "summary": { "type": ["string", "null"] },
+        "gated": { "type": ["boolean", "null"] }
+      }
+    },
+    "node": {
+      "type": "object",
+      "properties": {
+        "kind": { "type": "string" },
+        "title": { "type": "string" },
+        "lifecycle": { "const": "staged" },
+        "meta": {
+          "type": "object",
+          "properties": {
+            "medhorizon_stage": { "type": "object" }
+          }
+        }
+      }
+    },
+    "idempotency_key": {
+      "type": "string",
+      "pattern": "^stage-land:"
+    }
+  }
+}
