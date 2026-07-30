@@ -9,6 +9,10 @@ export default defineConfig({
     proxy: {
       "/api": "http://127.0.0.1:8000",
       "/health": "http://127.0.0.1:8000",
+      "/integration": "http://127.0.0.1:8000",
+      "/embed/sidebar-card.js": "http://127.0.0.1:8000",
+      "/embed/sidebar-card.css": "http://127.0.0.1:8000",
+      "/embed/bookmarklet": "http://127.0.0.1:8000",
     },
   },
 })
