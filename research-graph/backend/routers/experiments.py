@@ -56,6 +56,8 @@ def create_experiment(body: ExperimentCreate, user: User = Depends(current_user)
                 "code_ref": body.code_ref,
                 "parameters": body.parameters,
                 "budget": body.budget,
+                "environment": body.environment,
+                "baseline": body.baseline,
                 "status": "draft",
                 "revision": 1,
                 "created_at": now(),

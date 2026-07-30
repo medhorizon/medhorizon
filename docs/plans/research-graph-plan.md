@@ -41,11 +41,11 @@ npm --version
 
 ### 当前状态
 
-- **状态**：Phase 5 完成；正在执行 Phase 6
+- **状态**：Phase 6 完成；正在执行 Phase 7
 - **最后更新**：2026-07-30
-- **已完成**：Phase 1–5
-- **当前阶段**：Phase 6（研究实验管理）
-- **下一步**：ExperimentSpec 完整字段、result node、runner 限制
+- **已完成**：Phase 1–6
+- **当前阶段**：Phase 7（GEPA）
+- **下一步**：两代可复现、预算停止、未批准不应用验收
 
 
 ### 路径缩写
@@ -488,13 +488,13 @@ medhorizon web
 
 **目标文件**：`[BACK]/routers/experiments.py`、`runs.py`、`services/runner.py`、`[FRONT]/pages/Experiments.tsx`、`ExperimentView.tsx`
 
-- [ ] ExperimentSpec 包含 objective、dataset/code/environment、parameters、baseline 和 budget。
-- [ ] ExperimentRun 支持 approved、queued、running、succeeded、failed、cancelled；运行不可覆盖历史。
-- [ ] runner 支持 dry-run、sandbox、timeout、取消、并发/输出上限和 artifact manifest。
-- [ ] 每次运行记录 session/message、agent/model、git commit、数据 hash、seed、指标和成本。
-- [ ] `/atlas-experiment` skill 先设计审阅，再执行和报告；执行前调用现有 permission ask。
+- [x] ExperimentSpec 包含 objective、dataset/code/environment、parameters、baseline 和 budget。
+- [x] ExperimentRun 支持 approved、queued、running、succeeded、failed、cancelled；运行不可覆盖历史。
+- [x] runner 支持 dry-run、sandbox、timeout、取消、并发/输出上限和 artifact manifest。
+- [x] 每次运行记录 session/message、agent/model、git commit、数据 hash、seed、指标和成本。
+- [x] `/atlas-experiment` skill 先设计审阅，再执行和报告；执行前调用现有 permission ask。
 
-**验证边界**：完成一次假设 -> 实验规格 -> baseline -> run -> result node；越界路径和 shell 注入被拒绝。
+**验证边界**：完成一次假设 -> 实验规格 -> baseline -> run -> result node；越界路径和 shell 注入被拒绝。 ✅
 
 ### Phase 7：GEPA 循环优化（4–7 天）
 
@@ -607,6 +607,7 @@ medhorizon web
 
 <!-- 进度记录从这里开始 -->
 
+- 2026-07-30 ✅ Phase 6 实验管理 — environment/baseline、result node、concurrency/output limits、越界拒绝
 - 2026-07-30 ✅ Phase 5 文件/同步/部署文档 — artifact download+hash 去重、outbox retry、Fly/Vercel 配置
 - 2026-07-30 ✅ Phase 4 AI 功能 — embedding/search 拆分、AIChat、异步 embedding、无 Key 503；tests green
 - 2026-07-30 ✅ Phase 3 图谱可视化 — Markdown I/O、filter/颜色、experiment link、archive；frontend build ok；12 passed

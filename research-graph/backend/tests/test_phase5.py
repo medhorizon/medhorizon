@@ -1,10 +1,17 @@
 def test_artifact_upload_download_and_dedupe(client):
     g = client.post("/api/graphs", json={"title": "Art"}).json()
-    files = {"file": ("note.txt", b"hello research", "text/plain")}
     data = {"graph_id": g["id"]}
-    a = client.post("/api/artifacts/upload", files=files, data=data).json()
+    a = client.post(
+        "/api/artifacts/upload",
+        files={"file": ("note.txt", b"hello research", "text/plain")},
+        data=data,
+    ).json()
     assert a["content_hash"]
-    b = client.post("/api/artifacts/upload", files=files, data=data).json()
+    b = client.post(
+        "/api/artifacts/upload",
+        files={"file": ("note.txt", b"hello research", "text/plain")},
+        data=data,
+    ).json()
     assert a["id"] == b["id"]
     outbox = client.get("/api/sync/outbox").json()
     assert len([o for o in outbox if o["entity_id"] == a["id"]]) == 1

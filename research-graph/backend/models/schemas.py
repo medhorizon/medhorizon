@@ -116,6 +116,8 @@ class ExperimentCreate(WriteMeta):
     code_ref: dict[str, Any] = Field(default_factory=dict)
     parameters: dict[str, Any] = Field(default_factory=dict)
     budget: dict[str, Any] = Field(default_factory=dict)
+    environment: dict[str, Any] = Field(default_factory=dict)
+    baseline: dict[str, Any] = Field(default_factory=dict)
 
 
 class ExperimentPatch(WriteMeta):
@@ -139,6 +141,8 @@ class ExperimentOut(BaseModel):
     code_ref: dict[str, Any]
     parameters: dict[str, Any]
     budget: dict[str, Any]
+    environment: dict[str, Any] = Field(default_factory=dict)
+    baseline: dict[str, Any] = Field(default_factory=dict)
     status: str
     revision: int
     created_at: str
