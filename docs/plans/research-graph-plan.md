@@ -41,11 +41,11 @@ npm --version
 
 ### 当前状态
 
-- **状态**：Phase 3 完成；正在执行 Phase 4
+- **状态**：Phase 4 完成；正在执行 Phase 5
 - **最后更新**：2026-07-30
-- **已完成**：Phase 1–3
-- **当前阶段**：Phase 4（AI 功能）
-- **下一步**：拆分 embedding/search、AIChat 组件、异步 embedding
+- **已完成**：Phase 1–4
+- **当前阶段**：Phase 5（文件/导入导出/部署文档）
+- **下一步**：artifact download、deploy configs、outbox 去重测试
 
 
 ### 路径缩写
@@ -467,11 +467,11 @@ medhorizon web
 
 **目标文件**：`[BACK]/services/embedding.py`、`openai_service.py`、`routers/search.py`、`routers/ai.py`、`[FRONT]/components/AIChat.tsx`、`pages/Search.tsx`
 
-- [ ] 保留摘要、语义搜索、RAG chat、关联建议和假设生成。
-- [ ] Node 创建/更新后异步更新 embedding；embedding 失败不阻塞节点保存。
-- [ ] AI 输出必须标注来源节点、模型、时间和 `provenance_event`。
+- [x] 保留摘要、语义搜索、RAG chat、关联建议和假设生成。
+- [x] Node 创建/更新后异步更新 embedding；embedding 失败不阻塞节点保存。
+- [x] AI 输出必须标注来源节点、模型、时间和 `provenance_event`。
 
-**验证边界**：summarize/search/chat 通过；无 OpenAI Key 时返回可操作错误。
+**验证边界**：summarize/search/chat 通过；无 OpenAI Key 时返回可操作错误。 ✅
 
 ### Phase 5：文件、导入导出与部署（1–2 天）
 
@@ -606,6 +606,7 @@ medhorizon web
 
 <!-- 进度记录从这里开始 -->
 
+- 2026-07-30 ✅ Phase 4 AI 功能 — embedding/search 拆分、AIChat、异步 embedding、无 Key 503；tests green
 - 2026-07-30 ✅ Phase 3 图谱可视化 — Markdown I/O、filter/颜色、experiment link、archive；frontend build ok；12 passed
 - 2026-07-30 ✅ Phase 2 核心 CRUD — 拆分 nodes/edges、archive/export、revision/idempotency、研究链测试；11 passed
 - 2026-07-30 ✅ Phase 1 基础设施 — schema + migrate、loopback `/health`、JWT/idempotency、plugin overlay；`test_phase1` 通过

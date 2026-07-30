@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, BackgroundTasks, Depends
 
 from backend.config import Settings, get_settings
 from backend.db.sqlite import Store, get_store, now, uid
@@ -25,7 +25,12 @@ def list_nodes(graph_id: str, user: User = Depends(current_user), store: Store =
 
 
 @router.post("/api/nodes", response_model=NodeOut)
-def create_node(body: NodeCreate, user: User = Depends(current_user), store: Store = Depends(store_dep)):
+def create_node(
+    body: NodeCreate,
+    background: BackgroundTasks,
+    user: User = Depends(current_user),
+    store: Store = Depends(store_dep),
+):
     if not store.get("graphs", body.graph_id, user.id):
         raise not_found("graph not found")
 
@@ -63,7 +68,11 @@ def create_node(body: NodeCreate, user: User = Depends(current_user), store: Sto
         )
         return row
 
-    return with_idempotency(store, user, body.idempotency_key, produce)
+    row = with_idempotency(store, user, body.idempotency_key, produce)
+    from backend.services.embedding import embed_node
+
+    background.add_task(embed_node, store, row["id"], user.id)
+    return row
 
 
 @router.get("/api/nodes/{node_id}", response_model=NodeOut)
