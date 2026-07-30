@@ -73,10 +73,11 @@ Ready to enter stage "证据搜集"?
 
 ### 🖥️ Windows（一键安装，推荐）
 
-1. 下载 [`install.bat`](https://github.com/medhorizon/medhorizon/releases/latest/download/install.bat)
-2. 双击运行，等待安装完成（约 1 分钟）
-3. 双击桌面的 **MedHorizon** 图标启动
-4. 浏览器自动打开 → 填写 API Key → 开始使用
+1. 下载 [`medhorizon-windows-installer.zip`](https://github.com/medhorizon/medhorizon/releases/latest/download/medhorizon-windows-installer.zip)（含 `install.bat` + `install.ps1`）
+2. 解压后双击 `install.bat`，按提示完成安装
+3. 或直接下载 [`install.bat`](https://github.com/medhorizon/medhorizon/releases/latest/download/install.bat)（会自动拉取 `install.ps1`）
+4. 双击桌面的 **MedHorizon** 图标启动
+5. 浏览器自动打开 → 填写 API Key → 开始使用
 
 > 无需安装 Git、Node.js、Python 等任何依赖。
 

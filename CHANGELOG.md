@@ -4,6 +4,20 @@ MedHorizon follows [semantic versioning](https://semver.org). GitHub Releases
 (`v0.x`) ship native binaries for Linux, macOS (Apple Silicon), and Windows via
 the `Release` workflow. Upstream OpenScience history is retained below.
 
+## MedHorizon v0.3.2 — 2026-07-30
+
+### Fixed
+
+- Windows one-click installer: Release now ships `install.ps1` alongside
+  `install.bat`, plus `medhorizon-windows-installer.zip`. `install.bat` also
+  auto-downloads `install.ps1` from GitHub when missing.
+- Also attach `install.sh` on the Release for offline/macOS-Linux installs.
+
+### Added
+
+- Research Graph sidebar-card integration and prettier/CI formatting fixes from
+  the v0.3.1 line, bundled into this installer cut.
+
 ## MedHorizon v0.3.1 — 2026-07-30
 
 ### Added

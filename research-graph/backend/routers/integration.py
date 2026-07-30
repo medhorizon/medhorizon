@@ -80,7 +80,7 @@ def manifest(settings: Settings = Depends(get_settings)):
     ui = settings.ui_url.rstrip("/")
     return {
         "name": "research-graph",
-        "version": "0.3.1",
+        "version": "0.3.2",
         "medhorizon": {
             "modifies_core": False,
             "integration": "http_interface_plus_embed",

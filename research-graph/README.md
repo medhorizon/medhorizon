@@ -3,7 +3,7 @@
 Independent FastAPI + React + Supabase-schema module for research graphs, experiments, and GEPA loops.
 **Does not modify MedHorizon source.** Connect via external config / plugin / skills.
 
-**Version:** `0.3.1` (ships with MedHorizon v0.3.1)
+**Version:** `0.3.2` (ships with MedHorizon v0.3.2)
 
 ## Layout
 

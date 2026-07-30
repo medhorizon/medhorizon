@@ -22,7 +22,7 @@ async def lifespan(_app: FastAPI):
     yield
 
 
-app = FastAPI(title="Research Graph", version="0.3.1", lifespan=lifespan)
+app = FastAPI(title="Research Graph", version="0.3.2", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_list,
