@@ -4,6 +4,16 @@ MedHorizon follows [semantic versioning](https://semver.org). GitHub Releases
 (`v0.x`) ship native binaries for Linux, macOS (Apple Silicon), and Windows via
 the `Release` workflow. Upstream OpenScience history is retained below.
 
+## MedHorizon v0.3.4 — 2026-07-30
+
+### Fixed
+
+- Windows `install.ps1` is now **ASCII-only with CRLF** (same class of failure as
+  UTF-8/LF `install.bat` under Windows PowerShell/cmd).
+- Generated `start.bat` is written as ASCII + CRLF (no UTF-8 BOM).
+- Release packaging rewrites both `install.bat` and `install.ps1` to CRLF before
+  upload; `.gitattributes` forces `*.ps1` to `eol=crlf`.
+
 ## MedHorizon v0.3.3 — 2026-07-30
 
 ### Fixed

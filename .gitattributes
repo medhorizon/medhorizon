@@ -1,3 +1,4 @@
-# Windows cmd.exe batch files must use CRLF (and preferably ASCII).
+# Windows cmd/PowerShell installer scripts: CRLF in the working tree / archives.
 *.bat text eol=crlf
 *.cmd text eol=crlf
+*.ps1 text eol=crlf

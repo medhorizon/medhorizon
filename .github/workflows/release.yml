@@ -108,19 +108,25 @@ jobs:
 
       - name: Package Windows one-click installer
         run: |
-          mkdir -p installer
-          # install.bat must be ASCII + CRLF for cmd.exe (do not ship UTF-8/LF).
+          mkdir -p installer artifacts
+          # install.bat / install.ps1 must be ASCII + CRLF for Windows cmd/PowerShell.
           python3 - <<'PY'
           from pathlib import Path
-          src = Path("scripts/install.bat").read_bytes()
-          text = src.replace(b"\r\n", b"\n").replace(b"\r", b"\n").decode("ascii")
-          out = text.replace("\n", "\r\n").encode("ascii")
-          Path("installer/install.bat").write_bytes(out)
-          Path("artifacts/install.bat").write_bytes(out)
-          print("install.bat bytes", len(out), "crlf", out.count(b"\r\n"))
+
+          def rewrite(src: str, *dests: str) -> None:
+              raw = Path(src).read_bytes()
+              text = raw.replace(b"\r\n", b"\n").replace(b"\r", b"\n").decode("ascii")
+              out = text.replace("\n", "\r\n").encode("ascii")
+              for dest in dests:
+                  path = Path(dest)
+                  path.parent.mkdir(parents=True, exist_ok=True)
+                  path.write_bytes(out)
+              print(src, "bytes", len(out), "crlf", out.count(b"\r\n"))
+
+          rewrite("scripts/install.bat", "installer/install.bat", "artifacts/install.bat")
+          rewrite("scripts/install.ps1", "installer/install.ps1", "artifacts/install.ps1")
           PY
-          cp scripts/install.ps1 installer/
-          cp scripts/install.ps1 scripts/install.sh artifacts/
+          cp scripts/install.sh artifacts/
           (cd installer && zip -9 ../artifacts/medhorizon-windows-installer.zip install.bat install.ps1)
           cd artifacts && sha256sum ./* > checksums.txt && cat checksums.txt
 
@@ -129,11 +135,12 @@ jobs:
         with:
           name: "MedHorizon ${{ github.ref_name }}"
           body: |
-            ## 本版本亮点（v0.3.3）
+            ## 本版本亮点（v0.3.4）
 
-            - **修复 Windows `install.bat`**：纯 ASCII + CRLF，避免 UTF-8/LF 在 cmd 下乱码/失败
-            - Release 打包时强制写出 CRLF 的 `install.bat`
-            - 其余同 v0.3.2：一键安装包、`install.ps1`/`install.sh`、平台二进制
+            - **修复 Windows 安装脚本编码**：`install.bat` 与 `install.ps1` 均为纯 ASCII + CRLF
+            - Release 打包强制重写两者为 CRLF，避免 UTF-8/LF 在 cmd/PowerShell 下失败
+            - 生成的 `start.bat` 亦为 ASCII + CRLF
+            - 其余同 v0.3.2：一键安装包、平台二进制
 
             ## 一键安装
 
