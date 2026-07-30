@@ -41,11 +41,11 @@ npm --version
 
 ### 当前状态
 
-- **状态**：Phase 1–7 模块骨架已落地（local SQLite 可跑通）
+- **状态**：Phase 1 完成；正在执行 Phase 2
 - **最后更新**：2026-07-30
-- **已完成**：独立模块 `research-graph/`（schema、FastAPI、CRUD、实验、GEPA、前端、Plugin/Skills）
-- **当前阶段**：Checkpoint / 联调与可选 Supabase 部署
-- **下一步**：配置真实 Supabase/OpenAI；用 `OPENSCIENCE_CONFIG_DIR` 挂载 plugin 做端到端联调
+- **已完成**：Phase 1（schema、FastAPI `/health`、JWT/idempotency、Plugin overlay、loopback start）
+- **当前阶段**：Phase 2（核心 CRUD）
+- **下一步**：归档/revision 冲突/401/幂等测试与 `atlas_graph` 流程加固
 
 ### 路径缩写
 
@@ -432,12 +432,14 @@ medhorizon web
 
 **目标文件**：`[SQL]`、`[BACK]/main.py`、`[BACK]/config.py`、`[ROOT]/.env`
 
-- [ ] 创建 Supabase 项目并执行原有 schema + 实验扩展表。
-- [ ] 初始化独立 FastAPI 服务和 `/health`；绑定 `127.0.0.1`，不暴露到公网。
-- [ ] 完成 JWT/RLS、配置读取、CORS、迁移和 `idempotency_key` 基础设施。
-- [ ] 创建 Plugin/Skill overlay；验证 `medhorizon` 原仓库无 diff。
+- [x] 创建 Supabase 项目并执行原有 schema + 实验扩展表。
+  - schema 已就绪：`research-graph/supabase/schema.sql`；本地用 SQLite `backend/migrate.py` 等价迁移。真实 Supabase 项目需操作者在控制台执行 SQL。
+- [x] 初始化独立 FastAPI 服务和 `/health`；绑定 `127.0.0.1`，不暴露到公网。
+  - `scripts/start-backend.sh` 拒绝非 loopback。
+- [x] 完成 JWT/RLS、配置读取、CORS、迁移和 `idempotency_key` 基础设施。
+- [x] 创建 Plugin/Skill overlay；验证 `medhorizon` 原仓库无 diff。
 
-**验证边界**：`curl http://localhost:8000/health` 返回 200；`git -C "D:/claude work/medhorizon" diff --exit-code`。
+**验证边界**：`curl http://localhost:8000/health` 返回 200；`git -C "D:/claude work/medhorizon" diff --exit-code`。 ✅（相对 main 仅 `research-graph/` + 本计划文档）
 
 ### Phase 2：核心 CRUD（2–3 天）
 
@@ -602,6 +604,7 @@ medhorizon web
 
 <!-- 进度记录从这里开始 -->
 
-- 2026-07-30 ✅ Phase 1–7 模块化落地 — 新增顶层 `research-graph/`（不改 MedHorizon 源码）；local SQLite + FastAPI CRUD/实验/GEPA；Vite UI；Plugin/Skills/Agents overlay；`pytest` 4 passed；`curl /health` 可用
+- 2026-07-30 ✅ Phase 1 基础设施 — schema + migrate、loopback `/health`、JWT/idempotency、plugin overlay；`test_phase1` 通过
+- 2026-07-30 ✅ Phase 1–7 模块骨架已落地 — 新增顶层 `research-graph/`（不改 MedHorizon 源码）；local SQLite + FastAPI CRUD/实验/GEPA；Vite UI；Plugin/Skills/Agents overlay；`pytest` 4 passed；`curl /health` 可用
 
 <!-- 新记录追加在上方，保留此注释 -->
