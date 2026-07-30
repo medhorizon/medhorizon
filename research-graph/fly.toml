@@ -1,0 +1,18 @@
+# Example Fly.io config for the Research Graph API sidecar.
+# Deploy: fly launch --config research-graph/fly.toml (from repo root) then fly deploy.
+app = "research-graph-api"
+primary_region = "iad"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[http_service]
+  internal_port = 8000
+  force_https = true
+  auto_stop_machines = true
+  auto_start_machines = true
+
+[[vm]]
+  memory = "512mb"
+  cpu_kind = "shared"
+  cpus = 1
