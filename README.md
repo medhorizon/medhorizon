@@ -60,6 +60,13 @@ Ready to enter stage "证据搜集"?
 
 所有新功能不修改核心框架（processor / llm / compaction），通过消息部件（append-only message parts）扩展状态，利用现有 `Question.ask` 基础设施实现门控，无需新增路由或 SSE 事件。
 
+### 🕸️ Research Graph（v0.3.0，可选）
+
+独立模块 `research-graph/`：研究图画布、实验规格与运行、GEPA 优化与人工门控。**不修改 MedHorizon 核心**，通过插件配置叠加启用。
+
+- 使用说明（截图）：[`research-graph/docs/USAGE.md`](./research-graph/docs/USAGE.md)
+- 模块说明：[`research-graph/README.md`](./research-graph/README.md)
+
 ---
 
 ## 安装
