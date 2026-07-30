@@ -41,11 +41,12 @@ npm --version
 
 ### 当前状态
 
-- **状态**：Phase 1 完成；正在执行 Phase 2
+- **状态**：Phase 2 完成；正在执行 Phase 3
 - **最后更新**：2026-07-30
-- **已完成**：Phase 1（schema、FastAPI `/health`、JWT/idempotency、Plugin overlay、loopback start）
-- **当前阶段**：Phase 2（核心 CRUD）
-- **下一步**：归档/revision 冲突/401/幂等测试与 `atlas_graph` 流程加固
+- **已完成**：Phase 1–2
+- **当前阶段**：Phase 3（图谱可视化）
+- **下一步**：Markdown 导入导出、experiment link、filter/颜色验收
+
 
 ### 路径缩写
 
@@ -445,11 +446,12 @@ medhorizon web
 
 **目标文件**：`[BACK]/routers/graphs.py`、`nodes.py`、`edges.py`、`models/schemas.py`
 
-- [ ] 保留并测试原有 graph/node/edge CRUD。
-- [ ] 增加图谱导出、归档、revision 冲突和幂等重试测试。
-- [ ] Plugin `atlas_graph` 可从 MedHorizon session 完成问题 -> 假设 -> 证据 -> 结论。
+- [x] 保留并测试原有 graph/node/edge CRUD。
+- [x] 增加图谱导出、归档、revision 冲突和幂等重试测试。
+- [x] Plugin `atlas_graph` 可从 MedHorizon session 完成问题 -> 假设 -> 证据 -> 结论。
+  - HTTP 链 `test_phase2` 覆盖；离线契约 `RESEARCH_GRAPH_UNAVAILABLE`。
 
-**验证边界**：注册/登录/创建图谱/无 token 401；Plugin 离线时返回明确错误。
+**验证边界**：注册/登录/创建图谱/无 token 401；Plugin 离线时返回明确错误。 ✅
 
 ### Phase 3：图谱可视化（2–3 天）
 
@@ -604,6 +606,7 @@ medhorizon web
 
 <!-- 进度记录从这里开始 -->
 
+- 2026-07-30 ✅ Phase 2 核心 CRUD — 拆分 nodes/edges、archive/export、revision/idempotency、研究链测试；11 passed
 - 2026-07-30 ✅ Phase 1 基础设施 — schema + migrate、loopback `/health`、JWT/idempotency、plugin overlay；`test_phase1` 通过
 - 2026-07-30 ✅ Phase 1–7 模块骨架已落地 — 新增顶层 `research-graph/`（不改 MedHorizon 源码）；local SQLite + FastAPI CRUD/实验/GEPA；Vite UI；Plugin/Skills/Agents overlay；`pytest` 4 passed；`curl /health` 可用
 

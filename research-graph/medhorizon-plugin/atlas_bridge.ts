@@ -10,6 +10,10 @@ export class ResearchGraphUnavailable extends Error {
   }
 }
 
+export function unavailablePayload(message: string) {
+  return { error: "RESEARCH_GRAPH_UNAVAILABLE" as const, message }
+}
+
 export function apiBase() {
   return (process.env["RESEARCH_GRAPH_API"] || "http://127.0.0.1:8000").replace(/\/$/, "")
 }

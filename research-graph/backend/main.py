@@ -10,7 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from backend.config import get_settings
 from backend.db.sqlite import get_store
-from backend.routers import ai, artifacts, experiments, gepa, graphs
+from backend.routers import ai, artifacts, edges, experiments, gepa, graphs, nodes
 
 settings = get_settings()
 Path(settings.data_dir).mkdir(parents=True, exist_ok=True)
@@ -32,6 +32,8 @@ app.add_middleware(
 )
 
 app.include_router(graphs.router)
+app.include_router(nodes.router)
+app.include_router(edges.router)
 app.include_router(experiments.router)
 app.include_router(gepa.router)
 app.include_router(ai.router)

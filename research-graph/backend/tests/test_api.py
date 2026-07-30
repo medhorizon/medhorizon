@@ -2,37 +2,8 @@
 
 from __future__ import annotations
 
-import os
-import tempfile
-from pathlib import Path
 
-import pytest
-from fastapi.testclient import TestClient
-
-# Point store at a temp DB before importing app
-TMP = tempfile.mkdtemp(prefix="rg-test-")
-os.environ["SQLITE_PATH"] = str(Path(TMP) / "test.db")
-os.environ["DATA_DIR"] = TMP
-os.environ["APP_ENV"] = "development"
-os.environ["OPENAI_API_KEY"] = ""
-
-from backend.config import get_settings
-from backend.db.sqlite import reset_store
-from backend.main import app
-
-get_settings.cache_clear()
-reset_store(os.environ["SQLITE_PATH"])
-client = TestClient(app)
-
-
-@pytest.fixture(autouse=True)
-def fresh_db():
-    get_settings.cache_clear()
-    reset_store(os.environ["SQLITE_PATH"])
-    yield
-
-
-def test_health():
+def test_health(client):
     res = client.get("/health")
     assert res.status_code == 200
     body = res.json()
@@ -40,10 +11,9 @@ def test_health():
     assert body["store"] == "sqlite"
 
 
-def test_graph_node_edge_flow():
+def test_graph_node_edge_flow(client):
     g = client.post("/api/graphs", json={"title": "Demo", "idempotency_key": "g1", "reason": "test"}).json()
     assert g["title"] == "Demo"
-    # idempotent replay
     g2 = client.post("/api/graphs", json={"title": "Demo", "idempotency_key": "g1", "reason": "test"}).json()
     assert g2["id"] == g["id"]
 
@@ -65,12 +35,9 @@ def test_graph_node_edge_flow():
     assert len(tree["edges"]) == 1
 
 
-def test_experiment_dry_run_and_gepa_gate():
+def test_experiment_dry_run_and_gepa_gate(client, tmp_path):
     g = client.post("/api/graphs", json={"title": "Exp"}).json()
-    h = client.post(
-        "/api/nodes",
-        json={"graph_id": g["id"], "kind": "hypothesis", "title": "H"},
-    ).json()
+    h = client.post("/api/nodes", json={"graph_id": g["id"], "kind": "hypothesis", "title": "H"}).json()
     exp = client.post(
         "/api/experiments",
         json={
@@ -78,13 +45,12 @@ def test_experiment_dry_run_and_gepa_gate():
             "hypothesis_node_id": h["id"],
             "title": "baseline",
             "objective": {"primary": "accuracy"},
-            "code_ref": {"argv": ["echo", "ok"], "worktree": TMP},
+            "code_ref": {"argv": ["echo", "ok"], "worktree": str(tmp_path)},
             "budget": {"max_cost": 1},
         },
     ).json()
     assert exp["status"] == "draft"
 
-    # Cannot run before approve
     bad = client.post(f"/api/experiments/{exp['id']}/runs", json={"dry_run": True})
     assert bad.status_code == 400
 
@@ -94,19 +60,12 @@ def test_experiment_dry_run_and_gepa_gate():
     run = client.post(f"/api/experiments/{exp['id']}/runs", json={"dry_run": True, "seed": 1}).json()
     assert run["status"] == "succeeded"
 
-    # Shell injection rejected
-    client.patch(
-        f"/api/experiments/{exp['id']}",
-        json={"code_ref": {"argv": ["echo", "a; rm -rf /"], "worktree": TMP}},
-    )
-    # re-approve path: failed/draft only — force draft
-    # After completed, edit blocked — create new experiment for injection test
     exp2 = client.post(
         "/api/experiments",
         json={
             "graph_id": g["id"],
             "title": "inject",
-            "code_ref": {"argv": ["echo", "a;rm"], "worktree": TMP},
+            "code_ref": {"argv": ["echo", "a;rm"], "worktree": str(tmp_path)},
         },
     ).json()
     client.post(f"/api/experiments/{exp2['id']}/approve", json={})
@@ -125,23 +84,20 @@ def test_experiment_dry_run_and_gepa_gate():
     it1 = client.post(f"/api/gepa/runs/{gepa['id']}/iterations", json={}).json()
     assert it1["gate_required"] is True
     assert it1["run"]["status"] == "awaiting_gate"
-    selected = it1["run"]["current_candidate_id"]
-    assert selected
+    assert it1["run"]["current_candidate_id"]
 
-    # Unapproved candidate must not be applied — still awaiting until approve
     detail = client.get(f"/api/gepa/runs/{gepa['id']}").json()
     assert detail["run"]["status"] == "awaiting_gate"
 
     approved_gepa = client.post(f"/api/gepa/runs/{gepa['id']}/approve", json={"reason": "ship"}).json()
     assert approved_gepa["status"] == "completed"
 
-    # Replay preserves history
     replay = client.post(f"/api/gepa/runs/{gepa['id']}/replay", json={}).json()
     assert replay["id"] != gepa["id"]
     assert replay["seed"] == gepa["seed"]
 
 
-def test_ai_without_key():
+def test_ai_without_key(client):
     g = client.post("/api/graphs", json={"title": "AI"}).json()
     res = client.post("/api/ai/chat", json={"graph_id": g["id"], "message": "hi"})
     assert res.status_code == 503

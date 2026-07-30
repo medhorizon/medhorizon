@@ -38,6 +38,13 @@ class GraphOut(BaseModel):
     updated_at: str
 
 
+class GraphPatch(WriteMeta):
+    title: str | None = None
+    summary: str | None = None
+    archived: bool | None = None
+    expected_revision: int | None = None
+
+
 class NodeCreate(WriteMeta):
     graph_id: str
     kind: NodeKind
