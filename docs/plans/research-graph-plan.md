@@ -41,11 +41,11 @@ npm --version
 
 ### 当前状态
 
-- **状态**：Phase 6 完成；正在执行 Phase 7
+- **状态**：Phase 7 完成；正在执行 Checkpoint
 - **最后更新**：2026-07-30
-- **已完成**：Phase 1–6
-- **当前阶段**：Phase 7（GEPA）
-- **下一步**：两代可复现、预算停止、未批准不应用验收
+- **已完成**：Phase 1–7
+- **当前阶段**：Checkpoint（交付验收）
+- **下一步**：模式/离线/401/5xx/partial sync 测试并勾选 Checkpoint
 
 
 ### 路径缩写
@@ -500,13 +500,14 @@ medhorizon web
 
 **目标文件**：`[BACK]/services/gepa.py`、`routers/gepa.py`、`[FRONT]/pages/GepaRun.tsx`、`[PLUGIN]/skills/atlas-gepa/SKILL.md`
 
-- [ ] 实现 candidate、iteration、critic、selection、constraints、budget 和停止条件。
-- [ ] 使用 deterministic evaluator 计算分数；critic 只能产生解释和建议。
-- [ ] 每轮生成候选 -> rollout -> 评估 -> critic -> 选择，并写入不可变 provenance。
-- [ ] Design、Select/apply、Report 使用已有 `stage(gate=true)`，不修改 StageTool 或 StagesPanel。
-- [ ] 支持 replay、从 stage 分支重启、失败候选保留和成本报告。
+- [x] 实现 candidate、iteration、critic、selection、constraints、budget 和停止条件。
+- [x] 使用 deterministic evaluator 计算分数；critic 只能产生解释和建议。
+- [x] 每轮生成候选 -> rollout -> 评估 -> critic -> 选择，并写入不可变 provenance。
+- [x] Design、Select/apply、Report 使用已有 `stage(gate=true)`，不修改 StageTool 或 StagesPanel。
+  - skill `atlas-gepa` 映射 gate；未改 MedHorizon StageTool/StagesPanel。
+- [x] 支持 replay、从 stage 分支重启、失败候选保留和成本报告。
 
-**验证边界**：固定 seed/数据/evaluator 可以稳定复现至少两代选择；未批准候选不会应用；超预算自动停止。
+**验证边界**：固定 seed/数据/evaluator 可以稳定复现至少两代选择；未批准候选不会应用；超预算自动停止。 ✅
 
 ### Checkpoint：完成交付
 
@@ -607,6 +608,7 @@ medhorizon web
 
 <!-- 进度记录从这里开始 -->
 
+- 2026-07-30 ✅ Phase 7 GEPA — 同 seed 两代可复现、gate 未批准不应用、max_iterations 停止、cost aggregate
 - 2026-07-30 ✅ Phase 6 实验管理 — environment/baseline、result node、concurrency/output limits、越界拒绝
 - 2026-07-30 ✅ Phase 5 文件/同步/部署文档 — artifact download+hash 去重、outbox retry、Fly/Vercel 配置
 - 2026-07-30 ✅ Phase 4 AI 功能 — embedding/search 拆分、AIChat、异步 embedding、无 Key 503；tests green

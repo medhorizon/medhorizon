@@ -176,6 +176,11 @@ def iterate(
         "best_primary": selected["scores"]["primary"] if selected else None,
         "n_valid": len(scored),
         "n_total": len(raw_candidates),
+        "cost": {
+            "candidates": len(raw_candidates),
+            "generation": generation,
+            "evaluator": "local-deterministic-v1",
+        },
     }
 
     # Patience: no improvement vs previous best
