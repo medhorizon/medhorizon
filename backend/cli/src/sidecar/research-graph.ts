@@ -9,6 +9,16 @@ type Side = {
 
 const state: { child: Side | null } = { child: null }
 
+/** Bind Research Graph env for the built-in plugin + sidecar (idempotent). */
+export function bindResearchGraph() {
+  if (process.env.RESEARCH_GRAPH_DISABLE === "1") return
+  process.env.RESEARCH_GRAPH_API ||= "http://127.0.0.1:8000"
+  process.env.RESEARCH_GRAPH_MODE ||= "local"
+}
+
+// Run at import time so Config/Plugin see RESEARCH_GRAPH_* before first load.
+bindResearchGraph()
+
 function sibling() {
   if (process.platform === "win32") return "research-graph.exe"
   return "research-graph"
@@ -28,6 +38,7 @@ function candidates() {
 
 /** Start Research Graph sidecar if a sibling binary is present. Idempotent. */
 export async function startResearchGraphSidecar() {
+  bindResearchGraph()
   if (state.child) return state.child
   if (process.env.RESEARCH_GRAPH_DISABLE === "1") return null
 
@@ -70,7 +81,11 @@ export async function startResearchGraphSidecar() {
     exited: proc.exited,
   }
 
-  UI.println(UI.Style.TEXT_INFO_BOLD + "  Research Graph", UI.Style.TEXT_NORMAL, "sidecar → http://127.0.0.1:8000")
+  UI.println(
+    UI.Style.TEXT_INFO_BOLD + "  Research Graph",
+    UI.Style.TEXT_NORMAL,
+    "sidecar + plugin → http://127.0.0.1:8000",
+  )
   return state.child
 }
 

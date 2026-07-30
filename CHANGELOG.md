@@ -8,13 +8,15 @@ the `Release` workflow. Upstream OpenScience history is retained below.
 
 ### Added
 
-- **Stage → node landing protocol** (Research Graph plugin only, no MedHorizon
-  core edits): when the LLM enters a MedHorizon `stage`, a plugin hook mirrors
-  it onto a Research Graph node (`meta.medhorizon_stage`). Tools: `atlas_stage`.
-  Docs: `research-graph/docs/STAGE_LANDING.md`.
+- **Research Graph plugin built into MedHorizon** (`INTERNAL_PLUGINS`): tools
+  `atlas_*`, stage auto-land hooks, and permissions load with every `medhorizon`
+  start — no `OPENSCIENCE_CONFIG_DIR` required. Set `RESEARCH_GRAPH_DISABLE=1`
+  to skip plugin + sidecar.
+- **Stage → node landing protocol**: MedHorizon `stage` → Research Graph node
+  (`meta.medhorizon_stage`). Docs: `research-graph/docs/STAGE_LANDING.md`.
 - **Graph UI navigate / branch**: double-click a stage node to open the MedHorizon
-  session; right-click → 在此开分支 forks via MedHorizon `stages/jump` (proxied
-  by Research Graph API, no core edits).
+  session; right-click → 在此开分支 forks via MedHorizon `stages/jump`.
+- Sidecar binary still ships beside MedHorizon and auto-starts on open.
 
 ## MedHorizon v0.3.7 — 2026-07-30
 

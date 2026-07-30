@@ -209,19 +209,19 @@ jobs:
         with:
           name: "MedHorizon ${{ github.ref_name }}"
           body: |
-            ## 本版本亮点（v0.3.6）
+            ## 本版本亮点（v0.3.8）
 
-            - **Research Graph 已打进安装包**，作为 sidecar 与 MedHorizon 同目录发布
-            - **打开 MedHorizon 自动启动 Research Graph**（CLI / `start.bat` / `start.sh`）
+            - **Research Graph sidecar + 内置插件**随 MedHorizon 一起启动（无需再设 `OPENSCIENCE_CONFIG_DIR`）
+            - 对话 `stage` 自动落点到 Research Graph；图谱可双击打开会话 / 右键开分支
             - Research Graph UI+API：`http://127.0.0.1:8000`
-            - 安装包仍为离线二进制（不再二次下载）
+            - 安装包仍为离线二进制（`medhorizon` + `research-graph`）
 
             ## 一键安装
 
             ### Windows
             1. 下载 [`medhorizon-windows-installer.zip`](https://github.com/medhorizon/medhorizon/releases/latest/download/medhorizon-windows-installer.zip)
             2. 解压后双击 `install.bat`（含 `medhorizon.exe` + `research-graph.exe`）
-            3. 桌面快捷方式启动后会自动拉起 Research Graph sidecar
+            3. 桌面快捷方式启动后会自动拉起 Research Graph sidecar + 插件
 
             ### macOS (Apple Silicon)
             ```bash
@@ -235,8 +235,8 @@ jobs:
             mkdir mh && tar -xzf mh.tgz -C mh && cd mh && ./install.sh
             ```
 
-            ### 关闭 sidecar
-            设置环境变量 `RESEARCH_GRAPH_DISABLE=1` 可跳过自动启动。
+            ### 关闭 Research Graph
+            设置环境变量 `RESEARCH_GRAPH_DISABLE=1` 可跳过 sidecar 与内置插件。
 
             ---
             完整说明见 [README](https://github.com/medhorizon/medhorizon#readme)

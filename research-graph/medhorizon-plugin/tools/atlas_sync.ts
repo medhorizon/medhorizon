@@ -12,7 +12,7 @@ export const atlasSync = tool({
   async execute(args, ctx) {
     try {
       if (args.action === "capability") {
-        const cap = await rgFetch("/api/sync/capability")
+        const cap = await rgFetch<Record<string, unknown>>("/api/sync/capability")
         return JSON.stringify({ ...cap, plugin_mode: mode() })
       }
       if (args.action === "outbox") {

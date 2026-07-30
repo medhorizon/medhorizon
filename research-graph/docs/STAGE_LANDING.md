@@ -15,7 +15,17 @@ APIs: `GET /api/nodes/{id}/medhorizon`, `POST /api/nodes/{id}/medhorizon/branch`
 
 Requires `directory` on the stage meta (plugin hook stores `PluginInput.directory`).
 
-## Enable (no MedHorizon core edits)
+## Enable (v0.3.8+)
+
+Research Graph **plugin is built into MedHorizon**. Opening `medhorizon web` /
+`serve` with a sibling `research-graph` binary:
+
+1. Starts the sidecar on `127.0.0.1:8000`
+2. Loads `atlas_*` tools + stage auto-land hooks (no `OPENSCIENCE_CONFIG_DIR`)
+
+Disable both with `RESEARCH_GRAPH_DISABLE=1`.
+
+### Optional overlay (dev / custom skills)
 
 ```bash
 export OPENSCIENCE_CONFIG_DIR=/absolute/path/to/research-graph/medhorizon-plugin/config

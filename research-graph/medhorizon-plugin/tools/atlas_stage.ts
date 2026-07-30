@@ -32,7 +32,8 @@ export const atlasStage = tool({
     }
     try {
       if (args.action === "protocol") {
-        return JSON.stringify({ ...(await rgFetch("/api/stages/protocol")), api: apiBase() })
+        const proto = await rgFetch<Record<string, unknown>>("/api/stages/protocol")
+        return JSON.stringify({ ...proto, api: apiBase() })
       }
       if (args.action === "get_bind") {
         return JSON.stringify(await rgFetch(`/api/sessions/bind?session_id=${encodeURIComponent(ctx.sessionID)}`))
@@ -52,7 +53,6 @@ export const atlasStage = tool({
           await rgFetch("/api/sessions/bind", {
             method: "POST",
             body: JSON.stringify({
-              session_id: ctx.sessionID,
               graph_id: args.graph_id,
               ...meta,
             }),

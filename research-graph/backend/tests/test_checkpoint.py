@@ -74,6 +74,9 @@ def test_core_medhorizon_untouched():
         "backend/cli/src/cli/cmd/serve.ts",
         "backend/cli/src/cli/cmd/web.ts",
         "backend/cli/src/sidecar/research-graph.ts",
+        "backend/cli/src/plugin/index.ts",
+        "backend/cli/src/plugin/research-graph.ts",
+        "backend/cli/src/index.ts",
     }
     unexpected = [line for line in out.splitlines() if line and line not in allowed]
     assert unexpected == [], f"unexpected core diffs:\n{chr(10).join(unexpected)}"
