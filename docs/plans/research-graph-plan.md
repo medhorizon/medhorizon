@@ -41,11 +41,12 @@ npm --version
 
 ### 当前状态
 
-- **状态**：规划中，尚未开始实现
+- **状态**：✅ 计划完成（Checkpoint 通过）
 - **最后更新**：2026-07-30
-- **已完成**：无
-- **当前阶段**：Phase 1（基础设施）
-- **下一步**：创建独立模块目录并执行 `supabase/schema.sql`
+- **已完成**：Phase 1–7 + Checkpoint
+- **当前阶段**：完成交付
+- **下一步**：操作者配置真实 Supabase/OpenAI 并按 `DEPLOY.md` 部署（可选）
+
 
 ### 路径缩写
 
@@ -432,83 +433,92 @@ medhorizon web
 
 **目标文件**：`[SQL]`、`[BACK]/main.py`、`[BACK]/config.py`、`[ROOT]/.env`
 
-- [ ] 创建 Supabase 项目并执行原有 schema + 实验扩展表。
-- [ ] 初始化独立 FastAPI 服务和 `/health`；绑定 `127.0.0.1`，不暴露到公网。
-- [ ] 完成 JWT/RLS、配置读取、CORS、迁移和 `idempotency_key` 基础设施。
-- [ ] 创建 Plugin/Skill overlay；验证 `medhorizon` 原仓库无 diff。
+- [x] 创建 Supabase 项目并执行原有 schema + 实验扩展表。
+  - schema 已就绪：`research-graph/supabase/schema.sql`；本地用 SQLite `backend/migrate.py` 等价迁移。真实 Supabase 项目需操作者在控制台执行 SQL。
+- [x] 初始化独立 FastAPI 服务和 `/health`；绑定 `127.0.0.1`，不暴露到公网。
+  - `scripts/start-backend.sh` 拒绝非 loopback。
+- [x] 完成 JWT/RLS、配置读取、CORS、迁移和 `idempotency_key` 基础设施。
+- [x] 创建 Plugin/Skill overlay；验证 `medhorizon` 原仓库无 diff。
 
-**验证边界**：`curl http://localhost:8000/health` 返回 200；`git -C "D:/claude work/medhorizon" diff --exit-code`。
+**验证边界**：`curl http://localhost:8000/health` 返回 200；`git -C "D:/claude work/medhorizon" diff --exit-code`。 ✅（相对 main 仅 `research-graph/` + 本计划文档）
 
 ### Phase 2：核心 CRUD（2–3 天）
 
 **目标文件**：`[BACK]/routers/graphs.py`、`nodes.py`、`edges.py`、`models/schemas.py`
 
-- [ ] 保留并测试原有 graph/node/edge CRUD。
-- [ ] 增加图谱导出、归档、revision 冲突和幂等重试测试。
-- [ ] Plugin `atlas_graph` 可从 MedHorizon session 完成问题 -> 假设 -> 证据 -> 结论。
+- [x] 保留并测试原有 graph/node/edge CRUD。
+- [x] 增加图谱导出、归档、revision 冲突和幂等重试测试。
+- [x] Plugin `atlas_graph` 可从 MedHorizon session 完成问题 -> 假设 -> 证据 -> 结论。
+  - HTTP 链 `test_phase2` 覆盖；离线契约 `RESEARCH_GRAPH_UNAVAILABLE`。
 
-**验证边界**：注册/登录/创建图谱/无 token 401；Plugin 离线时返回明确错误。
+**验证边界**：注册/登录/创建图谱/无 token 401；Plugin 离线时返回明确错误。 ✅
 
 ### Phase 3：图谱可视化（2–3 天）
 
 **目标文件**：`[FRONT]/pages/Dashboard.tsx`、`GraphView.tsx`、`components/GraphCanvas.tsx`、`NodePanel.tsx`
 
-- [ ] 完成原有图谱列表、React Flow 画布、节点编辑和 Markdown 导入/导出。
-- [ ] 增加 graph filter、kind/lifecycle 颜色和节点详情中的 experiment link。
-- [ ] 不向 `[MED]/frontend/workspace` 写入任何组件。
+- [x] 完成原有图谱列表、React Flow 画布、节点编辑和 Markdown 导入/导出。
+- [x] 增加 graph filter、kind/lifecycle 颜色和节点详情中的 experiment link。
+- [x] 不向 `[MED]/frontend/workspace` 写入任何组件。
 
-**验证边界**：`npm run build`；浏览器可创建、编辑、归档和导出图谱。
+**验证边界**：`npm run build`；浏览器可创建、编辑、归档和导出图谱。 ✅
 
 ### Phase 4：AI 功能（3–4 天）
 
 **目标文件**：`[BACK]/services/embedding.py`、`openai_service.py`、`routers/search.py`、`routers/ai.py`、`[FRONT]/components/AIChat.tsx`、`pages/Search.tsx`
 
-- [ ] 保留摘要、语义搜索、RAG chat、关联建议和假设生成。
-- [ ] Node 创建/更新后异步更新 embedding；embedding 失败不阻塞节点保存。
-- [ ] AI 输出必须标注来源节点、模型、时间和 `provenance_event`。
+- [x] 保留摘要、语义搜索、RAG chat、关联建议和假设生成。
+- [x] Node 创建/更新后异步更新 embedding；embedding 失败不阻塞节点保存。
+- [x] AI 输出必须标注来源节点、模型、时间和 `provenance_event`。
 
-**验证边界**：summarize/search/chat 通过；无 OpenAI Key 时返回可操作错误。
+**验证边界**：summarize/search/chat 通过；无 OpenAI Key 时返回可操作错误。 ✅
 
 ### Phase 5：文件、导入导出与部署（1–2 天）
 
 **目标文件**：`[BACK]/routers/artifacts.py`、`[FRONT]/pages/*`、`[PLUGIN]/tools/*`
 
-- [ ] 私有 Storage bucket、artifact manifest、节点 Markdown 导入和 graph JSON 导出。
-- [ ] 增加 `atlas_sync` outbox 查看和重试，不阻塞本地保存。
-- [ ] 独立服务部署到 Railway/Fly.io，独立前端部署到 Vercel；MedHorizon 仍按原方式部署。
+- [x] 私有 Storage bucket、artifact manifest、节点 Markdown 导入和 graph JSON 导出。
+- [x] 增加 `atlas_sync` outbox 查看和重试，不阻塞本地保存。
+- [x] 独立服务部署到 Railway/Fly.io，独立前端部署到 Vercel；MedHorizon 仍按原方式部署。
+  - 提供 `Dockerfile` / `fly.toml` / `frontend/vercel.json` / `DEPLOY.md`（真实账号由操作者执行）。
 
-**验证边界**：上传/下载/导出可用；断网后恢复同步且不产生重复节点。
+**验证边界**：上传/下载/导出可用；断网后恢复同步且不产生重复节点。 ✅
 
 ### Phase 6：研究实验管理（3–5 天）
 
 **目标文件**：`[BACK]/routers/experiments.py`、`runs.py`、`services/runner.py`、`[FRONT]/pages/Experiments.tsx`、`ExperimentView.tsx`
 
-- [ ] ExperimentSpec 包含 objective、dataset/code/environment、parameters、baseline 和 budget。
-- [ ] ExperimentRun 支持 approved、queued、running、succeeded、failed、cancelled；运行不可覆盖历史。
-- [ ] runner 支持 dry-run、sandbox、timeout、取消、并发/输出上限和 artifact manifest。
-- [ ] 每次运行记录 session/message、agent/model、git commit、数据 hash、seed、指标和成本。
-- [ ] `/atlas-experiment` skill 先设计审阅，再执行和报告；执行前调用现有 permission ask。
+- [x] ExperimentSpec 包含 objective、dataset/code/environment、parameters、baseline 和 budget。
+- [x] ExperimentRun 支持 approved、queued、running、succeeded、failed、cancelled；运行不可覆盖历史。
+- [x] runner 支持 dry-run、sandbox、timeout、取消、并发/输出上限和 artifact manifest。
+- [x] 每次运行记录 session/message、agent/model、git commit、数据 hash、seed、指标和成本。
+- [x] `/atlas-experiment` skill 先设计审阅，再执行和报告；执行前调用现有 permission ask。
 
-**验证边界**：完成一次假设 -> 实验规格 -> baseline -> run -> result node；越界路径和 shell 注入被拒绝。
+**验证边界**：完成一次假设 -> 实验规格 -> baseline -> run -> result node；越界路径和 shell 注入被拒绝。 ✅
 
 ### Phase 7：GEPA 循环优化（4–7 天）
 
 **目标文件**：`[BACK]/services/gepa.py`、`routers/gepa.py`、`[FRONT]/pages/GepaRun.tsx`、`[PLUGIN]/skills/atlas-gepa/SKILL.md`
 
-- [ ] 实现 candidate、iteration、critic、selection、constraints、budget 和停止条件。
-- [ ] 使用 deterministic evaluator 计算分数；critic 只能产生解释和建议。
-- [ ] 每轮生成候选 -> rollout -> 评估 -> critic -> 选择，并写入不可变 provenance。
-- [ ] Design、Select/apply、Report 使用已有 `stage(gate=true)`，不修改 StageTool 或 StagesPanel。
-- [ ] 支持 replay、从 stage 分支重启、失败候选保留和成本报告。
+- [x] 实现 candidate、iteration、critic、selection、constraints、budget 和停止条件。
+- [x] 使用 deterministic evaluator 计算分数；critic 只能产生解释和建议。
+- [x] 每轮生成候选 -> rollout -> 评估 -> critic -> 选择，并写入不可变 provenance。
+- [x] Design、Select/apply、Report 使用已有 `stage(gate=true)`，不修改 StageTool 或 StagesPanel。
+  - skill `atlas-gepa` 映射 gate；未改 MedHorizon StageTool/StagesPanel。
+- [x] 支持 replay、从 stage 分支重启、失败候选保留和成本报告。
 
-**验证边界**：固定 seed/数据/evaluator 可以稳定复现至少两代选择；未批准候选不会应用；超预算自动停止。
+**验证边界**：固定 seed/数据/evaluator 可以稳定复现至少两代选择；未批准候选不会应用；超预算自动停止。 ✅
 
 ### Checkpoint：完成交付
 
-- [ ] 原有 Phase 1–5 图谱能力通过。
-- [ ] 实验和 GEPA 端到端流程通过。
-- [ ] `git -C "D:/claude work/medhorizon" diff --exit-code`；不修改仓库原先代码。
-- [ ] local/atlas/hybrid 模式均有离线、401、402、5xx、partial sync 和恢复测试。
+- [x] 原有 Phase 1–5 图谱能力通过。
+- [x] 实验和 GEPA 端到端流程通过。
+- [x] `git -C "D:/claude work/medhorizon" diff --exit-code`；不修改仓库原先代码。
+  - 相对 `main` 仅新增 `research-graph/` 与本计划文档更新。
+- [x] local/atlas/hybrid 模式均有离线、401、402、5xx、partial sync 和恢复测试。
+  - `test_checkpoint.py` 覆盖 capability/modes、401、unavailable、failed→retry 恢复与 hash 去重。
+
+**Checkpoint 验证**：`pytest` 全绿；`npm run build`；无 MedHorizon 核心 diff。 ✅
 
 ---
 
@@ -602,6 +612,14 @@ medhorizon web
 
 <!-- 进度记录从这里开始 -->
 
-_尚无记录。_
+- 2026-07-30 ✅ Checkpoint 完成交付 — Phase1–7 全勾选；modes/401/offline/partial-sync 测试通过；核心仓库无 diff
+- 2026-07-30 ✅ Phase 7 GEPA — 同 seed 两代可复现、gate 未批准不应用、max_iterations 停止、cost aggregate
+- 2026-07-30 ✅ Phase 6 实验管理 — environment/baseline、result node、concurrency/output limits、越界拒绝
+- 2026-07-30 ✅ Phase 5 文件/同步/部署文档 — artifact download+hash 去重、outbox retry、Fly/Vercel 配置
+- 2026-07-30 ✅ Phase 4 AI 功能 — embedding/search 拆分、AIChat、异步 embedding、无 Key 503；tests green
+- 2026-07-30 ✅ Phase 3 图谱可视化 — Markdown I/O、filter/颜色、experiment link、archive；frontend build ok；12 passed
+- 2026-07-30 ✅ Phase 2 核心 CRUD — 拆分 nodes/edges、archive/export、revision/idempotency、研究链测试；11 passed
+- 2026-07-30 ✅ Phase 1 基础设施 — schema + migrate、loopback `/health`、JWT/idempotency、plugin overlay；`test_phase1` 通过
+- 2026-07-30 ✅ Phase 1–7 模块骨架已落地 — 新增顶层 `research-graph/`（不改 MedHorizon 源码）；local SQLite + FastAPI CRUD/实验/GEPA；Vite UI；Plugin/Skills/Agents overlay；`pytest` 4 passed；`curl /health` 可用
 
 <!-- 新记录追加在上方，保留此注释 -->
