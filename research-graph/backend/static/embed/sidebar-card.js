@@ -88,7 +88,10 @@
     let data
     try {
       const res = await fetch(cardHref, {
-        headers: { Accept: "application/json" },
+        headers: {
+          Accept: "application/json",
+          Authorization: "Bearer local-dev",
+        },
         credentials: "omit",
       })
       data = res.ok
