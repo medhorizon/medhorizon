@@ -60,9 +60,9 @@ Ready to enter stage "证据搜集"?
 
 所有新功能不修改核心框架（processor / llm / compaction），通过消息部件（append-only message parts）扩展状态，利用现有 `Question.ask` 基础设施实现门控，无需新增路由或 SSE 事件。
 
-### 🕸️ Research Graph（v0.3.0，可选）
+### 🕸️ Research Graph（v0.3.6，随安装包启动）
 
-独立模块 `research-graph/`：研究图画布、实验规格与运行、GEPA 优化与人工门控。**不修改 MedHorizon 核心**，通过插件配置叠加启用。
+独立模块 `research-graph/`：研究图画布、实验规格与运行、GEPA 优化与人工门控。自 **v0.3.6** 起，Release 安装包内含 sidecar 二进制；打开 MedHorizon 会自动拉起 Research Graph（`http://127.0.0.1:8000`）。设置 `RESEARCH_GRAPH_DISABLE=1` 可跳过。
 
 - 使用说明（截图）：[`research-graph/docs/USAGE.md`](./research-graph/docs/USAGE.md)
 - 模块说明：[`research-graph/README.md`](./research-graph/README.md)
@@ -73,11 +73,11 @@ Ready to enter stage "证据搜集"?
 
 ### 🖥️ Windows（一键安装，推荐）
 
-1. 下载 [`medhorizon-windows-installer.zip`](https://github.com/medhorizon/medhorizon/releases/latest/download/medhorizon-windows-installer.zip)（内含 `medhorizon.exe`，**无需再联网下载**）
+1. 下载 [`medhorizon-windows-installer.zip`](https://github.com/medhorizon/medhorizon/releases/latest/download/medhorizon-windows-installer.zip)（内含 `medhorizon.exe` + `research-graph.exe`，**无需再联网下载**）
 2. 解压后双击 `install.bat`
-3. 或解压后直接运行 `start.bat` / `medhorizon.exe`（便携模式）
+3. 或解压后直接运行 `start.bat` / `medhorizon.exe`（便携模式，会自动启动 Research Graph）
 4. 双击桌面的 **MedHorizon** 图标启动
-5. 浏览器自动打开 → 填写 API Key → 开始使用
+5. 浏览器自动打开 → 填写 API Key → 开始使用；Research Graph：`http://127.0.0.1:8000`
 
 > 无需安装 Git、Node.js、Python 等任何依赖。
 

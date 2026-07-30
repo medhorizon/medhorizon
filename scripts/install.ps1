@@ -1,5 +1,5 @@
 # MedHorizon Windows binary installer (offline).
-# Requires medhorizon.exe next to this script. No network download.
+# Requires medhorizon.exe next to this script. Copies Research Graph sidecar when present.
 
 param(
   [string]$InstallDir = "$env:LOCALAPPDATA\MedHorizon"
@@ -13,6 +13,7 @@ function Write-Err($msg)  { Write-Host "  ERR $msg" -ForegroundColor Red; exit 1
 
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
 $localExe = Join-Path $here "medhorizon.exe"
+$rgExe = Join-Path $here "research-graph.exe"
 $versionFile = Join-Path $here "VERSION"
 
 Write-Host ""
@@ -39,9 +40,20 @@ Write-Step "Copying medhorizon.exe (offline, no download)..."
 Copy-Item -Force $localExe (Join-Path $InstallDir "medhorizon.exe")
 Write-OK "Installed: $InstallDir\medhorizon.exe"
 
+if (Test-Path $rgExe) {
+  Copy-Item -Force $rgExe (Join-Path $InstallDir "research-graph.exe")
+  Write-OK "Installed Research Graph sidecar: $InstallDir\research-graph.exe"
+}
+
 $startBat = @"
 @echo off
-echo Starting MedHorizon...
+chcp 65001 >nul
+cd /d "$InstallDir"
+echo Starting MedHorizon + Research Graph sidecar...
+if exist "$InstallDir\research-graph.exe" (
+  start "Research Graph" /MIN "$InstallDir\research-graph.exe"
+  ping -n 3 127.0.0.1 >nul
+)
 start "" "http://localhost:4096"
 ping -n 2 127.0.0.1 >nul
 "$InstallDir\medhorizon.exe"
@@ -64,5 +76,5 @@ Write-OK "Desktop shortcut: MedHorizon.lnk"
 
 Write-Host ""
 Write-Host "  Install complete ($version). Double-click the desktop MedHorizon shortcut." -ForegroundColor Green
-Write-Host "  First launch opens the browser for API Key setup." -ForegroundColor Yellow
+Write-Host "  Research Graph sidecar starts automatically with MedHorizon." -ForegroundColor Yellow
 Write-Host ""

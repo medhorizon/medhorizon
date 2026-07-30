@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # MedHorizon offline installer — requires ./medhorizon next to this script.
-# Used inside Release binary installer archives (no network download).
+# Copies Research Graph sidecar when ./research-graph is present.
 
 set -e
 
@@ -8,6 +8,7 @@ INSTALL_DIR="${MEDHORIZON_INSTALL_DIR:-$HOME/.local/medhorizon}"
 BIN_LINK="/usr/local/bin/medhorizon"
 HERE="$(cd "$(dirname "$0")" && pwd)"
 LOCAL_BIN="$HERE/medhorizon"
+RG_BIN="$HERE/research-graph"
 VERSION_FILE="$HERE/VERSION"
 
 RED='\033[0;31m'; GREEN='\033[0;32m'; CYAN='\033[0;36m'; YELLOW='\033[1;33m'; NC='\033[0m'
@@ -36,9 +37,29 @@ chmod +x "$INSTALL_DIR/medhorizon"
 echo "$VERSION" > "$INSTALL_DIR/version.txt"
 ok "Installed: $INSTALL_DIR/medhorizon ($VERSION)"
 
+if [ -f "$RG_BIN" ]; then
+  cp "$RG_BIN" "$INSTALL_DIR/research-graph"
+  chmod +x "$INSTALL_DIR/research-graph"
+  ok "Installed Research Graph sidecar: $INSTALL_DIR/research-graph"
+fi
+
 cat > "$INSTALL_DIR/start.sh" <<'STARTSCRIPT'
 #!/usr/bin/env bash
 INSTALL_DIR="$(cd "$(dirname "$0")" && pwd)"
+RG_PID=""
+cleanup() {
+  if [ -n "$RG_PID" ] && kill -0 "$RG_PID" 2>/dev/null; then
+    kill "$RG_PID" 2>/dev/null || true
+  fi
+}
+trap cleanup EXIT INT TERM
+
+if [ -x "$INSTALL_DIR/research-graph" ]; then
+  "$INSTALL_DIR/research-graph" >/dev/null 2>&1 &
+  RG_PID=$!
+  sleep 1
+fi
+
 "$INSTALL_DIR/medhorizon" &
 SERVER_PID=$!
 sleep 1
@@ -50,7 +71,7 @@ fi
 wait $SERVER_PID
 STARTSCRIPT
 chmod +x "$INSTALL_DIR/start.sh"
-ok "Created start script"
+ok "Created start script (auto-starts Research Graph sidecar when present)"
 
 if [ -w "$(dirname "$BIN_LINK")" ]; then
   ln -sf "$INSTALL_DIR/start.sh" "$BIN_LINK"
@@ -92,6 +113,6 @@ fi
 
 echo ""
 echo -e "${GREEN}  Install complete ($VERSION).${NC}"
-echo -e "${YELLOW}  First launch opens the browser for API Key setup.${NC}"
+echo -e "${YELLOW}  Research Graph sidecar starts automatically with MedHorizon.${NC}"
 echo "  Run: medhorizon   or   $INSTALL_DIR/start.sh"
 echo ""

@@ -3,7 +3,7 @@
 Independent FastAPI + React + Supabase-schema module for research graphs, experiments, and GEPA loops.
 **Does not modify MedHorizon source.** Connect via external config / plugin / skills.
 
-**Version:** `0.3.2` (ships with MedHorizon v0.3.2)
+**Version:** `0.3.6` (ships with MedHorizon v0.3.6 installers as an auto-started sidecar)
 
 ## Layout
 
@@ -11,11 +11,24 @@ Independent FastAPI + React + Supabase-schema module for research graphs, experi
 research-graph/
 ├── backend/              # FastAPI on 127.0.0.1:8000
 ├── frontend/             # Vite UI on 127.0.0.1:5173
+├── sidecar/              # PyInstaller entry + build for release binary
 ├── medhorizon-plugin/    # Plugin, skills, agents, overlay config
 ├── supabase/schema.sql   # Postgres + RLS (+ experiment/GEPA tables)
 ├── .env.example
 └── data/                 # local SQLite + artifacts (gitignored)
 ```
+
+## Release sidecar (MedHorizon installers)
+
+From v0.3.6, GitHub Releases ship a PyInstaller binary built via `sidecar/build.sh`
+(or the Release workflow). Place `research-graph` / `research-graph.exe` next to
+`medhorizon`; opening MedHorizon auto-starts it on `127.0.0.1:8000`.
+
+```bash
+./sidecar/build.sh   # produces sidecar/dist/research-graph[.exe]
+```
+
+Disable auto-start with `RESEARCH_GRAPH_DISABLE=1`.
 
 ## Quick start
 

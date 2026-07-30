@@ -44,8 +44,9 @@ class Settings(BaseSettings):
     medhorizon_atlas_bridge: str = "/api/atlas"
     medhorizon_web_origin: str = "http://127.0.0.1:4444"
     public_api_url: str = "http://127.0.0.1:8000"
-    ui_url: str = "http://127.0.0.1:5173"
+    ui_url: str = "http://127.0.0.1:8000"
     gateway_url: str = "http://127.0.0.1:5199"
+    research_graph_ui_dir: str = ""
 
     @property
     def cors_list(self) -> list[str]:
@@ -58,6 +59,15 @@ class Settings(BaseSettings):
     @property
     def openai_ready(self) -> bool:
         return bool(self.openai_api_key)
+
+    @property
+    def ui_dir(self) -> Path | None:
+        raw = self.research_graph_ui_dir.strip()
+        if raw:
+            path = Path(raw)
+            return path if path.is_dir() else None
+        bundled = ROOT / "ui"
+        return bundled if bundled.is_dir() else None
 
 
 @lru_cache

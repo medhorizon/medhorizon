@@ -4,6 +4,17 @@ MedHorizon follows [semantic versioning](https://semver.org). GitHub Releases
 (`v0.x`) ship native binaries for Linux, macOS (Apple Silicon), and Windows via
 the `Release` workflow. Upstream OpenScience history is retained below.
 
+## MedHorizon v0.3.6 — 2026-07-30
+
+### Added
+
+- **Research Graph bundled into release installers** as a sibling sidecar binary
+  (`research-graph` / `research-graph.exe`) next to MedHorizon.
+- **Auto-start sidecar** when opening MedHorizon (`web` / `serve`, `start.bat`,
+  `start.sh`). UI+API at `http://127.0.0.1:8000`. Set `RESEARCH_GRAPH_DISABLE=1`
+  to skip.
+- PyInstaller packaging under `research-graph/sidecar/` embeds the built SPA.
+
 ## MedHorizon v0.3.5 — 2026-07-30
 
 ### Changed

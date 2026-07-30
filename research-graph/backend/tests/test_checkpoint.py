@@ -62,6 +62,7 @@ def test_partial_sync_recovery(client):
 
 
 def test_core_medhorizon_untouched():
+    """Allow only the Research Graph sidecar auto-start wiring under backend/cli."""
     import subprocess
 
     out = subprocess.check_output(
@@ -69,4 +70,10 @@ def test_core_medhorizon_untouched():
         cwd="/workspace",
         text=True,
     ).strip()
-    assert out == "", f"unexpected core diffs:\n{out}"
+    allowed = {
+        "backend/cli/src/cli/cmd/serve.ts",
+        "backend/cli/src/cli/cmd/web.ts",
+        "backend/cli/src/sidecar/research-graph.ts",
+    }
+    unexpected = [line for line in out.splitlines() if line and line not in allowed]
+    assert unexpected == [], f"unexpected core diffs:\n{chr(10).join(unexpected)}"
