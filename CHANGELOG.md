@@ -4,6 +4,18 @@ MedHorizon follows [semantic versioning](https://semver.org). GitHub Releases
 (`v0.x`) ship native binaries for Linux, macOS (Apple Silicon), and Windows via
 the `Release` workflow. Upstream OpenScience history is retained below.
 
+## MedHorizon v0.3.5 — 2026-07-30
+
+### Changed
+
+- Release **installer archives now embed the MedHorizon binary** (offline install).
+  - Windows: `medhorizon-windows-installer.zip` = `medhorizon.exe` + `install.bat` /
+    `install.ps1` / `start.bat` / `VERSION`
+  - macOS/Linux: `*-installer.tar.gz` = binary + `install.sh` + `VERSION`
+- Install scripts no longer download from GitHub; they copy the local binary.
+- Standalone download-only `install.bat` / `install.ps1` / `install.sh` are no
+  longer published as Release assets.
+
 ## MedHorizon v0.3.4 — 2026-07-30
 
 ### Fixed

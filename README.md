@@ -73,19 +73,27 @@ Ready to enter stage "证据搜集"?
 
 ### 🖥️ Windows（一键安装，推荐）
 
-1. 下载 [`medhorizon-windows-installer.zip`](https://github.com/medhorizon/medhorizon/releases/latest/download/medhorizon-windows-installer.zip)（含 `install.bat` + `install.ps1`）
-2. 解压后双击 `install.bat`，按提示完成安装
-3. 或直接下载 [`install.bat`](https://github.com/medhorizon/medhorizon/releases/latest/download/install.bat)（会自动拉取 `install.ps1`）
+1. 下载 [`medhorizon-windows-installer.zip`](https://github.com/medhorizon/medhorizon/releases/latest/download/medhorizon-windows-installer.zip)（内含 `medhorizon.exe`，**无需再联网下载**）
+2. 解压后双击 `install.bat`
+3. 或解压后直接运行 `start.bat` / `medhorizon.exe`（便携模式）
 4. 双击桌面的 **MedHorizon** 图标启动
 5. 浏览器自动打开 → 填写 API Key → 开始使用
 
 > 无需安装 Git、Node.js、Python 等任何依赖。
 
-### 🍎 macOS / 🐧 Linux（一行命令）
+### 🍎 macOS / 🐧 Linux（二进制安装包）
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/medhorizon/medhorizon/main/scripts/install.sh | bash
+# macOS Apple Silicon
+curl -fsSL -o mh.tgz https://github.com/medhorizon/medhorizon/releases/latest/download/medhorizon-macos-arm64-installer.tar.gz
+mkdir mh && tar -xzf mh.tgz -C mh && cd mh && ./install.sh
+
+# Linux x64
+curl -fsSL -o mh.tgz https://github.com/medhorizon/medhorizon/releases/latest/download/medhorizon-linux-x64-installer.tar.gz
+mkdir mh && tar -xzf mh.tgz -C mh && cd mh && ./install.sh
 ```
+
+> 安装包内已含二进制；`install.sh` 只做本地拷贝与快捷方式，不再从 GitHub 拉包。
 
 安装完成后运行：
 
