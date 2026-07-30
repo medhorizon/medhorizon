@@ -8,7 +8,8 @@ import { atlasStage } from "./tools/atlas_stage"
 import { atlasSync } from "./tools/atlas_sync"
 
 /** Top-level re-export for plan path medhorizon-plugin/plugin.ts */
-export const ResearchGraphPlugin: Plugin = async () => {
+export const ResearchGraphPlugin: Plugin = async (input) => {
+  const directory = input.directory
   return {
     tool: {
       atlas_graph: atlasGraph,
@@ -18,7 +19,7 @@ export const ResearchGraphPlugin: Plugin = async () => {
       atlas_sidebar: atlasSidebar,
       atlas_stage: atlasStage,
     },
-    "tool.execute.after": onStageExecuteAfter,
+    "tool.execute.after": (inp, out) => onStageExecuteAfter(inp, out, directory),
     "experimental.chat.system.transform": async (_input, output) => {
       if (output.system.some((s) => s.includes("Research Graph stage landing"))) return
       output.system.push(STAGE_SYSTEM_HINT)

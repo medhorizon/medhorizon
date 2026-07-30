@@ -166,6 +166,33 @@ h2 {
   border-radius: 10px;
   overflow: hidden;
   background: #101612;
+  position: relative;
+}
+.rg-context-menu {
+  position: fixed;
+  z-index: 40;
+  min-width: 11rem;
+  padding: 0.35rem;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: #16201b;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+.rg-context-menu button {
+  text-align: left;
+  background: transparent;
+  border: 0;
+  color: var(--text);
+  padding: 0.45rem 0.6rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font: inherit;
+}
+.rg-context-menu button:hover {
+  background: rgba(61, 155, 110, 0.18);
 }
 .error {
   color: var(--danger);

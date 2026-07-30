@@ -13,7 +13,7 @@ type AfterInput = { tool: string; sessionID: string; callID: string }
 type AfterOutput = { title: string; output: string; metadata: Record<string, unknown> }
 
 /** Auto-land Research Graph nodes when MedHorizon `stage` tool succeeds (no core edits). */
-export async function onStageExecuteAfter(input: AfterInput, output: AfterOutput) {
+export async function onStageExecuteAfter(input: AfterInput, output: AfterOutput, directory?: string) {
   if (input.tool !== "stage") return
   if (output.metadata?.aborted) return
   const stages = output.metadata?.stages as StageNode[] | undefined
@@ -32,6 +32,7 @@ export async function onStageExecuteAfter(input: AfterInput, output: AfterOutput
       body: JSON.stringify({
         session_id: input.sessionID,
         message_id: current.messageID,
+        directory: directory || undefined,
         stage: {
           name: current.name,
           index: current.index,
@@ -53,8 +54,8 @@ export async function onStageExecuteAfter(input: AfterInput, output: AfterOutput
 export const STAGE_SYSTEM_HINT = [
   "Research Graph stage landing (plugin protocol):",
   "When you call the MedHorizon `stage` tool to enter a research/experiment/GEPA phase,",
-  "a plugin hook auto-creates a matching Research Graph node (meta.medhorizon_stage).",
-  "If the sidecar is down or landing failed, call `atlas_stage` action=land with the same stage name/index/part_id.",
-  "Optionally `atlas_stage` action=bind to pin this session to a graph_id.",
+  "a plugin hook auto-creates a matching Research Graph node (meta.medhorizon_stage + directory).",
+  "Users can open the session or branch from that node in the Research Graph UI.",
+  "If landing failed, call `atlas_stage` action=land with stage name/index/part_id.",
   "Do not invent a second stage timeline — MedHorizon StagesPanel remains canonical.",
 ].join(" ")

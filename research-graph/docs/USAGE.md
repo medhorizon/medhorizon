@@ -220,7 +220,8 @@ export RESEARCH_GRAPH_MODE=local
 插件工具：`atlas_graph`、`atlas_stage`、`atlas_experiment`、`atlas_gepa`、`atlas_sync`、`atlas_sidebar`。
 
 **阶段自动落点**：LLM 调用 MedHorizon `stage` 后，插件 hook 会在 Research Graph
-创建镜像节点（`meta.medhorizon_stage`）。详见 [`STAGE_LANDING.md`](./STAGE_LANDING.md)。
+创建镜像节点（`meta.medhorizon_stage`）。图谱里可 **双击** 打开对话，**右键 → 在此开分支**。
+详见 [`STAGE_LANDING.md`](./STAGE_LANDING.md)。
 
 ---
 

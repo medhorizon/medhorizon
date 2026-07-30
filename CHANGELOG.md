@@ -12,6 +12,9 @@ the `Release` workflow. Upstream OpenScience history is retained below.
   core edits): when the LLM enters a MedHorizon `stage`, a plugin hook mirrors
   it onto a Research Graph node (`meta.medhorizon_stage`). Tools: `atlas_stage`.
   Docs: `research-graph/docs/STAGE_LANDING.md`.
+- **Graph UI navigate / branch**: double-click a stage node to open the MedHorizon
+  session; right-click → 在此开分支 forks via MedHorizon `stages/jump` (proxied
+  by Research Graph API, no core edits).
 
 ## MedHorizon v0.3.7 — 2026-07-30
 
