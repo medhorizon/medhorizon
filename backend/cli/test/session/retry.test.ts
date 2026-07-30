@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test"
-import { APICallError } from "ai"
+import { APICallError, JSONParseError } from "ai"
 import { SessionRetry } from "../../src/session/retry"
 import { MessageV2 } from "../../src/session/message-v2"
 import { NamedError } from "@synsci/util/error"
@@ -112,6 +112,24 @@ describe("session.retry.retryable", () => {
     const error = wrap("not-json")
     expect(SessionRetry.retryable(error)).toBeUndefined()
   })
+
+  test("retries AI_JSONParseError / unterminated stream JSON", () => {
+    const error = wrap(
+      'AI_JSONParseError: JSON parsing failed: Text: {"id":"chatcmpl-x","choices":[{"delta":{"tool_calls":[{"id":"call-abc. Error message: JSON Parse error: Unterminated string',
+    )
+    expect(SessionRetry.retryable(error)).toBe("Provider stream returned incomplete JSON; retrying")
+  })
+
+  test("retries APIError marked AI_JSONParseError", () => {
+    const error = new MessageV2.APIError({
+      message: "Provider stream returned incomplete JSON (often mid tool-call); retrying",
+      isRetryable: true,
+      metadata: { code: "AI_JSONParseError", message: "JSON parsing failed" },
+    }).toObject() as MessageV2.APIError
+    expect(SessionRetry.retryable(error)).toBe(
+      "Provider stream returned incomplete JSON (often mid tool-call); retrying",
+    )
+  })
 })
 
 describe("session.message-v2.fromError", () => {
@@ -175,6 +193,18 @@ describe("session.message-v2.fromError", () => {
     })
     const result = MessageV2.fromError(error, { providerID: "openai" }) as MessageV2.APIError
     expect(result.data.isRetryable).toBe(true)
+  })
+
+  test("converts JSONParseError stream failures to retryable APIError", () => {
+    const error = new JSONParseError({
+      text: '{"id":"chatcmpl-x","choices":[{"delta":{"tool_calls":[{"id":"call-abc',
+      cause: new SyntaxError("JSON Parse error: Unterminated string"),
+    })
+    const result = MessageV2.fromError(error, { providerID: "synsci" }) as MessageV2.APIError
+    expect(MessageV2.APIError.isInstance(result)).toBe(true)
+    expect(result.data.isRetryable).toBe(true)
+    expect(result.data.metadata?.code).toBe("AI_JSONParseError")
+    expect(SessionRetry.retryable(result)).toContain("incomplete JSON")
   })
 })
 
