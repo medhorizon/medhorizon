@@ -33,10 +33,10 @@ Optional: `atlas_stage action=bind graph_id=<uuid>` to pin this session to a gra
 
 Stage-linked nodes store `meta.medhorizon_stage.{session_id,part_id,directory}`.
 
-| UI | Action |
-| -- | ------ |
-| Double-click node | Open MedHorizon session (`GET /api/nodes/{id}/medhorizon` → `open_url`) |
-| Right-click → 打开对话 | Same |
+| UI                       | Action                                                                                              |
+| ------------------------ | --------------------------------------------------------------------------------------------------- |
+| Double-click node        | Open MedHorizon session (`GET /api/nodes/{id}/medhorizon` → `open_url`)                             |
+| Right-click → 打开对话   | Same                                                                                                |
 | Right-click → 在此开分支 | `POST /api/nodes/{id}/medhorizon/branch` → MedHorizon `stages/jump` / `fork`, then open new session |
 
 MedHorizon has no message-level deep link; open lands on the session. Branch forks at the stage boundary (original session kept).

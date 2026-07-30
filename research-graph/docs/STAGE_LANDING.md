@@ -5,10 +5,10 @@ Research Graph stores a **mirror node** when a stage is entered.
 
 ## Open session / branch (graph UI)
 
-| UI | Effect |
-| -- | ------ |
-| Double-click stage node | Opens MedHorizon session URL |
-| Right-click → 打开对话 | Same |
+| UI                       | Effect                                                                              |
+| ------------------------ | ----------------------------------------------------------------------------------- |
+| Double-click stage node  | Opens MedHorizon session URL                                                        |
+| Right-click → 打开对话   | Same                                                                                |
 | Right-click → 在此开分支 | Proxies `POST /session/{id}/stages/jump` (or `/fork`) then opens the forked session |
 
 APIs: `GET /api/nodes/{id}/medhorizon`, `POST /api/nodes/{id}/medhorizon/branch`

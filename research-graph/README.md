@@ -38,7 +38,6 @@ auto-creates a mirror node (`meta.medhorizon_stage`). In the graph UI you can
 在此开分支** to fork at that stage. See
 [`docs/STAGE_LANDING.md`](./docs/STAGE_LANDING.md).
 
-
 ```bash
 cd research-graph
 cp .env.example .env

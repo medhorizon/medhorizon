@@ -16,13 +16,13 @@ category: research
 
 ## Mapping to MedHorizon stage
 
-| Phase                          | stage gate | Research Graph landing      |
-| ------------------------------ | ---------- | --------------------------- |
-| Design                         | yes        | auto node (kind≈note)       |
-| Baseline                       | no         | auto node (kind≈note)       |
+| Phase                          | stage gate | Research Graph landing        |
+| ------------------------------ | ---------- | ----------------------------- |
+| Design                         | yes        | auto node (kind≈note)         |
+| Baseline                       | no         | auto node (kind≈note)         |
 | Generate / Evaluate / Critique | no         | auto node (kind≈note/insight) |
-| Select/apply                   | yes        | auto node (kind≈insight)    |
-| Report                         | yes        | auto node (kind≈conclusion) |
+| Select/apply                   | yes        | auto node (kind≈insight)      |
+| Report                         | yes        | auto node (kind≈conclusion)   |
 
 Landing is via plugin `tool.execute.after` → `POST /api/stages/land`. If missing, `atlas_stage` `land`.
 
