@@ -4,6 +4,17 @@ MedHorizon follows [semantic versioning](https://semver.org). GitHub Releases
 (`v0.x`) ship native binaries for Linux, macOS (Apple Silicon), and Windows via
 the `Release` workflow. Upstream OpenScience history is retained below.
 
+## MedHorizon v0.3.9 — 2026-07-30
+
+### Fixed
+
+- **`AI_JSONParseError` / Unterminated string** during streaming `tool_calls`:
+  truncated SSE `chat.completion.chunk` JSON (common with flaky proxies) is now
+  treated as a **retryable** stream fault. MedHorizon auto-retries the turn
+  instead of hard-failing mid Atlas / stage / tool call.
+- Provider fetch wraps `text/event-stream` bodies so a truncated final `data:`
+  line surfaces as `JSONParseError` (retryable) rather than a silent half-chunk.
+
 ## MedHorizon v0.3.8 — 2026-07-30
 
 ### Added

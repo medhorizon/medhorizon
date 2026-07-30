@@ -1139,13 +1139,30 @@ export namespace MessageV2 {
         ).toObject()
       // Truncated SSE / mid-chunk tool_call JSON from flaky proxies — retry the turn.
       case JSONParseError.isInstance(e):
+      case e instanceof Error &&
+        (e.name === "AI_JSONParseError" ||
+          e.message.includes("JSON parsing failed") ||
+          e.message.includes("Unterminated string")):
         return new MessageV2.APIError(
           {
             message: "Provider stream returned incomplete JSON (often mid tool-call); retrying",
             isRetryable: true,
             metadata: {
               code: "AI_JSONParseError",
-              message: e.message.slice(0, 500),
+              message: (e instanceof Error ? e.message : String(e)).slice(0, 500),
+            },
+          },
+          { cause: e },
+        ).toObject()
+      case typeof e === "string" &&
+        (e.includes("AI_JSONParseError") || e.includes("JSON parsing failed") || e.includes("Unterminated string")):
+        return new MessageV2.APIError(
+          {
+            message: "Provider stream returned incomplete JSON (often mid tool-call); retrying",
+            isRetryable: true,
+            metadata: {
+              code: "AI_JSONParseError",
+              message: e.slice(0, 500),
             },
           },
           { cause: e },

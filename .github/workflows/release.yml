@@ -209,10 +209,10 @@ jobs:
         with:
           name: "MedHorizon ${{ github.ref_name }}"
           body: |
-            ## 本版本亮点（v0.3.8）
+            ## 本版本亮点（v0.3.9）
 
-            - **Research Graph sidecar + 内置插件**随 MedHorizon 一起启动（无需再设 `OPENSCIENCE_CONFIG_DIR`）
-            - 对话 `stage` 自动落点到 Research Graph；图谱可双击打开会话 / 右键开分支
+            - **修复**流式 `tool_calls` 截断导致的 `AI_JSONParseError` / Unterminated string：自动重试该轮，不再硬失败
+            - Research Graph sidecar + 内置插件仍随 MedHorizon 一起启动
             - Research Graph UI+API：`http://127.0.0.1:8000`
             - 安装包仍为离线二进制（`medhorizon` + `research-graph`）
 

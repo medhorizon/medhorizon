@@ -13,6 +13,7 @@ import { Env } from "../env"
 import { Instance } from "../project/instance"
 import { Flag } from "../flag/flag"
 import { iife } from "@/util/iife"
+import { wrap as sealSse } from "@/util/sse"
 import { OpenScience } from "../openscience"
 import { isAtlasProxyURL, managedOpenRouterBaseURL } from "../openscience/synced-env-policy"
 
@@ -1777,11 +1778,13 @@ export namespace Provider {
           opts.headers = headers
         }
 
-        return fetchFn(input, {
+        const res = await fetchFn(input, {
           ...opts,
           // @ts-ignore see here: https://github.com/oven-sh/bun/issues/16682
           timeout: false,
         })
+        // Flag truncated trailing SSE `data:` lines (mid tool_call JSON cuts).
+        return sealSse(res)
       }
 
       // Special case: google-vertex-anthropic uses a subpath import

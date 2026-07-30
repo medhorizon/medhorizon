@@ -60,13 +60,15 @@ Ready to enter stage "证据搜集"?
 
 所有新功能不修改核心框架（processor / llm / compaction），通过消息部件（append-only message parts）扩展状态，利用现有 `Question.ask` 基础设施实现门控，无需新增路由或 SSE 事件。
 
-### 🕸️ Research Graph（v0.3.8，随 MedHorizon 启动）
+### 🕸️ Research Graph（v0.3.8+，随 MedHorizon 启动）
 
 独立模块 `research-graph/`：研究图画布、实验规格与运行、GEPA 优化与人工门控。自 **v0.3.8** 起：
 
 - Release 安装包内含 sidecar 二进制；打开 MedHorizon **自动拉起** Research Graph（`http://127.0.0.1:8000`）
 - **内置插件**（`atlas_*` 工具 + stage 自动落点）打进 MedHorizon，无需再设 `OPENSCIENCE_CONFIG_DIR`
 - 设 `RESEARCH_GRAPH_DISABLE=1` 可同时跳过 sidecar 与插件
+
+自 **v0.3.9** 起：流式 `tool_calls` 截断（`AI_JSONParseError`）会自动重试，避免 HCC/Atlas 调研中途硬失败。
 
 - 使用说明（截图）：[`research-graph/docs/USAGE.md`](./research-graph/docs/USAGE.md)
 - 阶段落点 / 跳转：[`research-graph/docs/STAGE_LANDING.md`](./research-graph/docs/STAGE_LANDING.md)
