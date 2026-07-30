@@ -1,10 +1,55 @@
 # Changelog
 
-All notable changes to OpenScience are recorded here. The project follows
-[semantic versioning](https://semver.org). Releases are cut from `main` via the
-`publish` workflow and published to npm as
-[`@synsci/openscience`](https://www.npmjs.com/package/@synsci/openscience); each
-tagged release also ships native binaries for Linux, macOS, and Windows.
+MedHorizon follows [semantic versioning](https://semver.org). GitHub Releases
+(`v0.x`) ship native binaries for Linux, macOS (Apple Silicon), and Windows via
+the `Release` workflow. Upstream OpenScience history is retained below.
+
+## MedHorizon v0.3.1 — 2026-07-30
+
+### Added
+
+- **Research Graph ↔ MedHorizon sidebar card** (no core edits): HTTP integration
+  contract (`/integration/manifest`, `/integration/sidebar-card`), embed script
+  that injects a featured card into `.session-sidebar`, and a loopback gateway
+  (`research-graph/scripts/medhorizon-gateway.py`) that proxies MedHorizon UI
+  and injects the script.
+- Plugin tool `atlas_sidebar` + skill `atlas-sidebar` for agents to surface the
+  card / inject hints.
+- Research Graph UI `SidebarCard` + `/embed/card` iframe surface.
+
+### Notes
+
+- Open `http://127.0.0.1:5199` via the gateway (MedHorizon on `:4444`, RG API on
+  `:8000`) to see the card in the session sidebar.
+- Bookmarklet alternative: `http://127.0.0.1:8000/embed/bookmarklet`.
+
+## MedHorizon v0.3.0 — 2026-07-30
+
+### Added
+
+- **Research Graph** optional sidecar (`research-graph/`): independent FastAPI +
+  React module for research graphs, experiments, artifacts, and GEPA loops.
+  Does not modify MedHorizon core; enable via plugin overlay /
+  `OPENSCIENCE_CONFIG_DIR` + `RESEARCH_GRAPH_API`.
+- Graph CRUD with nodes/edges, archive/export, Markdown import/export, and
+  React Flow canvas UI.
+- Experiment specs, runs, result-node promotion back onto the graph.
+- GEPA optimization loop with reproducible seeds, budget/iteration limits, and
+  human gate (accept/reject candidates).
+- Artifact store + sync outbox; local SQLite when Supabase is unset.
+- Visual usage guide with screenshots: `research-graph/docs/USAGE.md`.
+
+### Notes
+
+- Search / AI chat require `OPENAI_API_KEY` on the module backend (503 without).
+- Installers and CLI binaries remain the same three platform targets as v0.2.0.
+
+## MedHorizon v0.2.0 — 2026-07-30
+
+### Changed
+
+- Product rebrand to **MedHorizon** (CLI, UI, config paths with dual-read).
+- Release matrix: Windows x64, macOS arm64, Linux x64 (no macos-x64).
 
 ## v1.2.8 — 2026-07-06
 

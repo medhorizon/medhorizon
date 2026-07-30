@@ -111,6 +111,14 @@ jobs:
         with:
           name: "MedHorizon ${{ github.ref_name }}"
           body: |
+            ## 本版本亮点（v0.3.1）
+
+            - **Research Graph 侧栏突出卡片**：经 HTTP 接口 + 网关注入，**不改** MedHorizon 核心
+            - 网关：`python3 research-graph/scripts/medhorizon-gateway.py` → `http://127.0.0.1:5199`
+            - 接口：`/integration/sidebar-card` · 书签：`/embed/bookmarklet`
+            - 使用说明：[`research-graph/docs/USAGE.md`](https://github.com/medhorizon/medhorizon/blob/main/research-graph/docs/USAGE.md)
+            - 变更摘要见 [CHANGELOG](https://github.com/medhorizon/medhorizon/blob/main/CHANGELOG.md)
+
             ## 安装方法
 
             ### Windows
@@ -124,6 +132,13 @@ jobs:
             ### 手动安装
             下载对应平台的压缩包，解压后运行 `medhorizon` 即可启动。
             首次启动会自动打开浏览器引导填写 API Key。
+
+            ### Research Graph（可选）
+            ```bash
+            cd research-graph && PYTHONPATH=. python3 -m uvicorn backend.main:app --host 127.0.0.1 --port 8000
+            cd research-graph/frontend && npm install && npm run dev -- --host 127.0.0.1 --port 5173
+            python3 research-graph/scripts/medhorizon-gateway.py   # 侧栏卡片 → :5199
+            ```
 
             ### 本版本产物
             - `medhorizon-windows-x64.zip`
