@@ -113,6 +113,78 @@ h1, h2 { font-family: var(--display); font-weight: 600; margin: 0 0 0.75rem; }
   border-radius: 8px;
 }
 
+.rg-sidebar-card {
+  position: relative;
+  margin: 0 0 1rem;
+  padding: 0.85rem 0.85rem 1rem;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--line));
+  background: linear-gradient(165deg, rgba(28, 58, 44, 0.95), rgba(16, 24, 20, 0.98));
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.28);
+}
+.rg-sidebar-card.compact { margin: 0; max-width: 260px; }
+.rg-sidebar-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.35rem;
+}
+.rg-sidebar-kicker {
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.rg-sidebar-title {
+  font-family: var(--display);
+  font-size: 1.05rem;
+  margin: 0;
+}
+.rg-sidebar-sub { margin: 0.2rem 0 0.7rem; font-size: 0.82rem; }
+.rg-sidebar-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.35rem;
+  margin-bottom: 0.55rem;
+}
+.rg-sidebar-metrics div {
+  text-align: center;
+  padding: 0.4rem 0.2rem;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.03);
+}
+.rg-sidebar-metrics strong { display: block; font-size: 0.95rem; }
+.rg-sidebar-metrics span { font-size: 0.68rem; color: var(--muted); }
+.rg-sidebar-latest {
+  display: block;
+  font-size: 0.75rem;
+  margin: 0 0 0.65rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #c5d4cb;
+}
+a.rg-sidebar-cta {
+  display: block;
+  text-align: center;
+  padding: 0.5rem 0.6rem;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #0f1412 !important;
+  background: linear-gradient(180deg, #4cb87f, #3d9b6e);
+  border: 1px solid #2f5a40;
+}
+.embed-card-page {
+  min-height: 100%;
+  display: grid;
+  place-items: start center;
+  padding: 1rem;
+  background: transparent;
+}
+
 @media (max-width: 800px) {
   .app-shell { grid-template-columns: 1fr; }
   .nav { border-right: none; border-bottom: 1px solid var(--line); }

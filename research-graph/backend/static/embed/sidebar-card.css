@@ -1,0 +1,132 @@
+/* Injected Research Graph featured card — MedHorizon session sidebar */
+.rg-featured-card {
+  position: relative;
+  margin: 10px 10px 6px;
+  padding: 12px 12px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(61, 155, 110, 0.45);
+  background:
+    linear-gradient(165deg, rgba(28, 58, 44, 0.95) 0%, rgba(16, 24, 20, 0.98) 70%);
+  color: #e8efe9;
+  font-family: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+  overflow: hidden;
+  z-index: 5;
+}
+
+.rg-card-glow {
+  position: absolute;
+  inset: -40% -20% auto auto;
+  width: 140px;
+  height: 140px;
+  background: radial-gradient(circle, rgba(61, 155, 110, 0.35), transparent 70%);
+  pointer-events: none;
+}
+
+.rg-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+  position: relative;
+}
+
+.rg-card-kicker {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #9aa89f;
+}
+
+.rg-card-badge {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  border: 1px solid rgba(61, 155, 110, 0.5);
+  color: #7dcea0;
+  background: rgba(61, 155, 110, 0.12);
+}
+
+.rg-card-title {
+  margin: 0;
+  font-family: "IBM Plex Serif", Georgia, serif;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  position: relative;
+}
+
+.rg-card-sub {
+  margin: 4px 0 10px;
+  font-size: 12px;
+  color: #9aa89f;
+  position: relative;
+}
+
+.rg-card-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin-bottom: 8px;
+  position: relative;
+}
+
+.rg-card-metrics div {
+  text-align: center;
+  padding: 6px 2px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(42, 56, 48, 0.9);
+}
+
+.rg-card-metrics strong {
+  display: block;
+  font-size: 14px;
+  color: #e8efe9;
+}
+
+.rg-card-metrics span {
+  font-size: 10px;
+  color: #9aa89f;
+}
+
+.rg-card-latest {
+  margin: 0 0 10px;
+  font-size: 11px;
+  color: #c5d4cb;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  position: relative;
+}
+
+.rg-card-latest.muted {
+  color: #6a736e;
+}
+
+.rg-card-cta {
+  display: block;
+  text-align: center;
+  text-decoration: none;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #0f1412 !important;
+  background: linear-gradient(180deg, #4cb87f, #3d9b6e);
+  border: 1px solid #2f5a40;
+  position: relative;
+}
+
+.rg-card-cta:hover {
+  filter: brightness(1.06);
+}
+
+.rg-featured-dock {
+  position: fixed;
+  left: 12px;
+  bottom: 12px;
+  width: 220px;
+  z-index: 2147483000;
+}

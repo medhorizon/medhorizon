@@ -7,6 +7,7 @@ import { ExperimentView } from "./pages/ExperimentView"
 import { Experiments } from "./pages/Experiments"
 import { GepaRun } from "./pages/GepaRun"
 import { GraphView } from "./pages/GraphView"
+import { EmbedCard } from "./pages/EmbedCard"
 import { Search } from "./pages/Search"
 import "./styles/app.css"
 
@@ -14,6 +15,7 @@ createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <BrowserRouter>
       <Routes>
+        <Route path="embed/card" element={<EmbedCard />} />
         <Route element={<Shell />}>
           <Route index element={<Dashboard />} />
           <Route path="graphs/:id" element={<GraphView />} />

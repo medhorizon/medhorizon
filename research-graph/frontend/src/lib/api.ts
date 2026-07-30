@@ -99,4 +99,14 @@ export const api = {
       body: JSON.stringify({ reason: "ui-gate" }),
     }),
   getGepa: (id: string) => request<Record<string, unknown>>(`/api/gepa/runs/${id}`),
+  sidebarCard: () =>
+    request<{
+      title: string
+      subtitle: string
+      mode: string
+      metrics: { graphs: number; experiments: number; gepa_awaiting_gate: number }
+      latest_graph: { id: string; title: string } | null
+      cta: { label: string; href: string }
+    }>("/integration/sidebar-card"),
+  manifest: () => request<Record<string, unknown>>("/integration/manifest"),
 }

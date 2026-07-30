@@ -10,7 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from backend.config import get_settings
 from backend.db.sqlite import get_store
-from backend.routers import ai, artifacts, edges, experiments, gepa, graphs, nodes, search
+from backend.routers import ai, artifacts, edges, experiments, gepa, graphs, integration, nodes, search
 
 settings = get_settings()
 Path(settings.data_dir).mkdir(parents=True, exist_ok=True)
@@ -22,10 +22,11 @@ async def lifespan(_app: FastAPI):
     yield
 
 
-app = FastAPI(title="Research Graph", version="0.1.0", lifespan=lifespan)
+app = FastAPI(title="Research Graph", version="0.3.0", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_list,
+    allow_origin_regex=r"https?://(localhost|127\.0\.0\.1)(:\d+)?",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -39,6 +40,7 @@ app.include_router(gepa.router)
 app.include_router(ai.router)
 app.include_router(search.router)
 app.include_router(artifacts.router)
+app.include_router(integration.router)
 
 
 def main() -> None:

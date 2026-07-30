@@ -20,7 +20,12 @@ class Settings(BaseSettings):
     app_env: str = "development"
     backend_host: str = "127.0.0.1"
     backend_port: int = 8000
-    cors_origins: str = "http://localhost:5173"
+    cors_origins: str = (
+        "http://localhost:5173,http://127.0.0.1:5173,"
+        "http://localhost:4444,http://127.0.0.1:4444,"
+        "http://localhost:4096,http://127.0.0.1:4096,"
+        "http://localhost:5199,http://127.0.0.1:5199"
+    )
     research_graph_mode: str = "local"  # local | atlas | hybrid
     data_dir: str = str(ROOT / "data")
     sqlite_path: str = str(ROOT / "data" / "research-graph.db")
@@ -37,6 +42,10 @@ class Settings(BaseSettings):
 
     medhorizon_server_url: str = "http://127.0.0.1:4096"
     medhorizon_atlas_bridge: str = "/api/atlas"
+    medhorizon_web_origin: str = "http://127.0.0.1:4444"
+    public_api_url: str = "http://127.0.0.1:8000"
+    ui_url: str = "http://127.0.0.1:5173"
+    gateway_url: str = "http://127.0.0.1:5199"
 
     @property
     def cors_list(self) -> list[str]:

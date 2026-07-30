@@ -40,6 +40,29 @@ medhorizon web
 
 Disable by unsetting those env vars — no MedHorizon rollback required.
 
+## MedHorizon sidebar card (no core edits)
+
+Research Graph exposes an **HTTP integration contract** and injects a featured
+card into MedHorizon’s session sidebar **without modifying MedHorizon source**.
+
+| Surface | URL / command |
+|---------|----------------|
+| Card JSON | `GET http://127.0.0.1:8000/integration/sidebar-card` |
+| Manifest | `GET http://127.0.0.1:8000/integration/manifest` |
+| Embed script | `GET http://127.0.0.1:8000/embed/sidebar-card.js` |
+| Bookmarklet | `http://127.0.0.1:8000/embed/bookmarklet` |
+| Iframe card | `http://127.0.0.1:5173/embed/card` |
+| Gateway (recommended) | `python3 research-graph/scripts/medhorizon-gateway.py` → open `http://127.0.0.1:5199` |
+
+Plugin tool: `atlas_sidebar` (`card` / `manifest` / `inject_hint`).
+
+```bash
+# With MedHorizon web already on :4444 and RG API on :8000
+python3 research-graph/scripts/medhorizon-gateway.py
+# or: bun research-graph/scripts/medhorizon-gateway.ts
+# Session sidebar shows a prominent Research Graph card at the top
+```
+
 ## Tests
 
 ```bash

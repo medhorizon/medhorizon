@@ -14,13 +14,32 @@
 ```bash
 # 后端（默认 127.0.0.1:8000，无 Supabase 时用本地 SQLite）
 cd research-graph/backend
-python3 -m uvicorn app.main:app --host 127.0.0.1 --port 8000
+PYTHONPATH=.. python3 -m uvicorn backend.main:app --host 127.0.0.1 --port 8000
 
 # 前端（另开终端）
 cd research-graph/frontend
 npm install
 npm run dev -- --host 127.0.0.1 --port 5173
 ```
+
+### MedHorizon 侧栏突出卡片（不改核心代码）
+
+Research Graph 通过 **HTTP 集成接口** 注入会话侧栏顶部的突出卡片：
+
+```bash
+# MedHorizon web 已在 :4444 时，启动网关（代理并注入脚本）
+python3 research-graph/scripts/medhorizon-gateway.py
+# 或: bun research-graph/scripts/medhorizon-gateway.ts
+# 浏览器打开 http://127.0.0.1:5199  ← 侧栏顶部可见 Research Graph 卡片
+```
+
+备选：打开 http://127.0.0.1:8000/embed/bookmarklet ，用书签在已打开的 MedHorizon 页注入。
+
+| 接口 | 预期 |
+|------|------|
+| `GET /integration/manifest` | 集成契约，`modifies_core: false` |
+| `GET /integration/sidebar-card` | 突出卡片 JSON（图谱/实验/待门控计数 + CTA） |
+| `GET /embed/sidebar-card.js` | 注入脚本（查找 `.session-sidebar` 并 prepend 卡片） |
 
 浏览器打开：
 
@@ -236,5 +255,8 @@ cd research-graph/backend && python3 -m pytest -q
 | `screenshots/06-search-ai.png` | Search+AI | 双栏入口 |
 | `screenshots/07-gepa-candidates.png` | GEPA | 候选示意 |
 | `screenshots/08-api-responses.png` | API | 响应示意 |
+| `screenshots/09-sidebar-card-rg-ui.png` | RG 侧栏 | 模块内突出卡片 |
+| `screenshots/10-sidebar-card-medhorizon-inject.png` | MedHorizon 注入 | 会话侧栏顶部卡片 |
+| `screenshots/11-embed-card.png` | `/embed/card` | iframe 嵌入面 |
 
 截图由本地 `127.0.0.1:5173` + 演示库实际渲染采集（部分 API/候选页为同源数据的静态示意页，布局与真实 UI 一致）。
