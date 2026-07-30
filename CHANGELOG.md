@@ -4,6 +4,25 @@ MedHorizon follows [semantic versioning](https://semver.org). GitHub Releases
 (`v0.x`) ship native binaries for Linux, macOS (Apple Silicon), and Windows via
 the `Release` workflow. Upstream OpenScience history is retained below.
 
+## MedHorizon v0.3.1 — 2026-07-30
+
+### Added
+
+- **Research Graph ↔ MedHorizon sidebar card** (no core edits): HTTP integration
+  contract (`/integration/manifest`, `/integration/sidebar-card`), embed script
+  that injects a featured card into `.session-sidebar`, and a loopback gateway
+  (`research-graph/scripts/medhorizon-gateway.py`) that proxies MedHorizon UI
+  and injects the script.
+- Plugin tool `atlas_sidebar` + skill `atlas-sidebar` for agents to surface the
+  card / inject hints.
+- Research Graph UI `SidebarCard` + `/embed/card` iframe surface.
+
+### Notes
+
+- Open `http://127.0.0.1:5199` via the gateway (MedHorizon on `:4444`, RG API on
+  `:8000`) to see the card in the session sidebar.
+- Bookmarklet alternative: `http://127.0.0.1:8000/embed/bookmarklet`.
+
 ## MedHorizon v0.3.0 — 2026-07-30
 
 ### Added

@@ -14,13 +14,14 @@ description: Surface the Research Graph featured sidebar card inside MedHorizon 
 
 ```bash
 # 1) Research Graph API + UI
-cd research-graph/backend && python3 -m uvicorn backend.main:app --host 127.0.0.1 --port 8000
+cd research-graph && PYTHONPATH=. python3 -m uvicorn backend.main:app --host 127.0.0.1 --port 8000
 cd research-graph/frontend && npm run dev -- --host 127.0.0.1 --port 5173
 
 # 2) MedHorizon 正常启动（例如 web @4444 / serve @4096）
 
 # 3) 网关（推荐）：代理 MedHorizon 并注入侧栏卡片
-bun research-graph/scripts/medhorizon-gateway.ts
+python3 research-graph/scripts/medhorizon-gateway.py
+# 或: bun research-graph/scripts/medhorizon-gateway.ts
 # 打开 http://127.0.0.1:5199
 ```
 
