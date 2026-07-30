@@ -4,6 +4,15 @@ MedHorizon follows [semantic versioning](https://semver.org). GitHub Releases
 (`v0.x`) ship native binaries for Linux, macOS (Apple Silicon), and Windows via
 the `Release` workflow. Upstream OpenScience history is retained below.
 
+## MedHorizon v0.3.8 — 2026-07-30
+
+### Added
+
+- **Stage → node landing protocol** (Research Graph plugin only, no MedHorizon
+  core edits): when the LLM enters a MedHorizon `stage`, a plugin hook mirrors
+  it onto a Research Graph node (`meta.medhorizon_stage`). Tools: `atlas_stage`.
+  Docs: `research-graph/docs/STAGE_LANDING.md`.
+
 ## MedHorizon v0.3.7 — 2026-07-30
 
 ### Fixed

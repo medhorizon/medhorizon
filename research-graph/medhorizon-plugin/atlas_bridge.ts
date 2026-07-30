@@ -25,12 +25,14 @@ export function mode(): BridgeMode {
 
 export async function rgFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const url = `${apiBase()}${path}`
+  const token = process.env["RESEARCH_GRAPH_TOKEN"] || "local-dev"
   let res: Response
   try {
     res = await fetch(url, {
       ...init,
       headers: {
         "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
         ...(init?.headers ?? {}),
       },
       signal: AbortSignal.timeout(15_000),

@@ -212,3 +212,35 @@ class HealthOut(BaseModel):
     mode: str
     store: str
     openai: bool
+
+
+class StageRef(BaseModel):
+    name: str
+    index: int | None = None
+    part_id: str | None = None
+    status: str | None = None
+    summary: str | None = None
+    gated: bool | None = None
+
+
+class StageLandIn(WriteMeta):
+    """Land a MedHorizon session stage onto a Research Graph node."""
+
+    stage: StageRef
+    graph_id: str | None = None
+    kind: NodeKind | None = None
+    title: str | None = None
+    content: str | None = None
+    create_graph_title: str | None = None
+
+
+class SessionBindIn(WriteMeta):
+    session_id: str
+    graph_id: str
+
+
+class SessionBindOut(BaseModel):
+    session_id: str
+    graph_id: str
+    created_at: str
+    updated_at: str

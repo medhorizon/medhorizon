@@ -211,15 +211,16 @@ python3 research-graph/scripts/medhorizon-gateway.py
 不修改 MedHorizon 核心，仅通过配置叠加启用：
 
 ```bash
-export OPENSCIENCE_CONFIG_DIR=/path/to/research-graph/medhorizon-plugin
+export OPENSCIENCE_CONFIG_DIR=/absolute/path/to/research-graph/medhorizon-plugin/config
 export RESEARCH_GRAPH_API=http://127.0.0.1:8000
-# 再按原方式启动 openscience / MedHorizon CLI
+export RESEARCH_GRAPH_MODE=local
+# 再启动 medhorizon web
 ```
 
-插件提供工具：`atlas_graph`、`atlas_experiment`、`atlas_gepa`、`atlas_sync`，以及对应 skills / agents。  
-预期：Agent 可通过 HTTP 读写本模块的图、实验、GEPA 与 sync outbox。
+插件工具：`atlas_graph`、`atlas_stage`、`atlas_experiment`、`atlas_gepa`、`atlas_sync`、`atlas_sidebar`。
 
-详见：`research-graph/medhorizon-plugin/README.md`。
+**阶段自动落点**：LLM 调用 MedHorizon `stage` 后，插件 hook 会在 Research Graph
+创建镜像节点（`meta.medhorizon_stage`）。详见 [`STAGE_LANDING.md`](./STAGE_LANDING.md)。
 
 ---
 

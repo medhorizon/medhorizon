@@ -12,7 +12,7 @@ from fastapi.staticfiles import StaticFiles
 
 from backend.config import get_settings
 from backend.db.sqlite import get_store
-from backend.routers import ai, artifacts, edges, experiments, gepa, graphs, integration, nodes, search
+from backend.routers import ai, artifacts, edges, experiments, gepa, graphs, integration, nodes, search, stages
 
 settings = get_settings()
 Path(settings.data_dir).mkdir(parents=True, exist_ok=True)
@@ -43,6 +43,7 @@ app.include_router(ai.router)
 app.include_router(search.router)
 app.include_router(artifacts.router)
 app.include_router(integration.router)
+app.include_router(stages.router)
 
 _ui = settings.ui_dir
 
