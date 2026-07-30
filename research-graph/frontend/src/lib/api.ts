@@ -45,6 +45,7 @@ export type Edge = {
 export type Experiment = {
   id: string
   graph_id: string
+  hypothesis_node_id?: string | null
   title: string
   status: string
   objective: Record<string, unknown>
@@ -65,6 +66,14 @@ export const api = {
   createEdge: (body: { graph_id: string; source_id: string; target_id: string; relation: string }) =>
     request<Edge>("/api/edges", { method: "POST", body: JSON.stringify(body) }),
   exportGraph: (id: string) => request<unknown>(`/api/graphs/${id}/export`),
+  archiveGraph: (id: string) =>
+    request<Graph>(`/api/graphs/${id}/archive`, { method: "POST", body: JSON.stringify({ reason: "ui" }) }),
+  exportNodeMarkdown: (id: string) => request<{ markdown: string }>(`/api/nodes/${id}/markdown`),
+  importMarkdown: (graphId: string, markdown: string) =>
+    request<Node>(`/api/graphs/${graphId}/import/markdown`, {
+      method: "POST",
+      body: JSON.stringify({ markdown }),
+    }),
   experiments: (graphId: string) => request<Experiment[]>(`/api/experiments?graph_id=${graphId}`),
   getExperiment: (id: string) => request<Experiment>(`/api/experiments/${id}`),
   createExperiment: (body: Record<string, unknown>) =>

@@ -41,11 +41,11 @@ npm --version
 
 ### 当前状态
 
-- **状态**：Phase 2 完成；正在执行 Phase 3
+- **状态**：Phase 3 完成；正在执行 Phase 4
 - **最后更新**：2026-07-30
-- **已完成**：Phase 1–2
-- **当前阶段**：Phase 3（图谱可视化）
-- **下一步**：Markdown 导入导出、experiment link、filter/颜色验收
+- **已完成**：Phase 1–3
+- **当前阶段**：Phase 4（AI 功能）
+- **下一步**：拆分 embedding/search、AIChat 组件、异步 embedding
 
 
 ### 路径缩写
@@ -457,11 +457,11 @@ medhorizon web
 
 **目标文件**：`[FRONT]/pages/Dashboard.tsx`、`GraphView.tsx`、`components/GraphCanvas.tsx`、`NodePanel.tsx`
 
-- [ ] 完成原有图谱列表、React Flow 画布、节点编辑和 Markdown 导入/导出。
-- [ ] 增加 graph filter、kind/lifecycle 颜色和节点详情中的 experiment link。
-- [ ] 不向 `[MED]/frontend/workspace` 写入任何组件。
+- [x] 完成原有图谱列表、React Flow 画布、节点编辑和 Markdown 导入/导出。
+- [x] 增加 graph filter、kind/lifecycle 颜色和节点详情中的 experiment link。
+- [x] 不向 `[MED]/frontend/workspace` 写入任何组件。
 
-**验证边界**：`npm run build`；浏览器可创建、编辑、归档和导出图谱。
+**验证边界**：`npm run build`；浏览器可创建、编辑、归档和导出图谱。 ✅
 
 ### Phase 4：AI 功能（3–4 天）
 
@@ -606,6 +606,7 @@ medhorizon web
 
 <!-- 进度记录从这里开始 -->
 
+- 2026-07-30 ✅ Phase 3 图谱可视化 — Markdown I/O、filter/颜色、experiment link、archive；frontend build ok；12 passed
 - 2026-07-30 ✅ Phase 2 核心 CRUD — 拆分 nodes/edges、archive/export、revision/idempotency、研究链测试；11 passed
 - 2026-07-30 ✅ Phase 1 基础设施 — schema + migrate、loopback `/health`、JWT/idempotency、plugin overlay；`test_phase1` 通过
 - 2026-07-30 ✅ Phase 1–7 模块骨架已落地 — 新增顶层 `research-graph/`（不改 MedHorizon 源码）；local SQLite + FastAPI CRUD/实验/GEPA；Vite UI；Plugin/Skills/Agents overlay；`pytest` 4 passed；`curl /health` 可用

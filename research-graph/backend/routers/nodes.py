@@ -107,3 +107,51 @@ def delete_node(node_id: str, user: User = Depends(current_user), store: Store =
         raise not_found("node not found")
     store.delete("nodes", node_id, user.id)
     return {"ok": True}
+
+
+@router.get("/api/nodes/{node_id}/markdown")
+def export_node_markdown(node_id: str, user: User = Depends(current_user), store: Store = Depends(store_dep)):
+    from backend.services.markdown_io import node_to_markdown
+
+    row = store.get("nodes", node_id, user.id)
+    if not row:
+        raise not_found("node not found")
+    return {"markdown": node_to_markdown(row), "node_id": node_id}
+
+
+@router.post("/api/graphs/{graph_id}/import/markdown", response_model=NodeOut)
+def import_node_markdown(
+    graph_id: str,
+    body: dict[str, Any],
+    user: User = Depends(current_user),
+    store: Store = Depends(store_dep),
+):
+    from backend.services.markdown_io import markdown_to_node
+
+    if not store.get("graphs", graph_id, user.id):
+        raise not_found("graph not found")
+    parsed = markdown_to_node(str(body.get("markdown") or ""), graph_id)
+    row = store.insert(
+        "nodes",
+        {
+            "id": uid(),
+            "graph_id": graph_id,
+            "user_id": user.id,
+            "kind": parsed["kind"] if parsed["kind"] in {
+                "experiment", "hypothesis", "evidence", "literature", "note", "insight", "conclusion"
+            } else "note",
+            "title": parsed["title"],
+            "content": parsed["content"],
+            "hypothesis": None,
+            "summary": parsed.get("summary"),
+            "lifecycle": parsed.get("lifecycle") or "staged",
+            "outcome": None,
+            "tags": parsed.get("tags") or [],
+            "meta": {"imported": True},
+            "embedding": None,
+            "revision": 1,
+            "created_at": now(),
+            "updated_at": now(),
+        },
+    )
+    return row
