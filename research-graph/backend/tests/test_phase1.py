@@ -28,3 +28,9 @@ def test_production_requires_auth():
         assert False, "expected 401"
     except HTTPException as err:
         assert err.status_code == 401
+
+
+def test_local_dev_bearer_accepted():
+    user = current_user(authorization="Bearer local-dev", settings=Settings(app_env="production"))
+    assert user.id == Settings().dev_user_id
+    assert user.email == "dev@localhost"

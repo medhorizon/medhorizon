@@ -49,7 +49,9 @@ python3 research-graph/scripts/medhorizon-gateway.py
 | API 健康检查 | http://127.0.0.1:8000/health | `{"status":"ok"}`                              |
 | OpenAPI      | http://127.0.0.1:8000/docs   | Swagger 文档                                   |
 
-开发鉴权：前端自动带 `Authorization: Bearer local-dev`；本地可跳过 JWT。
+开发鉴权：前端自动带 `Authorization: Bearer local-dev`；桌面 sidecar 默认
+`APP_ENV=development`，本地可跳过 JWT。若仍见 `authorization required`，刷新页面或
+确认右上角 `API ok · local`（不是设置入口，是健康状态）。
 
 可选环境变量：
 

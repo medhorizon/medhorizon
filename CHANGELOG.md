@@ -4,6 +4,14 @@ MedHorizon follows [semantic versioning](https://semver.org). GitHub Releases
 (`v0.x`) ship native binaries for Linux, macOS (Apple Silicon), and Windows via
 the `Release` workflow. Upstream OpenScience history is retained below.
 
+## MedHorizon v0.3.7 — 2026-07-30
+
+### Fixed
+
+- Research Graph desktop sidecar auth: UI sends `Bearer local-dev`; sidecar
+  defaults to `APP_ENV=development` so Create graph works without Supabase JWT.
+  Fixes the `authorization required` / sidebar `OFFLINE` state on first open.
+
 ## MedHorizon v0.3.6 — 2026-07-30
 
 ### Added

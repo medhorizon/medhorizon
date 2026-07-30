@@ -28,7 +28,8 @@ def main() -> None:
     data.mkdir(parents=True, exist_ok=True)
     os.environ.setdefault("DATA_DIR", str(data))
     os.environ.setdefault("SQLITE_PATH", str(data / "research-graph.db"))
-    os.environ.setdefault("APP_ENV", os.environ.get("APP_ENV", "production"))
+    # Local loopback desktop sidecar — skip JWT; UI sends Bearer local-dev.
+    os.environ.setdefault("APP_ENV", "development")
     os.environ.setdefault("BACKEND_HOST", "127.0.0.1")
     os.environ.setdefault("BACKEND_PORT", "8000")
     os.environ.setdefault("PUBLIC_API_URL", "http://127.0.0.1:8000")

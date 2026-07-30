@@ -50,7 +50,7 @@ export async function startResearchGraphSidecar() {
     stderr: "ignore",
     env: {
       ...process.env,
-      APP_ENV: process.env.APP_ENV || "production",
+      APP_ENV: process.env.APP_ENV || "development",
       BACKEND_HOST: "127.0.0.1",
       BACKEND_PORT: "8000",
       RESEARCH_GRAPH_API: "http://127.0.0.1:8000",
