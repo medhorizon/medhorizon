@@ -1,0 +1,19 @@
+{
+  "$schema": "https://www.cursor.com/schemas/environment.schema.json",
+  "name": "medhorizon",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": "."
+  },
+  "install": "bun install",
+  "ports": [
+    {
+      "name": "backend",
+      "port": 4096
+    },
+    {
+      "name": "workspace",
+      "port": 4444
+    }
+  ]
+}

@@ -82,3 +82,13 @@ You MUST avoid using `mocks` as much as possible.
 Tests MUST test actual implementation, do not duplicate logic into a test.
 
 Run the suite with `bun test` from `backend/cli`.
+
+## Cursor Cloud specific instructions
+
+Cloud agents use `.cursor/environment.json` (Bun 1.3.14 image + `bun install` on start).
+
+- Typecheck: `bun run typecheck`
+- CLI tests: `bun test` from `backend/cli`
+- CLI in browser conditions: `bun run --cwd backend/cli --conditions=browser ./src/index.ts serve --port 4096`
+- Workspace UI: from `frontend/workspace`, `bun dev -- --port 4444` (targets backend at `http://localhost:4096`)
+- Do not put API keys in the repo; use Cloud Agent secrets on the [dashboard](https://cursor.com/dashboard/cloud-agents)
