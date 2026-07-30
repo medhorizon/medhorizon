@@ -100,10 +100,67 @@ jobs:
           path: artifacts
           merge-multiple: true
 
-      - name: Create checksums
+      - name: Package binary installer archives
+        env:
+          VERSION: ${{ github.ref_name }}
         run: |
+          set -euo pipefail
+          mkdir -p artifacts
+          VERSION="${VERSION#v}"
+          echo "$VERSION" > /tmp/VERSION
+
+          python3 - <<'PY'
+          from pathlib import Path
+
+          def rewrite(src: str, dest: str) -> None:
+              raw = Path(src).read_bytes()
+              text = raw.replace(b"\r\n", b"\n").replace(b"\r", b"\n").decode("ascii")
+              out = text.replace("\n", "\r\n").encode("ascii")
+              path = Path(dest)
+              path.parent.mkdir(parents=True, exist_ok=True)
+              path.write_bytes(out)
+              print(dest, "bytes", len(out), "crlf", out.count(b"\r\n"))
+
+          for name in ("install.bat", "install.ps1", "start.bat"):
+              rewrite(f"scripts/{name}", f"/tmp/win-scripts/{name}")
+          PY
+
+          rm -rf /tmp/win-installer
+          mkdir -p /tmp/win-installer
+          unzip -o artifacts/medhorizon-windows-x64.zip -d /tmp/win-installer
+          test -f /tmp/win-installer/medhorizon.exe
+          cp /tmp/win-scripts/install.bat /tmp/win-scripts/install.ps1 /tmp/win-scripts/start.bat /tmp/win-installer/
+          cp /tmp/VERSION /tmp/win-installer/VERSION
+          (cd /tmp/win-installer && zip -9 "$GITHUB_WORKSPACE/artifacts/medhorizon-windows-installer.zip" \
+            medhorizon.exe install.bat install.ps1 start.bat VERSION)
+          ls -lh artifacts/medhorizon-windows-installer.zip
+
+          rm -rf /tmp/linux-installer
+          mkdir -p /tmp/linux-installer
+          tar -xzf artifacts/medhorizon-linux-x64.tar.gz -C /tmp/linux-installer
+          test -f /tmp/linux-installer/medhorizon
+          cp scripts/install-local.sh /tmp/linux-installer/install.sh
+          chmod +x /tmp/linux-installer/medhorizon /tmp/linux-installer/install.sh
+          cp /tmp/VERSION /tmp/linux-installer/VERSION
+          tar -czf artifacts/medhorizon-linux-x64-installer.tar.gz -C /tmp/linux-installer \
+            medhorizon install.sh VERSION
+
+          rm -rf /tmp/mac-installer
+          mkdir -p /tmp/mac-installer
+          tar -xzf artifacts/medhorizon-macos-arm64.tar.gz -C /tmp/mac-installer
+          test -f /tmp/mac-installer/medhorizon
+          cp scripts/install-local.sh /tmp/mac-installer/install.sh
+          chmod +x /tmp/mac-installer/medhorizon /tmp/mac-installer/install.sh
+          cp /tmp/VERSION /tmp/mac-installer/VERSION
+          tar -czf artifacts/medhorizon-macos-arm64-installer.tar.gz -C /tmp/mac-installer \
+            medhorizon install.sh VERSION
+
+          rm -f artifacts/install.bat artifacts/install.ps1 artifacts/install.sh 2>/dev/null || true
+
           cd artifacts
           sha256sum ./* > checksums.txt
+          echo "---- artifacts ----"
+          ls -lh
           cat checksums.txt
 
       - name: Create GitHub Release
@@ -111,29 +168,49 @@ jobs:
         with:
           name: "MedHorizon ${{ github.ref_name }}"
           body: |
-            ## 安装方法
+            ## 本版本亮点（v0.3.5）
+
+            - **一键安装包改为二进制包**：压缩包内含 `medhorizon` 可执行文件，安装不再联网下载
+            - Windows：`medhorizon-windows-installer.zip`（exe + install.bat/ps1 + start.bat）
+            - macOS / Linux：`*-installer.tar.gz`（binary + `install.sh`）
+            - 脚本为 ASCII/CRLF（Windows），可离线安装
+
+            ## 一键安装（推荐：下载二进制安装包）
 
             ### Windows
-            下载 `install.bat`，双击运行，按提示操作。
+            1. 下载 [`medhorizon-windows-installer.zip`](https://github.com/medhorizon/medhorizon/releases/latest/download/medhorizon-windows-installer.zip)
+            2. 解压后双击 `install.bat`（同目录已有 `medhorizon.exe`，无需再下载）
+            3. 或解压后直接运行 `start.bat` / `medhorizon.exe`（便携）
 
-            ### macOS (Apple Silicon) / Linux
+            ### macOS (Apple Silicon)
             ```bash
-            curl -fsSL https://raw.githubusercontent.com/medhorizon/medhorizon/main/scripts/install.sh | bash
+            curl -fsSL -o mh.tgz https://github.com/medhorizon/medhorizon/releases/latest/download/medhorizon-macos-arm64-installer.tar.gz
+            mkdir mh && tar -xzf mh.tgz -C mh && cd mh && ./install.sh
             ```
 
-            ### 手动安装
-            下载对应平台的压缩包，解压后运行 `medhorizon` 即可启动。
-            首次启动会自动打开浏览器引导填写 API Key。
+            ### Linux
+            ```bash
+            curl -fsSL -o mh.tgz https://github.com/medhorizon/medhorizon/releases/latest/download/medhorizon-linux-x64-installer.tar.gz
+            mkdir mh && tar -xzf mh.tgz -C mh && cd mh && ./install.sh
+            ```
 
-            ### 本版本产物
+            ### 仅二进制（无安装脚本）
             - `medhorizon-windows-x64.zip`
             - `medhorizon-macos-arm64.tar.gz`
             - `medhorizon-linux-x64.tar.gz`
+
+            首次启动会打开浏览器引导填写 API Key。
+
+            ### Research Graph（可选）
+            ```bash
+            cd research-graph && PYTHONPATH=. python3 -m uvicorn backend.main:app --host 127.0.0.1 --port 8000
+            cd research-graph/frontend && npm install && npm run dev -- --host 127.0.0.1 --port 5173
+            python3 research-graph/scripts/medhorizon-gateway.py
+            ```
 
             ---
             完整说明见 [README](https://github.com/medhorizon/medhorizon#readme)
           files: |
             artifacts/*
-            scripts/install.bat
           draft: false
           prerelease: false
