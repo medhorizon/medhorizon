@@ -84,3 +84,43 @@ describe("MessageV2.isContinuingTurn", () => {
     expect(MessageV2.isContinuing("unknown")).toBe(true)
   })
 })
+
+describe("SessionProcessor empty-continue helpers", () => {
+  test("isEmptyAssistant is true for step-only / blank text", () => {
+    expect(SessionProcessor.isEmptyAssistant([])).toBe(true)
+    expect(
+      SessionProcessor.isEmptyAssistant([
+        { id: "1", sessionID: "s", messageID: "m", type: "step-start" } as MessageV2.Part,
+        { id: "2", sessionID: "s", messageID: "m", type: "text", text: "   " } as MessageV2.TextPart,
+      ]),
+    ).toBe(true)
+  })
+
+  test("isEmptyAssistant is false when text or tool exists", () => {
+    expect(
+      SessionProcessor.isEmptyAssistant([
+        { id: "1", sessionID: "s", messageID: "m", type: "text", text: "hello" } as MessageV2.TextPart,
+      ]),
+    ).toBe(false)
+    expect(
+      SessionProcessor.isEmptyAssistant([
+        {
+          id: "1",
+          sessionID: "s",
+          messageID: "m",
+          type: "tool",
+          tool: "skill",
+          callID: "c",
+          state: { status: "completed", input: {}, output: "ok", title: "t", metadata: {}, time: { start: 1, end: 2 } },
+        } as MessageV2.ToolPart,
+      ]),
+    ).toBe(false)
+  })
+
+  test("hasToolContinuation detects prior tool results", () => {
+    expect(SessionProcessor.hasToolContinuation([{ role: "user", content: "hi" }])).toBe(false)
+    expect(SessionProcessor.hasToolContinuation([{ role: "tool", content: [{ type: "tool-result", toolCallId: "1", result: "x" }] } as any])).toBe(
+      true,
+    )
+  })
+})

@@ -1066,7 +1066,9 @@ export namespace Config {
       model: z.string().describe("Model to use in the format of provider/model, eg anthropic/claude-2").optional(),
       small_model: z
         .string()
-        .describe("Small model to use for tasks like title generation in the format of provider/model")
+        .describe(
+          'Small model for title/summary tasks as provider/model, or "inherit" to always use the session main model',
+        )
         .optional(),
       default_agent: z
         .string()

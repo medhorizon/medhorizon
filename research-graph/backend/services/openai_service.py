@@ -1,4 +1,4 @@
-"""OpenAI helpers — graceful degrade when key missing."""
+"""OpenAI helpers — uses env vars or MedHorizon provider config."""
 
 from __future__ import annotations
 
@@ -15,7 +15,11 @@ class OpenAIUnavailable(HTTPException):
             status_code=503,
             detail={
                 "error": "OPENAI_UNAVAILABLE",
-                "message": "Set OPENAI_API_KEY in research-graph/.env to enable AI endpoints.",
+                "message": (
+                    "No OpenAI-compatible credentials. Set OPENAI_API_KEY in "
+                    "research-graph/.env, or configure an openai-compatible provider "
+                    "in MedHorizon (~/.config/medhorizon/medhorizon.jsonc)."
+                ),
             },
         )
 
@@ -31,26 +35,29 @@ async def embed_texts(texts: list[str], settings: Settings | None = None) -> lis
     settings = require_openai(settings)
     from openai import AsyncOpenAI
 
-    client = AsyncOpenAI(api_key=settings.openai_api_key, base_url=settings.openai_base_url)
-    response = await client.embeddings.create(model="text-embedding-3-small", input=texts)
+    resolved = settings.openai_resolved
+    client = AsyncOpenAI(api_key=resolved.api_key, base_url=resolved.base_url)
+    response = await client.embeddings.create(model=resolved.embedding_model, input=texts)
     return [item.embedding for item in response.data]
 
 
 async def chat(
     messages: list[dict[str, str]],
     *,
-    model: str = "gpt-4o-mini",
+    model: str | None = None,
     settings: Settings | None = None,
 ) -> dict[str, Any]:
     settings = require_openai(settings)
     from openai import AsyncOpenAI
 
-    client = AsyncOpenAI(api_key=settings.openai_api_key, base_url=settings.openai_base_url)
-    response = await client.chat.completions.create(model=model, messages=messages)
+    resolved = settings.openai_resolved
+    used = (model or "").strip() or resolved.model
+    client = AsyncOpenAI(api_key=resolved.api_key, base_url=resolved.base_url)
+    response = await client.chat.completions.create(model=used, messages=messages)
     choice = response.choices[0].message
     return {
         "content": choice.content or "",
-        "model": model,
+        "model": used,
         "usage": response.usage.model_dump() if response.usage else {},
     }
 

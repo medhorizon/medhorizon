@@ -1,4 +1,4 @@
-"""Module settings — loaded from research-graph/.env only."""
+"""Module settings — loaded from research-graph/.env, with MedHorizon AI fallback."""
 
 from __future__ import annotations
 
@@ -6,6 +6,8 @@ from functools import lru_cache
 from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+from backend.services.medhorizon_openai import OpenAIResolved, clear_medhorizon_openai_cache, resolve_openai
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -35,8 +37,17 @@ class Settings(BaseSettings):
     supabase_service_role_key: str = ""
     supabase_jwt_secret: str = "dev-jwt-secret-change-me"
 
+    # Empty strings allow MedHorizon config fallback (see openai_resolved).
     openai_api_key: str = ""
-    openai_base_url: str = "https://api.openai.com/v1"
+    openai_base_url: str = ""
+    openai_model: str = ""
+    openai_embedding_model: str = ""
+
+    # Optional MedHorizon provider bridge
+    research_graph_provider: str = ""
+    medhorizon_config: str = ""
+    medhorizon_config_dir: str = ""
+    openscience_config_dir: str = ""
 
     dev_user_id: str = "00000000-0000-4000-8000-000000000001"
 
@@ -57,8 +68,36 @@ class Settings(BaseSettings):
         return bool(self.supabase_url and self.supabase_service_role_key)
 
     @property
+    def openai_resolved(self) -> OpenAIResolved:
+        return resolve_openai(
+            api_key=self.openai_api_key,
+            base_url=self.openai_base_url,
+            model=self.openai_model,
+            embedding_model=self.openai_embedding_model,
+            provider_id=self.research_graph_provider,
+            config_path=self.medhorizon_config,
+            config_dir=self.medhorizon_config_dir,
+        )
+
+    @property
     def openai_ready(self) -> bool:
-        return bool(self.openai_api_key)
+        return bool(self.openai_resolved.api_key)
+
+    @property
+    def effective_openai_api_key(self) -> str:
+        return self.openai_resolved.api_key
+
+    @property
+    def effective_openai_base_url(self) -> str:
+        return self.openai_resolved.base_url
+
+    @property
+    def effective_openai_model(self) -> str:
+        return self.openai_resolved.model
+
+    @property
+    def effective_openai_embedding_model(self) -> str:
+        return self.openai_resolved.embedding_model
 
     @property
     def ui_dir(self) -> Path | None:
@@ -73,3 +112,10 @@ class Settings(BaseSettings):
 @lru_cache
 def get_settings() -> Settings:
     return Settings()
+
+
+def refresh_settings() -> Settings:
+    """Drop Settings + MedHorizon OpenAI caches (e.g. after config change)."""
+    clear_medhorizon_openai_cache()
+    get_settings.cache_clear()
+    return get_settings()

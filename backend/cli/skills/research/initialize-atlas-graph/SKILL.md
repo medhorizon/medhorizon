@@ -1,6 +1,6 @@
 ---
 name: initialize-atlas-graph
-description: "Create or link this repo's Atlas research graph so hypotheses, experiments, runs, and decisions are tracked. Use when the canvas says 'no graph for this project', when the user asks to initialize/set up Atlas, or before starting research that should be recorded."
+description: "OPTIONAL Atlas cloud only. Create/link this repo's Atlas project graph when the user explicitly asks for Atlas, or the Atlas canvas says 'no graph for this project'. Do NOT use for default research persistence — use atlas-graph (local Research Graph) instead."
 category: research
 allowed-tools: [Bash]
 ---
@@ -9,16 +9,22 @@ allowed-tools: [Bash]
 
 ## Overview
 
-An Atlas **project** is this repo's research graph — the root that hypotheses,
-experiments, training/eval runs, evidence, and decisions hang off. Creating (or
-linking to an existing) graph is a one-command, dedupe-safe operation. It is
+An Atlas **project** is this repo's **cloud** research graph — the root that hypotheses,
+experiments, training/eval runs, evidence, and decisions hang off when Atlas is enabled.
+Creating (or linking to an existing) graph is a one-command, dedupe-safe operation. It is
 keyed off the **git repo**, not the opened folder, so a subfolder or a fresh
 clone at a different path resolves to the **same** graph.
 
+**Default research memory is the local Research Graph (`atlas-graph` / `atlas_graph`).**
+Do not run this skill at the start of ordinary research unless Atlas cloud was requested.
+
 Run this skill when:
-- The canvas shows "no graph for this project" / the folder isn't linked yet.
-- The user asks to "initialize", "set up Atlas", or "start tracking" research.
-- You are about to begin research work that should be recorded.
+- The user explicitly asks to "initialize Atlas", "set up Atlas cloud", or sync to Atlas.
+- The Atlas canvas shows "no graph for this project" / the folder isn't linked yet and the user wants the cloud canvas.
+
+Do **not** run this skill when:
+- Starting a normal research task (use `atlas-graph` instead).
+- The user has not configured Atlas login / plan.
 
 ## Steps
 
@@ -27,7 +33,8 @@ Run this skill when:
    atlas doctor --format=json
    ```
    If it reports unavailable/unauthenticated, tell the user to run
-   `openscience login` — the graph cannot be created without a session.
+   `openscience login` — the cloud graph cannot be created without a session.
+   Then fall back to local `atlas-graph` for research memory.
 
 2. **Create or link the graph** (idempotent — safe to re-run; returns the
    existing graph if one already exists):
@@ -41,7 +48,7 @@ Run this skill when:
    `status`, `message` when known). Relay the fix that matches the kind — do
    NOT guess or tell the user to re-login for a network problem:
    - `"unauthenticated"` — no session, or the backend rejected the saved key.
-     Tell the user to run `openscience login`.
+     Tell the user to run `openscience login`, and continue with local Research Graph.
    - `"unreachable"` — the Atlas backend at the printed `host` could not be
      reached (network/DNS error or 5xx). The user IS logged in; suggest checking
      connectivity and any `OPENSCIENCE_API_BASE`/`SYNSC_API_BASE` override, then

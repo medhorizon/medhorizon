@@ -36,7 +36,6 @@ async def summarize(body: AiSummarizeIn, user: User = Depends(current_user), sto
             {"role": "system", "content": "Summarize the research note in 2-3 sentences."},
             {"role": "user", "content": text},
         ],
-        model="gpt-4o-mini",
     )
     record_event(
         store,
@@ -61,7 +60,6 @@ async def ai_chat(body: AiChatIn, user: User = Depends(current_user), store: Sto
             {"role": "system", "content": f"Answer using only this research graph context:\n{context}"},
             {"role": "user", "content": body.message},
         ],
-        model="gpt-4o",
     )
     sources = [n["id"] for n in nodes[:5]]
     store.insert(
@@ -115,7 +113,6 @@ async def generate_hypothesis(
             {"role": "system", "content": "Propose one falsifiable scientific hypothesis. Be specific."},
             {"role": "user", "content": body.prompt},
         ],
-        model="gpt-4o",
     )
     node = store.insert(
         "nodes",
@@ -165,6 +162,5 @@ async def suggest_links(body: AiSuggestLinksIn, user: User = Depends(current_use
             },
             {"role": "user", "content": f"Source node: {node['id']} {node['title']}\nCandidates:\n{context}"},
         ],
-        model="gpt-4o",
     )
     return {"suggestions": result["content"], "model": result["model"], "sources": [body.node_id], "at": now()}

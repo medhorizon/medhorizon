@@ -58,8 +58,22 @@ python3 research-graph/scripts/medhorizon-gateway.py
 | 变量                 | 作用                                                           |
 | -------------------- | -------------------------------------------------------------- |
 | `DATABASE_URL`       | 未设置时用 `research-graph/backend/data/research_graph.db`     |
-| `OPENAI_API_KEY`     | 未设置时 Search / AI Chat 返回 **503**（属预期）               |
+| `OPENAI_API_KEY` 等  | 显式 OpenAI 兼容凭证；未设置时自动读 MedHorizon 配置里的 provider |
 | `RESEARCH_GRAPH_API` | MedHorizon 插件调用本 API 的基址，默认 `http://127.0.0.1:8000` |
+
+### AI / OpenAI 凭证来源（无需改 MedHorizon 源码）
+
+Research Graph 在启动时读取 MedHorizon 用户配置（如 `~/.config/medhorizon/medhorizon.jsonc`），把其中 **openai-compatible** provider 的 `baseURL` + `apiKey` + 默认 model 映射到 AI 接口。
+
+**优先级（字段级，非空优先）：**
+
+1. `OPENAI_API_KEY` / `OPENAI_BASE_URL` / `OPENAI_MODEL` / `OPENAI_EMBEDDING_MODEL`
+2. MedHorizon / OpenScience 配置中的 provider（可用 `RESEARCH_GRAPH_PROVIDER` 指定 id）
+3. 默认：`https://api.openai.com/v1` + `gpt-4o-mini`
+
+配置路径可用 `MEDHORIZON_CONFIG`（文件）或 `MEDHORIZON_CONFIG_DIR` / `OPENSCIENCE_CONFIG_DIR` 覆盖；未指定时搜索 `~/.config/medhorizon` 等标准目录。
+
+验证：`GET /health` 中 `openai: true` 即表示可用（来自 env 或 MedHorizon）。
 
 ---
 

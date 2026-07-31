@@ -130,6 +130,32 @@ describe("session.retry.retryable", () => {
       "Provider stream returned incomplete JSON (often mid tool-call); retrying",
     )
   })
+
+  test("retries EMPTY_ASSISTANT_TURN after tools", () => {
+    const error = new MessageV2.APIError({
+      message: "Provider returned an empty assistant turn after tool execution; retrying",
+      isRetryable: true,
+      metadata: { code: "EMPTY_ASSISTANT_TURN", message: "empty continue attempt 1/3" },
+    }).toObject() as MessageV2.APIError
+    expect(SessionRetry.retryable(error)).toContain("empty assistant turn")
+  })
+
+  test("does not retry terminal empty assistant turn", () => {
+    const error = new MessageV2.APIError({
+      message:
+        "Model returned an empty response after tool execution (no text or tool calls). The provider stream likely failed or was truncated — try again or switch models.",
+      isRetryable: false,
+      metadata: { code: "EMPTY_ASSISTANT_TURN", message: "empty continue attempt 3/3" },
+    }).toObject() as MessageV2.APIError
+    expect(SessionRetry.retryable(error)).toBeUndefined()
+  })
+
+  test("retries AI_TypeValidationError from malformed tool_calls deltas", () => {
+    const error = wrap(
+      'AI_TypeValidationError: Type validation failed: Value: {"choices":[{"delta":{"tool_calls":[{"id":"call-1"}]}}]}. Error message: expected object for function',
+    )
+    expect(SessionRetry.retryable(error)).toBe("Provider stream returned invalid tool-call schema; retrying")
+  })
 })
 
 describe("session.message-v2.fromError", () => {

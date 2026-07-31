@@ -3,6 +3,6 @@
   "private": true,
   "type": "module",
   "dependencies": {
-    "@synsci/plugin": "file:../../../tooling/plugin"
+    "@synsci/plugin": "2.0.1"
   }
 }

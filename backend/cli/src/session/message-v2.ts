@@ -1116,6 +1116,9 @@ export namespace MessageV2 {
         ).toObject()
       case MessageV2.OutputLengthError.isInstance(e):
         return e
+      // Already-normalized session errors (e.g. empty continue) — keep as-is.
+      case MessageV2.APIError.isInstance(e):
+        return e.toObject()
       case LoadAPIKeyError.isInstance(e):
         return new MessageV2.AuthError(
           {

@@ -168,6 +168,24 @@ export namespace SessionRetry {
       return "Provider stream returned incomplete JSON; retrying"
     }
 
+    if (
+      msg.includes("AI_TypeValidationError") ||
+      msg.includes("Type validation failed") ||
+      error.data?.metadata?.code === "AI_TypeValidationError"
+    ) {
+      return "Provider stream returned invalid tool-call schema; retrying"
+    }
+
+    // Empty continue after tool_calls — provider "succeeded" with zero content.
+    // Terminal (non-retryable) empty failures are handled above via APIError.isRetryable.
+    if (
+      error.data?.metadata?.code === "EMPTY_ASSISTANT_TURN" ||
+      msg.includes("EMPTY_ASSISTANT_TURN") ||
+      msg.includes("empty assistant turn after tool")
+    ) {
+      return "Provider returned an empty assistant turn after tools; retrying"
+    }
+
     const json = iife(() => {
       try {
         if (typeof error.data?.message === "string") {

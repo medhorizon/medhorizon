@@ -17,6 +17,7 @@ import { PermissionNext } from "@/permission/next"
 import { Question } from "@/question"
 import { OpenScience, InsufficientCreditsError } from "@/openscience"
 import { requiresWalletBalance, shouldReportUsage, resolveCredentialSource, llmBillingMode } from "./billing-gate"
+import type { ModelMessage } from "ai"
 
 export namespace SessionProcessor {
   const DOOM_LOOP_THRESHOLD = 3
@@ -25,7 +26,37 @@ export namespace SessionProcessor {
   // body carrying an `error` field as retryable — so a persistently-failing
   // provider (or a permanent error arriving as JSON) looped forever.
   const MAX_RETRY_ATTEMPTS = 10
+  // Empty post-tool hops are usually flaky proxy/model streams; a few retries
+  // are enough before surfacing a clear error instead of fake-idle.
+  const MAX_EMPTY_CONTINUE_ATTEMPTS = 3
   const log = Log.create({ service: "session.processor" })
+
+  /** True when an assistant turn has no user-visible / actionable content —
+   *  no text, no tool call, no reasoning. Step/patch bookkeeping parts alone
+   *  still count as empty (the common "tokens=0, no parts" continue failure). */
+  export function isEmptyAssistant(parts: MessageV2.Part[]): boolean {
+    return !parts.some((p) => {
+      if (p.type === "text") return p.text.trim().length > 0
+      if (p.type === "reasoning") return p.text.trim().length > 0
+      if (p.type === "tool") return true
+      return false
+    })
+  }
+
+  /** True when the model request already includes tool results — i.e. this
+   *  hop is a continue after tool execution(s), the failure mode that leaves
+   *  sessions fake-idle when the stream returns nothing. */
+  export function hasToolContinuation(messages: ModelMessage[]): boolean {
+    for (const msg of messages) {
+      if (msg.role === "tool") return true
+      if (typeof msg.content === "string" || !Array.isArray(msg.content)) continue
+      for (const part of msg.content) {
+        if (!part || typeof part !== "object" || !("type" in part)) continue
+        if (part.type === "tool-result" || part.type === "tool-call") return true
+      }
+    }
+    return false
+  }
 
   /** True when the last `threshold` TOOL calls are the same tool with the same
    *  input, ignoring reasoning/text/step parts interleaved between them. A naive
@@ -85,6 +116,7 @@ export namespace SessionProcessor {
     let snapshot: string | undefined
     let blocked = false
     let attempt = 0
+    let emptyAttempts = 0
     let needsCompaction = false
     let overflow = false
 
@@ -483,6 +515,36 @@ export namespace SessionProcessor {
               }
               if (needsCompaction || overflow) break
             }
+
+            // After tool execution(s), a successful-but-empty stream (no text /
+            // tools / reasoning, often tokens=0) used to complete the turn and
+            // leave the session fake-idle. Retry like truncated SSE JSON; if
+            // still empty, surface a clear error instead of a blank assistant.
+            if (!needsCompaction && !overflow && !blocked && hasToolContinuation(streamInput.messages)) {
+              const parts = await MessageV2.parts(input.assistantMessage.id)
+              if (isEmptyAssistant(parts)) {
+                emptyAttempts++
+                const again = emptyAttempts < MAX_EMPTY_CONTINUE_ATTEMPTS
+                log.warn("empty assistant continue after tools", {
+                  sessionID: input.sessionID,
+                  emptyAttempts,
+                  again,
+                })
+                throw new MessageV2.APIError(
+                  {
+                    message: again
+                      ? "Provider returned an empty assistant turn after tool execution; retrying"
+                      : "Model returned an empty response after tool execution (no text or tool calls). The provider stream likely failed or was truncated — try again or switch models.",
+                    isRetryable: again,
+                    metadata: {
+                      code: "EMPTY_ASSISTANT_TURN",
+                      message: `empty continue attempt ${emptyAttempts}/${MAX_EMPTY_CONTINUE_ATTEMPTS}`,
+                    },
+                  },
+                  { cause: new Error("EMPTY_ASSISTANT_TURN") },
+                )
+              }
+            }
           } catch (e: any) {
             log.error("process", {
               error: e,
@@ -505,6 +567,10 @@ export namespace SessionProcessor {
               const retry = SessionRetry.retryable(error)
               if (retry !== undefined && attempt < MAX_RETRY_ATTEMPTS) {
                 attempt++
+                // Clear finish from a prior empty/partial finish-step so a retry
+                // doesn't look like a completed stop turn if we abort mid-retry.
+                input.assistantMessage.finish = undefined
+                input.assistantMessage.error = undefined
                 const delay = SessionRetry.delay(attempt, error.name === "APIError" ? error : undefined)
                 SessionStatus.set(input.sessionID, {
                   type: "retry",
@@ -516,6 +582,9 @@ export namespace SessionProcessor {
                 continue
               }
               input.assistantMessage.error = error
+              // Ensure the turn is marked finished so it never looks "running"
+              // then silently idle with no completed timestamp.
+              if (!input.assistantMessage.finish) input.assistantMessage.finish = "error"
               // A user-initiated abort is a clean cancellation, not a failure —
               // record it on the message but don't fire the session Error event.
               if (!MessageV2.AbortedError.isInstance(error)) {

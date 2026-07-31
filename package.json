@@ -77,7 +77,8 @@
     "@synsci/plugin": "workspace:*",
     "@synsci/script": "workspace:*",
     "@synsci/sdk": "workspace:*",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "sisteransi": "1.0.5"
   },
   "repository": {
     "type": "git",

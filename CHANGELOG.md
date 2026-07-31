@@ -4,6 +4,33 @@ MedHorizon follows [semantic versioning](https://semver.org). GitHub Releases
 (`v0.x`) ship native binaries for Linux, macOS (Apple Silicon), and Windows via
 the `Release` workflow. Upstream OpenScience history is retained below.
 
+## MedHorizon v0.3.10 — 2026-07-31
+
+### Changed
+
+- **Research agent defaults to local Research Graph** (`atlas-graph` / `atlas_graph`)
+  for research memory. Atlas cloud (`initialize-atlas-graph` / `project init`) is
+  optional and only used when the user explicitly asks or uses the Atlas canvas.
+  Avoids sessions stalling on Atlas init when Atlas is not configured.
+- Documented the default in root `README.md` and `research-graph/README.md`.
+
+### Added
+
+- Research Graph AI routes can **auto-load MedHorizon’s OpenAI-compatible provider**
+  (base URL, API key, model) from the user config dir when `OPENAI_*` env vars are
+  unset. Env vars still override. `/health` reports `openai: true` when resolved.
+
+### Fixed
+
+- After `finish_reason: tool-calls`, an empty next LLM hop (`tokens=0`, no text/tools)
+  is **retried** (bounded); if still empty, the turn ends with a clear error instead of
+  leaving the session **fake-idle**.
+- Also retry `AI_TypeValidationError` from malformed streaming `tool_calls` deltas.
+- Shiki / marked theme registration: custom theme `name` must match the registered
+  key (`OpenScience`), fixing `themeName: OpenScience does not match theme.name: MedHorizon`.
+- Config: `small_model` may be set to `inherit` / `same` / `main` so title/summary
+  tasks follow the session main model.
+
 ## MedHorizon v0.3.9 — 2026-07-30
 
 ### Fixed

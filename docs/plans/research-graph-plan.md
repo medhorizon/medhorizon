@@ -508,6 +508,8 @@ medhorizon web
 
 **验证边界**：固定 seed/数据/evaluator 可以稳定复现至少两代选择；未批准候选不会应用；超预算自动停止。 ✅
 
+**后续（真实指标 / LLM propose·critique）：** 见 sprint 计划 [12-research-graph-gepa-optimization.md](12-research-graph-gepa-optimization.md)。Phase 7 仅交付 deterministic 骨架；workstream 12 将可插拔 evaluator、可选 LLM 候选生成与图谱闭环列入验收。
+
 ### Checkpoint：完成交付
 
 - [x] 原有 Phase 1–5 图谱能力通过。

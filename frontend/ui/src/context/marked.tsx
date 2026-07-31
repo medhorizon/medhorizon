@@ -21,7 +21,7 @@ const loadLangs = () => (langsP ??= import("shiki").then((m) => m.bundledLanguag
 
 registerCustomTheme("OpenScience", () => {
   return Promise.resolve({
-    name: "MedHorizon",
+    name: "OpenScience",
     colors: {
       "editor.background": "transparent",
       "editor.foreground": "var(--text-base)",

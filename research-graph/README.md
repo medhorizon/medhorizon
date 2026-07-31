@@ -5,6 +5,13 @@ Independent FastAPI + React + Supabase-schema module for research graphs, experi
 
 **Version:** `0.3.6` (ships with MedHorizon v0.3.6 installers as an auto-started sidecar)
 
+## Default with MedHorizon research agent
+
+As of 2026-07-31, the MedHorizon `research` agent **defaults to this local module**
+(`atlas_graph` / `atlas-graph` skill) for research memory. Atlas cloud
+(`initialize-atlas-graph` / `medhorizon project init`) is optional and only used when
+the user explicitly asks for it or uses the Atlas canvas.
+
 ## Layout
 
 ```text

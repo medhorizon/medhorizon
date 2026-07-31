@@ -70,6 +70,14 @@ Ready to enter stage "证据搜集"?
 
 自 **v0.3.9** 起：流式 `tool_calls` 截断（`AI_JSONParseError`）会自动重试，避免 HCC/Atlas 调研中途硬失败。
 
+**默认研究记忆：本地 Research Graph（非 Atlas 云）**（自 **v0.3.10** / 2026-07-31）：
+
+- `research` agent 任务开始时优先 `atlas-graph` / `atlas_graph` 建本地图并写入假说/证据节点
+- **不再**默认执行 `initialize-atlas-graph` / `medhorizon project init`（需 Atlas 登录）
+- 仅当用户明确要求 Atlas 云同步或使用 Atlas 画布时，才走云端初始化
+- 背景：未配置 Atlas 时 agent 会卡在 `initialize-atlas-graph`，调研与本地落图均无法推进
+- Research Graph AI（如 `/api/ai/generate-hypothesis`）可自动读取 MedHorizon 的 OpenAI 兼容 provider 配置（`OPENAI_*` 仍可覆盖）
+
 - 使用说明（截图）：[`research-graph/docs/USAGE.md`](./research-graph/docs/USAGE.md)
 - 阶段落点 / 跳转：[`research-graph/docs/STAGE_LANDING.md`](./research-graph/docs/STAGE_LANDING.md)
 - 模块说明：[`research-graph/README.md`](./research-graph/README.md)

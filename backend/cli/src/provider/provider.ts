@@ -1904,6 +1904,10 @@ export namespace Provider {
     const cfg = await Config.get()
 
     if (cfg.small_model) {
+      // Follow the session / caller main model (title + summary already fall back
+      // to input.modelID when this returns undefined).
+      const token = cfg.small_model.trim().toLowerCase()
+      if (token === "inherit" || token === "same" || token === "main") return undefined
       const parsed = parseModel(cfg.small_model)
       return getModel(parsed.providerID, parsed.modelID)
     }

@@ -1,4 +1,5 @@
 {
+  "$schema": "https://syntheticsciences.ai/config.json",
   // External overlay for MedHorizon — set:
   //   OPENSCIENCE_CONFIG_DIR=<absolute>/research-graph/medhorizon-plugin/config
   //   RESEARCH_GRAPH_API=http://127.0.0.1:8000
