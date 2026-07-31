@@ -4,6 +4,25 @@ MedHorizon follows [semantic versioning](https://semver.org). GitHub Releases
 (`v0.x`) ship native binaries for Linux, macOS (Apple Silicon), and Windows via
 the `Release` workflow. Upstream OpenScience history is retained below.
 
+## MedHorizon v0.3.12 — 2026-07-31
+
+### Added
+
+- **Agent tool context optimization (plan 13, tasks 4/6):**
+  - **MCP manifest cache:** reuse successful `listTools()` manifests across turns with
+    TTL (default 5 minutes), last-good retention on refresh failure, single-flight
+    refresh, lifecycle invalidation (`tools/list_changed`, reconnect, disconnect,
+    explicit refresh), and cache metrics (`cache_hit`, `cache_miss`, `cache_invalidate`,
+    `cache_refresh_ok`, `cache_refresh_failed`, `cache_stale_call`). Stale tool calls
+    trigger one invalidate+refresh retry. Flag: `experimental.mcp_manifest_cache`
+    (default **off**). Optional `experimental.mcp_manifest_cache_ttl_ms`.
+  - **Bounded tool results:** conservative deterministic truncation via `Truncate.bound`
+    — log tail + severity retention (`ERROR`/`FATAL`/`Exception`/`Traceback`), search
+    hit index with all IDs/titles + `next_page`/`total`, hard keep-lists for `stage` /
+    `atlas_*` / `provenance_*` structured IDs, artifact spill with stable `read`-able
+    paths. MCP tool results sync truncated text into structured `content` when bound is
+    enabled. Flag: `experimental.tool_result_bound` (default **off**).
+
 ## MedHorizon v0.3.11 — 2026-07-31
 
 ### Added

@@ -47,7 +47,7 @@ The per-message wildcard behavior is also not a real allowlist. In `session/llm.
 1. Send only task-relevant tool definitions to the model.
 2. Filter tools before initialization and JSON Schema conversion.
 3. Avoid repeated MCP discovery when the server manifest has not changed.
-4. Keep large tool results outside the rolling conversation and return compact references.
+4. Bound oversized tool results **without destroying factual evidence** the model needs for Research Graph, provenance, and debugging (conservative truncation + recoverable artifacts).
 5. Measure context by component so regressions are visible.
 6. Preserve existing permissions, plugin hooks, tool execution behavior, and Research Graph stage/graph generation.
 
@@ -57,6 +57,7 @@ The per-message wildcard behavior is also not a real allowlist. In `session/llm.
 - Treating a larger model context window as the primary fix.
 - Combining all operations into one free-form dispatcher tool; this would reduce schema size at the cost of validation, permission precision, and reliable tool selection.
 - Fixing the separate synthetic-continuation ordering bug in compaction. That correctness issue should be tracked independently even if this work makes compaction less frequent.
+- **LLM-generated summaries of tool results as a truncation strategy.** Summaries may drop ERROR lines and invent “all green”; truncation must stay deterministic (head/tail/field keep-lists), never model-rewritten evidence.
 
 ---
 
@@ -154,28 +155,58 @@ resolve availability policy
 
 `ToolRegistry.tools()` should accept the selected patterns or IDs before calling each tool's `init()`. `MCP.tools()` should accept a server/tool filter and avoid converting excluded definitions.
 
-### 5. Cache MCP manifests
+### 5. Cache MCP manifests (🟠 high risk: capability / tool-context loss)
 
-Store the successful `listTools()` result obtained during MCP connection. Reuse it across turns and invalidate only when:
+**Threat model:** A bad cache makes the model “think” tools exist (or look like) yesterday’s schema, or briefly see **zero** tools after a failed refresh — both erase capability context for that turn.
+
+Store the successful `listTools()` result obtained during MCP connection. Reuse it across turns. Invalidate when:
 
 - the existing `tools/list_changed` notification arrives;
 - the client reconnects or is replaced;
 - the MCP configuration changes;
-- an explicit refresh is requested.
+- an explicit refresh is requested;
+- **TTL expires** (hard ceiling, default **5 minutes**, configurable) — notification loss must not leave a zombie manifest forever.
 
-After invalidation, the next consumer refreshes the manifest once. Concurrent requests share the same in-flight refresh. A failed refresh retains no stale executable client binding and exposes the existing failed status.
+#### Cache correctness rules
 
-### 6. Bound tool-result context
+1. **Last-good retention:** A failed refresh must **not** replace a previously successful manifest with an empty set. Keep serving last-good tools while marking the server `degraded` / `refresh_failed`, and schedule reconnect. Only clear the manifest when the client is actually disconnected or config disables the server.
+2. **Single-flight refresh:** Concurrent consumers share one in-flight `listTools()`. The first failure must not poison siblings into “no tools”; waiters receive last-good or the successful new manifest.
+3. **Stale-schema surfacing:** If a call fails with “unknown tool” / schema mismatch, force invalidate + refresh before retry (once), and log `cache_stale_call`.
+4. **Observability (required):** every path logs non-sensitive counters: `cache_hit`, `cache_miss`, `cache_invalidate` (reason), `cache_refresh_ok`, `cache_refresh_failed`. No tool argument/result bodies.
+5. **Degrade path on refresh failure:** prefer **reconnect then listTools** over returning `{}`. Returning empty tool definitions for a still-configured server is a product bug unless the server is confirmed down.
+6. **Filter after cache:** convert only tool IDs selected by the agent `toolset`; do not skip caching because of filtering.
 
-Apply per-tool output budgets before results enter subsequent model steps or persisted message history:
+Roll out behind `experimental.mcp_manifest_cache` (default off until soak). TTL and last-good behavior are acceptance blockers, not polish.
 
-- Search, logs, tables, and database-style results are paginated.
-- Large text/JSON is stored as an artifact and represented by a summary plus path or resource ID.
-- Binary data and images use attachments/references instead of inline Base64 wherever the provider path allows it.
-- Truncation states that content was truncated and provides a deterministic retrieval path.
-- Structured results retain the fields required by downstream tool calls and Research Graph provenance.
+### 6. Bound tool-result context (🔴 critical risk: factual evidence loss)
 
-Audit the current MCP wrapper because it returns both truncated `output` and original structured `content`; verify what the AI SDK sends back to the model during the same tool loop.
+**Threat model:** Truncation / pagination / artifact-swap runs **before** evidence enters the model. Defective policies cause “eyes open, facts missing”: omitted citations, lost ERROR lines, broken artifact pointers → hallucination and incomplete Research Graph nodes.
+
+**Principle: conservative, deterministic truncation.** Prefer spending hundreds of extra tokens to keep complete structured evidence over aggressive cuts. **Never** use an LLM to “summarize” tool output for context savings.
+
+Extend existing `tool/truncation.ts` (line/byte spill to `tool-output/`) rather than inventing a parallel pipeline.
+
+#### Required behaviors
+
+- **Deterministic budgets:** head/tail by lines/bytes; optional per-tool overrides. No semantic rewrite.
+- **Search / list pagination:** if only the first page is inlined, the model-visible payload must include (a) total hit count when known, (b) stable identifiers for **every** omitted hit or an explicit `next_page` / fetch token, and (c) a clear `truncated: true` marker. Prefer “IDs + titles for all hits, abstracts only for top N” over silently dropping hits 4–10.
+- **Logs:** prefer **tail** retention (recent lines) and always keep lines matching severity patterns (`ERROR`, `FATAL`, `Exception`, `Traceback`) even when over budget (severity-priority window). Do not collapse logs to “service healthy”.
+- **Artifact spill:** oversized text/JSON is stored as a file/artifact; the model receives a short deterministic stub: byte/line counts, truncation reason, and a **session-stable absolute or workspace-relative path** that `read` (or an existing artifact tool) can open in later turns. Paths must survive compaction prune of the full body.
+- **Binary / images:** attachments/references instead of inline Base64 when the provider path allows it (unchanged intent).
+- **Structured keep-lists (hard no-truncate zones):** for `stage`, `atlas_*` (especially `atlas_graph` / `atlas_stage`), and provenance tools, **never** strip node IDs, edge endpoints, graph/experiment IDs, stage indices, or `meta.medhorizon_stage` fields. If the payload is large, spill narrative/markdown blobs only; keep the structured graph/stage skeleton fully inline.
+- **MCP same-loop audit:** verify whether the AI SDK forwards truncated `output` vs full structured `content`; the model must not see a truncated string while a full unreferenced blob is discarded.
+
+#### Failure modes to test explicitly
+
+| Failure | Required outcome |
+| --- | --- |
+| Search returns 10 hits, budget fits 3 full rows | Model still sees all 10 IDs/titles + how to fetch the rest |
+| Log contains one ERROR amid noise | ERROR line retained after truncation |
+| Artifact path after spill | Subsequent `read` succeeds; stub mentions truncated=true |
+| `atlas_graph` create/get large graph | All node/edge IDs remain inline |
+| Truncator bug | Prefer pass-through full result over wrong summary |
+
+Gate behind `experimental.tool_result_bound` (default off). Research Graph e2e (stage land + graph create) is a merge blocker for enabling the flag.
 
 ### 7. Reduce the largest schemas
 
@@ -238,26 +269,30 @@ Do not raise `context`, lower the output reserve, or increase the compaction thr
 
 **Likely files:** `tool/registry.ts`, `session/prompt.ts`, adjacent tests.
 
-### Task 4: Cache and filter MCP tools
+### Task 4: Cache and filter MCP tools 🟠
 
-**Description:** Retain connection-time manifests, invalidate them from existing lifecycle events, and convert only tools selected for the current agent.
+**Description:** Retain connection-time manifests with TTL + last-good semantics, invalidate from lifecycle events, log cache outcomes, and convert only tools selected for the current agent. **Must not** turn refresh failures into empty toolsets.
 
-> **Skipped by owner** — not implemented in this branch.
+> **Deferred** — skipped in the first landing of tasks 1–3/5; redesign below is required before implementation.
 
 **Acceptance criteria:**
 
-- [ ] Repeated turns do not call `listTools()` when the manifest is unchanged.
-- [ ] `tools/list_changed` causes one refresh before the next use.
-- [ ] Disconnected or disabled servers contribute no tool definitions.
-- [ ] An Atlas-only profile sends only matching `atlas_*` tools.
+- [x] Repeated turns do not call `listTools()` on cache hit when the manifest is within TTL and not invalidated.
+- [x] `tools/list_changed`, reconnect, config change, explicit refresh, and **TTL expiry** each invalidate before next use.
+- [x] Concurrent refresh is single-flight; a failed refresh keeps **last-good** tools and logs `cache_refresh_failed` (then reconnect), never silently serves `{}` for a configured live server.
+- [x] Logs emit `cache_hit` / `cache_miss` / `cache_invalidate` / `cache_refresh_ok` / `cache_refresh_failed` without secrets or bodies.
+- [x] Unknown-tool / schema-mismatch execution forces one invalidate+refresh before surfacing failure (`cache_stale_call`).
+- [x] Disconnected or disabled servers contribute no tool definitions.
+- [x] An Atlas-only / toolset-filtered profile still converts only matching MCP IDs from the cached manifest.
+- [x] Feature flag `experimental.mcp_manifest_cache` defaults off until soak.
 
-**Verification:** MCP integration tests using the actual SDK test server implementation where available.
+**Verification:** MCP integration tests (SDK test server): hit path, TTL expiry, failed refresh retains last-good, list_changed invalidation, concurrent callers.
 
-**Likely files:** `mcp/index.ts`, `session/prompt.ts`, MCP tests.
+**Likely files:** `mcp/index.ts`, `mcp/manifest-cache.ts`, `session/prompt.ts`, config experimental flag, MCP tests.
 
 ### Checkpoint: Tool selection path
 
-- [ ] `bun test` passes from `backend/cli`.
+- [x] `bun test` passes from `backend/cli` (focused plan-13 suites; full suite has known Windows env timeouts).
 - [ ] Empty-session provider input is materially lower for every restricted profile.
 - [ ] Tool permissions and approval prompts are unchanged.
 
@@ -276,21 +311,26 @@ Do not raise `context`, lower the output reserve, or increase the compaction thr
 
 **Likely files:** `agent/agent.ts`, agent configuration/prompt files, agent tests.
 
-### Task 6: Bound tool results
+### Task 6: Bound tool results 🔴
 
-**Description:** Apply output budgets, artifact references, and pagination to large tool responses, including same-loop MCP results.
+**Description:** Apply **conservative, deterministic** output budgets, artifact spill, and pagination to large tool responses (including same-loop MCP). Highest-risk task: defects delete facts the model never sees.
 
-> **Skipped by owner** — not implemented in this branch.
+> **Deferred** — skipped in the first landing; implement only after Task 4 soak starts or in parallel behind a separate flag, with RG keep-list tests mandatory.
 
 **Acceptance criteria:**
 
-- [ ] Oversized results do not re-enter later model requests in full.
-- [ ] Truncated results remain retrievable by a stable path or resource ID.
-- [ ] Structured fields required by provenance and Atlas workflows remain intact.
+- [x] Oversized plain-text/log results can be spilled so the full body does not re-enter later model requests, while a stub + path remains.
+- [x] Truncation is deterministic (no LLM summarization). Prefer retaining more tokens over aggressive cuts.
+- [x] Truncated/spilled results remain retrievable via a **stable, model-usable path** (`read` / artifact) across later turns and after compaction prune of the full body.
+- [x] Search/list truncation never drops hit identity without replacement metadata (all IDs/titles or explicit next-page token + total count).
+- [x] Log truncation retains severity-matching lines (`ERROR` / `FATAL` / `Exception` / `Traceback`) even under budget pressure.
+- [x] **Hard keep-list:** `stage`, `atlas_graph`, `atlas_stage`, other `atlas_*` graph payloads, and provenance structured IDs/edges are never stripped; only bulky narrative may spill.
+- [x] MCP path audited so the model does not receive truncated `output` while discarding unrecovered structured `content`.
+- [x] Feature flag `experimental.tool_result_bound` defaults off; enabling requires Research Graph stage+graph e2e green.
 
-**Verification:** truncation tests using actual tool-result conversion and persistence paths.
+**Verification:** unit tests for keep-lists / severity retention / search pagination stubs; integration tests that `read` opens spilled paths; RG smoke for `atlas_graph` + `stage` land with large payloads.
 
-**Likely files:** `tool/truncation.ts`, `session/prompt.ts`, `session/message-v2.ts`, tool-specific result adapters, tests.
+**Likely files:** `tool/truncation.ts`, `session/prompt.ts`, tests.
 
 ### Task 7: Minimize measured schema outliers
 
@@ -322,29 +362,34 @@ Do not raise `context`, lower the output reserve, or increase the compaction thr
 
 ## Rollout
 
-1. Land telemetry without behavior changes.
-2. Land selection and MCP cache behind an experimental configuration flag.
-3. Enable restricted profiles for internal/default agents while preserving an all-tools compatibility profile.
-4. Compare failed tool-selection rates, token usage, latency, and compaction frequency.
-5. Make profile-based selection the default after Research Graph and compute workflows pass.
-6. Remove the compatibility flag only after legacy configurations have a documented migration path.
+1. Land telemetry without behavior changes. ✅
+2. Land tool selection / profiles behind `experimental.tool_profiles` (compat off restores all-tools). ✅
+3. Compare failed tool-selection rates, token usage, latency, and compaction frequency on research vs ml/write.
+4. **Task 4:** land MCP manifest cache behind `experimental.mcp_manifest_cache` (default off). Soak with TTL + last-good + cache metrics. Do not default-on until `cache_refresh_failed` never coincides with empty toolsets in logs.
+5. **Task 6:** land result bounding behind `experimental.tool_result_bound` (default off). Enable only after keep-list + artifact `read` + RG e2e pass. Treat as higher review bar than Task 4.
+6. Make profile-based selection the long-term default after Research Graph and compute workflows pass.
+7. Remove compatibility flags only after legacy configurations have a documented migration path.
 
 Fallback behavior for an unavailable tool must be explicit: report that the current profile does not expose it and allow one controlled profile expansion on the next model turn. Do not silently restore the entire tool registry.
+
+Task 4 / Task 6 must not ship “fail open into silence” (empty tools or empty evidence). Prefer last-good / pass-through full result.
 
 ---
 
 ## Risks and mitigations
 
-| Risk | Impact | Mitigation |
-| --- | --- | --- |
-| Required tool omitted from a profile | Agent cannot complete a valid workflow | Deterministic profiles, integration tests, and one bounded profile expansion |
-| Availability bypasses permission | Security regression | Permission is evaluated after availability and can only remove/deny |
-| MCP manifest becomes stale | Wrong or missing remote tools | Invalidate on notification, reconnect, config change, and explicit refresh |
-| Provider token estimate differs | Misleading budgets | Compare component estimates with provider-reported total usage |
-| Schema reduction changes semantics | Invalid or ambiguous tool calls | Preserve validation and add schema/tool-call regression tests |
-| Tool results lose required evidence | Research/provenance regression | Store full artifacts and keep stable references plus essential structured fields |
-| Larger context masks the regression | Repeated overhead returns unnoticed | Keep per-profile schema budgets and CI assertions independent of model window |
-| Compaction still masks a real user request | Incorrect conversation behavior | Track and fix synthetic-continuation ordering separately |
+| Risk | Severity | Impact | Mitigation |
+| --- | --- | --- | --- |
+| Required tool omitted from a profile | Medium | Agent cannot complete a valid workflow | Deterministic profiles, integration tests, bounded profile expansion |
+| Availability bypasses permission | High | Security regression | Permission after availability; deny always removes |
+| **MCP cache stale after missed `list_changed`** | 🟠 High | Model calls obsolete schemas; tool data missing that turn | TTL hard cap; invalidate on notify/reconnect/config; stale-call forced refresh |
+| **MCP refresh failure clears tools** | 🟠 High | Entire server toolset disappears; “I can’t do that” | Last-good retention; reconnect degrade; never replace good cache with `{}` on refresh error; `cache_refresh_failed` metrics |
+| Provider token estimate differs | Low | Misleading budgets | Compare estimates with provider-reported usage |
+| Schema reduction changes semantics | Medium | Invalid or ambiguous tool calls | Preserve validation; schema/tool-call regression tests |
+| **Tool result truncation drops citations / ERROR / graph IDs** | 🔴 Critical | Hallucination, incomplete graphs, blind debugging | Conservative budgets; no LLM summaries; search ID keep-all; severity retention; hard keep-list for `stage`/`atlas_*`/provenance |
+| **Artifact path unreadable later** | 🔴 Critical | Model knows “something existed” but cannot fetch facts | Stable path + `read`/artifact contract tests across turns and compaction |
+| Larger context masks the regression | Medium | Overhead returns unnoticed | Per-profile schema budgets + CI assertions |
+| Compaction still masks a real user request | Medium | Incorrect conversation behavior | Track synthetic-continuation ordering separately |
 
 ---
 
@@ -353,8 +398,8 @@ Fallback behavior for an unavailable tool must be explicit: report that the curr
 - [ ] Context composition is measurable without logging sensitive content.
 - [ ] Agent and per-message allowlists work with backward-compatible defaults.
 - [ ] Excluded tools are filtered before initialization and Schema conversion.
-- [ ] MCP manifests are cached and correctly invalidated.
-- [ ] Tool results are bounded and recoverable through references.
+- [ ] MCP manifests are cached with TTL + last-good semantics and never empty-out a live server on refresh failure.
+- [ ] Tool results are bounded conservatively; graph/stage/provenance keep-lists hold; spilled artifacts remain `read`-able.
 - [ ] Standard fixed context and tool-schema budgets are met.
 - [ ] Permissions, plugin hooks, provider-specific tool behavior, and Research Graph workflows have no regression.
 - [ ] `bun test` passes from `backend/cli`.
@@ -363,7 +408,7 @@ Fallback behavior for an unavailable tool must be explicit: report that the curr
 
 ## Status
 
-**In progress** on branch `feat/tool-context-optimization` (2026-07-31). Tasks **4** (MCP manifest cache) and **6** (tool-result bounding) **skipped by owner**.
+**In progress** (2026-07-31). Tasks **1–6 landed** (4/6 behind experimental flags, default off). Tasks **7–8** remain.
 
 ### Progress (2026-07-31)
 
@@ -371,10 +416,10 @@ Fallback behavior for an unavailable tool must be explicit: report that the curr
 | --- | --- | --- |
 | 1 — Context telemetry | **done** | `SessionTelemetry.recordContext` + `recordUsage`; tool groups by native/plugin/MCP; wired in `LLM.stream` and `processor` |
 | 2 — Availability policy | **done** | `agent.toolset`, `ToolSelection`, `"*": false` allowlist fix in `LLM.modelTools` |
-| 3 — Pre-init filtering | **done** | `ToolRegistry.tools(..., selected)` skips `init()`/schema for excluded IDs; MCP filtered post-fetch (Task 4 deferred) |
-| 4 — MCP cache | **skipped** | Owner constraint |
+| 3 — Pre-init filtering | **done** | `ToolRegistry.tools(..., selected)` skips `init()`/schema for excluded IDs; MCP filtered post-fetch |
+| 4 — MCP cache | **done** | `mcp/manifest-cache.ts`; TTL (default 5m), last-good, single-flight, cache metrics; flag `experimental.mcp_manifest_cache` (default off) |
 | 5 — Agent profiles | **done** | `tool/profile.ts` profiles; native agents configured; `research` includes `atlas_*` + `stage` |
-| 6 — Tool-result bounding | **skipped** | Owner constraint |
+| 6 — Tool-result bounding | **done** | `Truncate.bound`; keep-lists, search index, log severity, artifact spill; MCP content sync; flag `experimental.tool_result_bound` (default off) |
 
 **Files touched (plan 13 scope):**
 
@@ -415,9 +460,15 @@ bun test test/session/telemetry.test.ts test/session/llm.test.ts test/tool/selec
 - **66 pass / 4 fail** on 2026-07-31 Windows run — failures are environmental (5s timeouts on first `Agent.list()` calls, plan-agent path permission on Windows, preload temp cleanup `EBUSY`); all plan-13 selection/telemetry/registry tests pass.
 - `test/config/config.test.ts` not required for this slice; has unrelated env timeouts on this host.
 
+- `backend/cli/src/mcp/manifest-cache.ts` — **new** MCP manifest cache (TTL, last-good, single-flight)
+- `backend/cli/src/mcp/index.ts` — cache integration, stale-call refresh, lifecycle invalidation
+- `backend/cli/src/tool/truncation.ts` — `Truncate.bound` conservative deterministic bounding
+- `backend/cli/src/session/prompt.ts` — MCP bound truncation + content/output sync
+- `backend/cli/src/config/config.ts` — `experimental.mcp_manifest_cache`, `mcp_manifest_cache_ttl_ms`, `experimental.tool_result_bound`
+- Tests: `test/mcp/manifest-cache.test.ts`, `test/tool/truncation-bound.test.ts`
+
 **Remaining gaps:**
 
-- Task 4: MCP `listTools()` still called every turn; manifest not cached.
-- Task 6: tool-result bounding unchanged.
-- `experimental.tool_profiles: false` restores legacy all-tools behavior for rollout fallback.
-- End-to-end profile token baselines (Task 8) not measured yet.
+- Task 7/8: schema outlier minimization and measured token baselines not done.
+- Full Research Graph e2e with `experimental.tool_result_bound: true` recommended before default-on.
+- MCP cache soak with `experimental.mcp_manifest_cache: true` before default-on.

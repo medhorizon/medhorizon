@@ -209,20 +209,12 @@ jobs:
         with:
           name: "MedHorizon ${{ github.ref_name }}"
           body: |
-            ## MedHorizon v0.3.11 — 2026-07-31
+            ## MedHorizon v0.3.12 — 2026-07-31
 
             ### Added
 
-            - **Agent tool context optimization (plan 13):** context composition telemetry; `agent.toolset` profiles; filter tools before schema conversion; `research` includes local Research Graph `atlas_*` + `stage`. Rollback: `experimental.tool_profiles: false`.
-
-            ### Fixed
-
-            - Tool allowlist: `tools["*"]: false` keeps explicitly `true` tools.
-            - Path traversal hardening; workspace relpath normalization.
-
-            ### Changed
-
-            - Bugfix RCA index: `docs/bugfix.md`.
+            - **MCP manifest cache (plan 13 task 4):** TTL + last-good `listTools()` cache, single-flight refresh, cache metrics. Flag: `experimental.mcp_manifest_cache` (default off).
+            - **Bounded tool results (plan 13 task 6):** deterministic truncation, log severity retention, search hit index, RG keep-lists, artifact spill. Flag: `experimental.tool_result_bound` (default off).
 
             ## 一键安装
 
@@ -246,7 +238,7 @@ jobs:
             设置环境变量 `RESEARCH_GRAPH_DISABLE=1` 可跳过 sidecar 与内置插件。
 
             ---
-            完整说明见 [README](https://github.com/medhorizon/medhorizon#readme) · [CHANGELOG](https://github.com/medhorizon/medhorizon/blob/release/v0.3.11/CHANGELOG.md)
+            完整说明见 [README](https://github.com/medhorizon/medhorizon#readme) · [CHANGELOG](https://github.com/medhorizon/medhorizon/blob/release/v0.3.12/CHANGELOG.md)
           files: |
             artifacts/*
           draft: false

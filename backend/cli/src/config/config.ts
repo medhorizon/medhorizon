@@ -1279,6 +1279,22 @@ export namespace Config {
             .describe(
               "Apply native agent toolset profiles (plan 13). Set false to expose all tools for every agent.",
             ),
+          mcp_manifest_cache: z
+            .boolean()
+            .optional()
+            .describe("Cache MCP listTools manifests with TTL and last-good retention (plan 13 task 4)."),
+          mcp_manifest_cache_ttl_ms: z
+            .number()
+            .int()
+            .positive()
+            .optional()
+            .describe("TTL for MCP manifest cache in milliseconds (default 300000)."),
+          tool_result_bound: z
+            .boolean()
+            .optional()
+            .describe(
+              "Apply conservative deterministic tool-result bounding with keep-lists and artifact spill (plan 13 task 6).",
+            ),
           mcp_timeout: z
             .number()
             .int()

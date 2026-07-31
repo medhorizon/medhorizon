@@ -1091,7 +1091,16 @@ export namespace SessionPrompt {
           always: [key],
         })
 
-        const result = await execute(args, opts)
+        const mcpServer = SessionTelemetry.mcpServer(key, servers) ?? "unknown"
+        const run = () => execute(args, opts)
+        const result = await run().catch(async (error) => {
+          const cfg = await Config.get()
+          if (cfg.experimental?.mcp_manifest_cache && MCP.isStaleToolError(error) && mcpServer !== "unknown") {
+            await MCP.refreshManifest(mcpServer)
+            return run()
+          }
+          throw error
+        })
 
         await Plugin.trigger(
           "tool.execute.after",
@@ -1145,7 +1154,14 @@ export namespace SessionPrompt {
           }
         }
 
-        const truncated = await Truncate.output(textParts.join("\n\n"), {}, input.agent)
+        const truncated = await Truncate.bound(textParts.join("\n\n"), { tool: key }, input.agent)
+        const bound = (await Config.get()).experimental?.tool_result_bound === true
+        const content = bound
+          ? result.content.map((contentItem) => {
+              if (contentItem.type !== "text") return contentItem
+              return { ...contentItem, text: truncated.content }
+            })
+          : result.content
         const metadata = {
           ...(result.metadata ?? {}),
           truncated: truncated.truncated,
@@ -1157,7 +1173,7 @@ export namespace SessionPrompt {
           metadata,
           output: truncated.content,
           attachments,
-          content: result.content, // directly return content to preserve ordering when outputting to model
+          content,
         }
       }
       tools[key] = item

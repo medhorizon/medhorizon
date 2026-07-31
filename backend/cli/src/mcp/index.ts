@@ -23,6 +23,7 @@ import { BusEvent } from "../bus/bus-event"
 import { Bus } from "@/bus"
 import open from "open"
 import { OpenScience } from "@/openscience"
+import { McpManifestCache, DEFAULT_TTL_MS } from "./manifest-cache"
 
 export namespace MCP {
   const log = Log.create({ service: "mcp" })
@@ -108,10 +109,75 @@ export namespace MCP {
     })
   export type Status = z.infer<typeof Status>
 
+  function cacheTtlMs(cfg: Config.Info) {
+    return cfg.experimental?.mcp_manifest_cache_ttl_ms ?? DEFAULT_TTL_MS
+  }
+
+  function cacheEnabled(cfg: Config.Info) {
+    return cfg.experimental?.mcp_manifest_cache === true
+  }
+
+  async function listToolsForServer(
+    clientName: string,
+    client: MCPClient,
+    timeout?: number,
+    force?: boolean,
+  ): Promise<{ tools: MCPToolDef[]; failed?: false } | { failed: true; error: string }> {
+    const cfg = await Config.get()
+    const refresh = () =>
+      withTimeout(client.listTools(), timeout ?? DEFAULT_TIMEOUT)
+        .then((result) => ({ tools: result.tools, failed: false as const }))
+        .catch((err) => {
+          const error = err instanceof Error ? err.message : String(err)
+          log.error("failed to get tools", { clientName, error })
+          return { failed: true as const, error }
+        })
+
+    if (!cacheEnabled(cfg)) return refresh()
+
+    const tools = await McpManifestCache.get(
+      clientName,
+      async () => {
+        const result = await refresh()
+        if (result.failed) return undefined
+        return { tools: result.tools }
+      },
+      { ttlMs: cacheTtlMs(cfg), force },
+    )
+    return { tools, failed: false }
+  }
+
+  export async function refreshManifest(name: string) {
+    const s = await state()
+    const client = s.clients[name]
+    if (!client) {
+      McpManifestCache.invalidate(name, "explicit_refresh_no_client")
+      return []
+    }
+    const cfg = await Config.get()
+    const config = cfg.mcp ?? {}
+    const entry = isMcpConfigured(config[name]) ? config[name] : undefined
+    const timeout = entry?.timeout ?? cfg.experimental?.mcp_timeout
+    McpManifestCache.invalidate(name, "explicit_refresh")
+    return listToolsForServer(name, client, timeout, true)
+  }
+
+  export function invalidateManifest(name: string, reason: string) {
+    McpManifestCache.invalidate(name, reason)
+  }
+
+  const STALE_TOOL = /unknown tool|tool not found|method not found|invalid.*tool|does not exist/i
+
+  export function isStaleToolError(error: unknown) {
+    const message = error instanceof Error ? error.message : String(error)
+    return STALE_TOOL.test(message)
+  }
+
   // Register notification handlers for MCP client
   function registerNotificationHandlers(client: MCPClient, serverName: string) {
     client.setNotificationHandler(ToolListChangedNotificationSchema, async () => {
       log.info("tools list changed notification received", { server: serverName })
+      McpManifestCache.invalidate(serverName, "list_changed")
       Bus.publish(ToolsChanged, { server: serverName })
     })
   }
@@ -179,6 +245,10 @@ export namespace MCP {
       const clients: Record<string, MCPClient> = {}
       const status: Record<string, Status> = {}
 
+      const unsubscribe = Bus.subscribe(ToolsChanged, (event) => {
+        McpManifestCache.invalidate(event.properties.server, "list_changed")
+      })
+
       await Promise.all(
         Object.entries(config).map(async ([key, mcp]) => {
           if (!isMcpConfigured(mcp)) {
@@ -205,9 +275,12 @@ export namespace MCP {
       return {
         status,
         clients,
+        unsubscribe,
       }
     },
     async (state) => {
+      state.unsubscribe()
+      McpManifestCache.clear()
       await Promise.all(
         Object.values(state.clients).map((client) =>
           client.close().catch((error) => {
@@ -288,6 +361,7 @@ export namespace MCP {
     // Close existing client if present to prevent memory leaks
     const existingClient = s.clients[name]
     if (existingClient) {
+      McpManifestCache.invalidate(name, "reconnect")
       await existingClient.close().catch((error) => {
         log.error("Failed to close existing MCP client", { name, error })
       })
@@ -484,6 +558,7 @@ export namespace MCP {
     }
 
     log.info("create() successfully created client", { key, toolCount: result.tools.length })
+    McpManifestCache.set(key, result.tools)
     return {
       mcpClient,
       status,
@@ -540,6 +615,7 @@ export namespace MCP {
       // Close existing client if present to prevent memory leaks
       const existingClient = s.clients[name]
       if (existingClient) {
+        McpManifestCache.invalidate(name, "reconnect")
         await existingClient.close().catch((error) => {
           log.error("Failed to close existing MCP client", { name, error })
         })
@@ -557,6 +633,7 @@ export namespace MCP {
       })
       delete s.clients[name]
     }
+    McpManifestCache.invalidate(name, "disconnect")
     s.status[name] = { status: "disabled" }
   }
 
@@ -571,6 +648,7 @@ export namespace MCP {
       })
       delete s.clients[name]
     }
+    McpManifestCache.invalidate(name, "removed")
     delete s.status[name]
   }
 
@@ -588,23 +666,23 @@ export namespace MCP {
         continue
       }
 
-      const toolsResult = await client.listTools().catch((e) => {
-        log.error("failed to get tools", { clientName, error: e.message })
-        const failedStatus = {
-          status: "failed" as const,
-          error: e instanceof Error ? e.message : String(e),
-        }
-        s.status[clientName] = failedStatus
-        delete s.clients[clientName]
-        return undefined
-      })
-      if (!toolsResult) {
-        continue
-      }
       const mcpConfig = config[clientName]
       const entry = isMcpConfigured(mcpConfig) ? mcpConfig : undefined
       const timeout = entry?.timeout ?? defaultTimeout
-      for (const mcpTool of toolsResult.tools) {
+      const toolsResult = await listToolsForServer(clientName, client, timeout)
+      if (toolsResult.failed) {
+        if (!cacheEnabled(cfg)) {
+          s.status[clientName] = {
+            status: "failed",
+            error: toolsResult.error,
+          }
+          delete s.clients[clientName]
+        }
+        if (!McpManifestCache.peek(clientName)) continue
+      }
+      const toolsList = toolsResult.failed ? (McpManifestCache.peek(clientName)?.tools ?? []) : toolsResult.tools
+      if (!toolsList.length) continue
+      for (const mcpTool of toolsList) {
         const sanitizedClientName = clientName.replace(/[^a-zA-Z0-9_-]/g, "_")
         const sanitizedToolName = mcpTool.name.replace(/[^a-zA-Z0-9_-]/g, "_")
         result[sanitizedClientName + "_" + sanitizedToolName] = await convertMcpTool(mcpTool, client, timeout)
