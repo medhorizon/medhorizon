@@ -31,6 +31,30 @@ describe("Filesystem.contains", () => {
   })
 })
 
+describe("Filesystem.resolvePath", () => {
+  test("resolves relative child under parent", () => {
+    const parent = path.resolve("fixture-parent")
+    const full = Filesystem.resolvePath(parent, path.join("src", "a.ts"))
+    expect(Filesystem.contains(parent, full)).toBe(true)
+    expect(path.basename(full)).toBe("a.ts")
+  })
+
+  test("keeps absolute child instead of nesting it under parent", () => {
+    const parent = path.resolve("fixture-parent")
+    const child = path.join(parent, "docs", "a.md")
+    const full = Filesystem.resolvePath(parent, child)
+    expect(full).toBe(path.resolve(child))
+  })
+
+  test.skipIf(process.platform !== "win32")("avoids Bun win32 join concatenating two absolute paths", () => {
+    const parent = "D:\\project"
+    const child = "D:\\project\\docs\\a.md"
+    // Bun's path.win32.join currently concatenates; resolvePath must not.
+    expect(path.join(parent, child)).toContain("D:\\project\\D:")
+    expect(Filesystem.resolvePath(parent, child)).toBe(path.resolve(child))
+  })
+})
+
 /*
  * Integration tests for File.read() and File.list() path traversal protection.
  *
@@ -81,6 +105,40 @@ describe("File.read path traversal protection", () => {
       fn: async () => {
         const result = await File.read("valid.txt")
         expect(result.content).toBe("valid content")
+      },
+    })
+  })
+
+  test("allows absolute path within project (Bun win32 join would break this)", async () => {
+    await using tmp = await tmpdir({
+      init: async (dir) => {
+        await Bun.write(path.join(dir, "nested", "doc.md"), "# hello")
+      },
+    })
+
+    await Instance.provide({
+      directory: tmp.path,
+      fn: async () => {
+        const abs = path.join(tmp.path, "nested", "doc.md")
+        const result = await File.read(abs)
+        expect(result.content).toBe("# hello")
+      },
+    })
+  })
+
+  test("allows absolute directory listing within project", async () => {
+    await using tmp = await tmpdir({
+      init: async (dir) => {
+        await Bun.write(path.join(dir, "nested", "doc.md"), "# hello")
+      },
+    })
+
+    await Instance.provide({
+      directory: tmp.path,
+      fn: async () => {
+        const abs = path.join(tmp.path, "nested")
+        const result = await File.list(abs)
+        expect(result.some((n) => n.name === "doc.md")).toBe(true)
       },
     })
   })

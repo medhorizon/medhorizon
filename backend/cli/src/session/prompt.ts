@@ -29,6 +29,7 @@ import MAX_STEPS from "../session/prompt/max-steps.txt"
 import { defer } from "../util/defer"
 import { clone } from "remeda"
 import { ToolRegistry } from "../tool/registry"
+import { ToolSelection } from "../tool/selection"
 import { MCP } from "../mcp"
 import { LSP } from "../lsp"
 import { ReadTool } from "../tool/read"
@@ -797,7 +798,7 @@ export namespace SessionPrompt {
       const lastUserMsg = msgs.findLast((m) => m.info.role === "user")
       const bypassAgentCheck = lastUserMsg?.parts.some((p) => p.type === "agent") ?? false
 
-      const tools = await resolveTools({
+      const resolved = await resolveTools({
         agent,
         session,
         model,
@@ -806,6 +807,8 @@ export namespace SessionPrompt {
         bypassAgentCheck,
         messages: msgs,
       })
+      const tools = resolved.tools
+      const origins = resolved.origins
 
       if (step === 1) {
         SessionSummary.summarize({
@@ -862,10 +865,10 @@ export namespace SessionPrompt {
         ...artifactContext,
       ]
 
-      // P0.1 telemetry: record what the working context is made of, by content type,
-      // for exactly the messages + system prompt about to be sent. Fire-and-forget so it
-      // never adds latency to the model call.
-      SessionTelemetry.recordContext({ sessionID, composition: MessageV2.composition(sessionMessages, { system }) })
+      // Message composition for plan-13 task-1 telemetry. Final system strings and the
+      // filtered tool set are measured in LLM.stream (after agent/provider system merge
+      // and modelTools filtering) so estimates match what is actually sent.
+      const composition = MessageV2.composition(sessionMessages)
 
       const result = await processor.process({
         user: lastUser,
@@ -890,6 +893,7 @@ export namespace SessionPrompt {
         ],
         tools,
         model,
+        telemetry: { composition, origins },
       })
       if (result === "stop") break
       if (result === "overflow") {
@@ -998,10 +1002,21 @@ export namespace SessionPrompt {
       },
     })
 
-    for (const item of await ToolRegistry.tools(
-      { modelID: input.model.api.id, providerID: input.model.providerID },
-      input.agent,
-    )) {
+    const modelRef = { modelID: input.model.api.id, providerID: input.model.providerID }
+    const permission = PermissionNext.merge(input.agent.permission, input.session.permission ?? [])
+    const toolset = await ToolSelection.effectiveToolset(input.agent)
+    const nativeIDs = await ToolRegistry.ids(modelRef, input.agent)
+    const selected = ToolSelection.selected({
+      ids: nativeIDs,
+      toolset,
+      message: input.tools,
+      permission,
+    })
+    const custom = await ToolRegistry.customIds()
+    const origins: Record<string, SessionTelemetry.Origin> = {}
+
+    for (const item of await ToolRegistry.tools(modelRef, input.agent, selected)) {
+      origins[item.id] = { source: custom.has(item.id) ? "plugin" : "native" }
       const schema = ProviderTransform.schema(input.model, z.toJSONSchema(item.parameters))
       tools[item.id] = tool({
         id: item.id as any,
@@ -1035,7 +1050,21 @@ export namespace SessionPrompt {
       })
     }
 
-    for (const [key, item] of Object.entries(await MCP.tools())) {
+    const mcp = await MCP.tools()
+    const mcpSelected = ToolSelection.selected({
+      ids: Object.keys(mcp),
+      toolset,
+      message: input.tools,
+      permission,
+    })
+    const servers = Object.keys(await MCP.clients())
+
+    for (const [key, item] of Object.entries(mcp)) {
+      if (!mcpSelected.has(key)) continue
+      origins[key] = {
+        source: "mcp",
+        server: SessionTelemetry.mcpServer(key, servers) ?? "unknown",
+      }
       const execute = item.execute
       if (!execute) continue
 
@@ -1134,7 +1163,7 @@ export namespace SessionPrompt {
       tools[key] = item
     }
 
-    return tools
+    return { tools, origins }
   }
 
   async function createUserMessage(input: PromptInput) {

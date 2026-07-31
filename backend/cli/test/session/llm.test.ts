@@ -4,6 +4,7 @@ import { jsonSchema, tool, type ModelMessage } from "ai"
 import type { Agent } from "../../src/agent/agent"
 import type { Provider } from "../../src/provider/provider"
 import type { MessageV2 } from "../../src/session/message-v2"
+import { PermissionNext } from "../../src/permission/next"
 
 function testModel(toolcall: boolean): Provider.Model {
   return {
@@ -96,6 +97,40 @@ describe("session.llm.modelTools", () => {
 
     expect(resolved).toBe(tools)
     expect(Object.keys(resolved)).toStrictEqual(["question"])
+  })
+
+  test('tools["*"] === false with read: true exposes only read', async () => {
+    const tools = {
+      read: questionTool(),
+      glob: questionTool(),
+      grep: questionTool(),
+    }
+    const resolved = await LLM.modelTools({
+      agent,
+      model: testModel(true),
+      tools,
+      user: { tools: { "*": false, read: true } } as unknown as MessageV2.User,
+    })
+
+    expect(Object.keys(resolved)).toStrictEqual(["read"])
+  })
+
+  test("permission deny removes a tool even when explicitly enabled", async () => {
+    const deniedAgent = {
+      permission: PermissionNext.fromConfig({ read: "deny" }),
+    } as unknown as Agent.Info
+    const tools = {
+      read: questionTool(),
+      glob: questionTool(),
+    }
+    const resolved = await LLM.modelTools({
+      agent: deniedAgent,
+      model: testModel(true),
+      tools,
+      user,
+    })
+
+    expect(Object.keys(resolved)).toStrictEqual(["glob"])
   })
 })
 

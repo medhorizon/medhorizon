@@ -4,6 +4,8 @@ Branch: `sprint/openscience-atlas-polish`. This directory holds one plan doc per
 Each plan: **Current state · What's broken/missing · Proposed change · Risks · Acceptance criteria**.
 Investigation-heavy workstreams (CI, compute, sandboxing) are findings-first.
 
+Landed bugfixes (RCA + index): [`docs/bugfix.md`](../bugfix.md). Docs hub: [`docs/README.md`](../README.md).
+
 Nothing irreversible ships without owner sign-off — **sandboxing (10) is design-only pending a go/no-go**.
 
 ## Workstreams

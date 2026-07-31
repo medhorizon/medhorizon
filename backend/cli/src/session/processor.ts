@@ -13,6 +13,7 @@ import type { Provider } from "@/provider/provider"
 import { LLM } from "./llm"
 import { Config } from "@/config/config"
 import { SessionCompaction } from "./compaction"
+import { SessionTelemetry } from "./telemetry"
 import { PermissionNext } from "@/permission/next"
 import { Question } from "@/question"
 import { OpenScience, InsufficientCreditsError } from "@/openscience"
@@ -359,6 +360,10 @@ export namespace SessionProcessor {
                   input.assistantMessage.finish = value.finishReason
                   input.assistantMessage.cost += usage.cost
                   input.assistantMessage.tokens = usage.tokens
+                  SessionTelemetry.recordUsage({
+                    sessionID: input.sessionID,
+                    tokens: usage.tokens,
+                  })
                   await Session.updatePart({
                     id: stepPartID,
                     reason: value.finishReason,

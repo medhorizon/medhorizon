@@ -745,6 +745,10 @@ export namespace Config {
         .optional()
         .describe("Maximum number of agentic iterations before forcing text-only response"),
       maxSteps: z.number().int().positive().optional().describe("@deprecated Use 'steps' field instead."),
+      toolset: z
+        .array(z.string())
+        .optional()
+        .describe("Tool availability patterns (exact IDs and wildcards). Absent = all tools."),
       permission: Permission.optional(),
     })
     .catchall(z.any())
@@ -761,6 +765,7 @@ export namespace Config {
         "color",
         "steps",
         "maxSteps",
+        "toolset",
         "options",
         "permission",
         "disable",
@@ -1268,6 +1273,12 @@ export namespace Config {
             .describe("Tools that should only be available to primary agents."),
           continue_loop_on_deny: z.boolean().optional().describe("Continue the agent loop when a tool call is denied"),
           plan_mode: z.boolean().optional().describe("Replace TodoWrite with PlanWrite and show plan panel in sidebar"),
+          tool_profiles: z
+            .boolean()
+            .optional()
+            .describe(
+              "Apply native agent toolset profiles (plan 13). Set false to expose all tools for every agent.",
+            ),
           mcp_timeout: z
             .number()
             .int()

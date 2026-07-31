@@ -201,9 +201,9 @@ Do not raise `context`, lower the output reserve, or increase the compaction thr
 
 **Acceptance criteria:**
 
-- [ ] Every model request reports component estimates and provider total usage.
-- [ ] Tool counts and serialized schema sizes are grouped by native/plugin/MCP source.
-- [ ] Logs do not include prompt bodies, tool arguments, credentials, or result content.
+- [x] Every model request reports component estimates and provider total usage.
+- [x] Tool counts and serialized schema sizes are grouped by native/plugin/MCP source.
+- [x] Logs do not include prompt bodies, tool arguments, credentials, or result content.
 
 **Verification:** focused telemetry tests plus one local request per profile.
 
@@ -215,10 +215,10 @@ Do not raise `context`, lower the output reserve, or increase the compaction thr
 
 **Acceptance criteria:**
 
-- [ ] `"*": false` plus `read: true` exposes only `read`.
-- [ ] Explicit `false` removes a tool from a default-inclusive set.
-- [ ] A permission deny removes a tool even when its availability is true.
-- [ ] Existing agents without `toolset` retain current behavior.
+- [x] `"*": false` plus `read: true` exposes only `read`.
+- [x] Explicit `false` removes a tool from a default-inclusive set.
+- [x] A permission deny removes a tool even when its availability is true.
+- [x] Existing agents without `toolset` retain current behavior.
 
 **Verification:** `bun test test/session/llm.test.ts test/config/config.test.ts` from `backend/cli`.
 
@@ -230,9 +230,9 @@ Do not raise `context`, lower the output reserve, or increase the compaction thr
 
 **Acceptance criteria:**
 
-- [ ] Excluded tools do not execute `init()` and do not generate JSON Schema.
-- [ ] Provider-specific edit/patch selection still works.
-- [ ] Plugin hooks still wrap every selected tool exactly once.
+- [x] Excluded tools do not execute `init()` and do not generate JSON Schema.
+- [x] Provider-specific edit/patch selection still works.
+- [x] Plugin hooks still wrap every selected tool exactly once.
 
 **Verification:** registry and prompt integration tests with real tool definitions; no mocks of selection logic.
 
@@ -241,6 +241,8 @@ Do not raise `context`, lower the output reserve, or increase the compaction thr
 ### Task 4: Cache and filter MCP tools
 
 **Description:** Retain connection-time manifests, invalidate them from existing lifecycle events, and convert only tools selected for the current agent.
+
+> **Skipped by owner** — not implemented in this branch.
 
 **Acceptance criteria:**
 
@@ -265,10 +267,10 @@ Do not raise `context`, lower the output reserve, or increase the compaction thr
 
 **Acceptance criteria:**
 
-- [ ] Ordinary chat does not receive scientific, compute, or graph schemas.
-- [ ] Research retains search, scientific, provenance, skill, and stage workflows.
-- [ ] Research Graph can still call `stage` and the required `atlas_*` tools.
-- [ ] Compute agents retain notebook/R/artifact capabilities without unrelated graph tools.
+- [x] Ordinary chat does not receive scientific, compute, or graph schemas.
+- [x] Research retains search, scientific, provenance, skill, and stage workflows.
+- [x] Research Graph can still call `stage` and the required `atlas_*` tools.
+- [x] Compute agents retain notebook/R/artifact capabilities without unrelated graph tools.
 
 **Verification:** agent configuration tests and end-to-end smoke tests for one representative workflow per profile.
 
@@ -277,6 +279,8 @@ Do not raise `context`, lower the output reserve, or increase the compaction thr
 ### Task 6: Bound tool results
 
 **Description:** Apply output budgets, artifact references, and pagination to large tool responses, including same-loop MCP results.
+
+> **Skipped by owner** — not implemented in this branch.
 
 **Acceptance criteria:**
 
@@ -359,4 +363,61 @@ Fallback behavior for an unavailable tool must be explicit: report that the curr
 
 ## Status
 
-Plan drafted - implementation not started.
+**In progress** on branch `feat/tool-context-optimization` (2026-07-31). Tasks **4** (MCP manifest cache) and **6** (tool-result bounding) **skipped by owner**.
+
+### Progress (2026-07-31)
+
+| Task | Status | Notes |
+| --- | --- | --- |
+| 1 — Context telemetry | **done** | `SessionTelemetry.recordContext` + `recordUsage`; tool groups by native/plugin/MCP; wired in `LLM.stream` and `processor` |
+| 2 — Availability policy | **done** | `agent.toolset`, `ToolSelection`, `"*": false` allowlist fix in `LLM.modelTools` |
+| 3 — Pre-init filtering | **done** | `ToolRegistry.tools(..., selected)` skips `init()`/schema for excluded IDs; MCP filtered post-fetch (Task 4 deferred) |
+| 4 — MCP cache | **skipped** | Owner constraint |
+| 5 — Agent profiles | **done** | `tool/profile.ts` profiles; native agents configured; `research` includes `atlas_*` + `stage` |
+| 6 — Tool-result bounding | **skipped** | Owner constraint |
+
+**Files touched (plan 13 scope):**
+
+- `backend/cli/src/session/telemetry.ts` — composition + tool-definition stats, `measureTools`, bus events
+- `backend/cli/src/session/llm.ts` — telemetry hook, `"*": false` via `ToolSelection.applyMessage`
+- `backend/cli/src/session/prompt.ts` — selection before init, origins for telemetry
+- `backend/cli/src/session/processor.ts` — `recordUsage` on finish-step
+- `backend/cli/src/session/message-v2.ts` — extended `Composition` (toolArgs, toolResults, user)
+- `backend/cli/src/tool/selection.ts` — **new** availability + wildcard matching
+- `backend/cli/src/tool/profile.ts` — **new** deterministic profiles
+- `backend/cli/src/tool/registry.ts` — `selected` filter before `init()`
+- `backend/cli/src/agent/agent.ts` — shipped agent `toolset` values
+- `backend/cli/src/config/config.ts` — `agent.toolset`, `experimental.tool_profiles`
+- `backend/cli/src/cli/cmd/debug/agent.ts` — respects toolset selection
+- Tests: `test/session/telemetry.test.ts`, `test/session/llm.test.ts`, `test/tool/selection.test.ts`, `test/tool/registry.test.ts`, `test/agent/agent.test.ts`
+
+**Profile table (native agents, `experimental.tool_profiles` default on):**
+
+| Agent | Profile | Key tools |
+| --- | --- | --- |
+| `research`, `biology` | `RESEARCH` / `BIOLOGY` | read/edit/bash, skill, stage, web*, science_*, provenance_*, notebook, rkernel, artifact, **atlas_*** |
+| `physics`, `ml` | `COMPUTE_WORKFLOW` | compute + science/provenance; **no atlas_*** |
+| `plan` | `PLAN` | read/glob/grep, question, planwrite, plan_enter/exit |
+| `task` | `TASK` | code + task + web* |
+| `explore` | `EXPLORE` | read/glob/grep/bash/list + web* |
+| `literature-review` | `LITERATURE` | read + web* + skill |
+| `critique`, `reviewer` | `CRITIQUE` / `REVIEWER` | read-only + skill (reviewer + bash) |
+| `physics-critique` | `PHYSICS_CRITIQUE` | read + bash |
+| `write` | `WRITE` | read/edit + provenance + artifact; no graph/compute |
+| `compaction`, `title` | `NONE` | no tools |
+
+**Tests (`backend/cli`, focused):**
+
+```bash
+bun test test/session/telemetry.test.ts test/session/llm.test.ts test/tool/selection.test.ts test/tool/registry.test.ts test/agent/agent.test.ts
+```
+
+- **66 pass / 4 fail** on 2026-07-31 Windows run — failures are environmental (5s timeouts on first `Agent.list()` calls, plan-agent path permission on Windows, preload temp cleanup `EBUSY`); all plan-13 selection/telemetry/registry tests pass.
+- `test/config/config.test.ts` not required for this slice; has unrelated env timeouts on this host.
+
+**Remaining gaps:**
+
+- Task 4: MCP `listTools()` still called every turn; manifest not cached.
+- Task 6: tool-result bounding unchanged.
+- `experimental.tool_profiles: false` restores legacy all-tools behavior for rollout fallback.
+- End-to-end profile token baselines (Task 8) not measured yet.

@@ -860,6 +860,12 @@ export namespace MessageV2 {
     image: number
     images: number
     total: number
+    /** Estimated tokens for tool call arguments (all tools, including skills). */
+    toolArgs: number
+    /** Estimated tokens for tool outputs/errors (all tools, including skills). */
+    toolResults: number
+    /** Estimated tokens for the latest non-ignored user text parts. */
+    user: number
   }
 
   // Deterministic, zero-cost breakdown of what the working context is made of, bucketed
@@ -869,7 +875,19 @@ export namespace MessageV2 {
   // — so a prune visibly shrinks the breakdown. `system` covers the prompt strings that
   // are not part of the message log. Powers P0 context-composition telemetry.
   export function composition(input: WithParts[], options?: { system?: string[] }): Composition {
-    const out: Composition = { system: 0, text: 0, reasoning: 0, tool: 0, skills: 0, image: 0, images: 0, total: 0 }
+    const out: Composition = {
+      system: 0,
+      text: 0,
+      reasoning: 0,
+      tool: 0,
+      skills: 0,
+      image: 0,
+      images: 0,
+      total: 0,
+      toolArgs: 0,
+      toolResults: 0,
+      user: 0,
+    }
     for (const s of options?.system ?? []) out.system += Token.estimate(s)
     const superseded = supersededOutputs(input)
 
@@ -878,11 +896,15 @@ export namespace MessageV2 {
       out.images += count
     }
 
+    const latestUser = [...input].reverse().find((msg) => msg.info.role === "user")
+
     for (const msg of input)
       for (const part of msg.parts) {
         if (part.type === "text") {
           if (part.ignored) continue
-          out.text += Token.estimate(part.text)
+          const tokens = Token.estimate(part.text)
+          out.text += tokens
+          if (msg === latestUser && !part.synthetic) out.user += tokens
           continue
         }
         if (part.type === "reasoning") {
@@ -903,25 +925,36 @@ export namespace MessageV2 {
           // Mirror toModelMessages: a compacted OR superseded call's args are truncated in
           // the render, so count them truncated here too — otherwise the breakdown over-counts.
           const reducedArgs = compacted || superseded.has(part.id)
-          out[bucket] += Token.estimate(
+          const args = Token.estimate(
             JSON.stringify((reducedArgs ? truncateArgs(part.state.input) : part.state.input) ?? {}),
           )
+          out[bucket] += args
+          out.toolArgs += args
           if (part.state.status === "completed") {
             const body = superseded.has(part.id)
               ? DUPLICATE_OUTPUT
               : compacted
                 ? toolSummary(part.tool, part.state)
                 : part.state.output
-            out[bucket] += Token.estimate(body)
+            const result = Token.estimate(body)
+            out[bucket] += result
+            out.toolResults += result
             if (!compacted && !superseded.has(part.id))
               for (const a of part.state.attachments ?? [])
                 if (a.mime.startsWith("image/")) {
                   const nudge = oversizedImageNudge(a.url, a.filename)
-                  if (nudge) out[bucket] += Token.estimate(nudge)
-                  else addImages(1)
+                  if (nudge) {
+                    const tokens = Token.estimate(nudge)
+                    out[bucket] += tokens
+                    out.toolResults += tokens
+                  } else addImages(1)
                 }
           }
-          if (part.state.status === "error") out[bucket] += Token.estimate(part.state.error)
+          if (part.state.status === "error") {
+            const tokens = Token.estimate(part.state.error)
+            out[bucket] += tokens
+            out.toolResults += tokens
+          }
         }
       }
 

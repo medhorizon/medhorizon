@@ -8,6 +8,7 @@ import { DataProvider } from "@synsci/ui/context"
 import { iife } from "@synsci/util/iife"
 import type { QuestionAnswer } from "@synsci/sdk/v2"
 import { decode64 } from "@/utils/base64"
+import { relpath } from "@/utils/relpath"
 import { showToast } from "@synsci/ui/toast"
 import { useLanguage } from "@/context/language"
 import { centerTabs } from "@/atlas/store/centerTabs"
@@ -58,8 +59,7 @@ export default function Layout(props: ParentProps) {
             // to the re-rooted directory, so strip the project prefix here.
             const openFile = (path: string) => {
               const dir = directory()
-              const rel = dir && path.startsWith(dir + "/") ? path.slice(dir.length + 1) : path
-              centerTabs.openFile(dir, rel)
+              centerTabs.openFile(dir, relpath(dir, path))
             }
 
             return (

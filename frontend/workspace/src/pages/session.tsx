@@ -31,6 +31,7 @@ import SkillsPage from "@/atlas/SkillsPage"
 import { centerTabs } from "@/atlas/store/centerTabs"
 import { FONT_MONO, FONT_SANS } from "@/styles/tokens"
 import { uiStore } from "@/atlas/store/ui"
+import { relpath } from "@/utils/relpath"
 import { useGlobalKeys } from "@/atlas/useGlobalKeys"
 import { useDialog } from "@synsci/ui/context/dialog"
 import { useCommand, type CommandOption } from "@/context/command"
@@ -216,8 +217,7 @@ export default function Page(): JSX.Element {
       const path = (e as CustomEvent).detail?.path
       if (typeof path !== "string" || !path) return
       const dir = projectPath()
-      const rel = dir && path.startsWith(dir + "/") ? path.slice(dir.length + 1) : path
-      centerTabs.openFile(dir, rel)
+      centerTabs.openFile(dir, relpath(dir, path))
     }
     document.addEventListener("openscience:open-file", onOpenFile)
     onCleanup(() => document.removeEventListener("openscience:open-file", onOpenFile))

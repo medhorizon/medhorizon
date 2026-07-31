@@ -73,4 +73,17 @@ describe("tool.registry", () => {
       },
     })
   })
+
+  test("initializes only selected tool ids", async () => {
+    await using tmp = await tmpdir()
+    await Instance.provide({
+      directory: tmp.path,
+      fn: async () => {
+        const model = { providerID: "openrouter", modelID: "claude-3" }
+        const selected = new Set(["read", "glob"])
+        const tools = await ToolRegistry.tools(model, undefined, selected)
+        expect(tools.map((t) => t.id).sort()).toEqual(["glob", "read"])
+      },
+    })
+  })
 })

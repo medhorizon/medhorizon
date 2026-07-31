@@ -16,12 +16,14 @@ import { ProviderTransform } from "@/provider/transform"
 import { Config } from "@/config/config"
 import { Instance } from "@/project/instance"
 import type { Agent } from "@/agent/agent"
-import type { MessageV2 } from "./message-v2"
+import { MessageV2 } from "./message-v2"
 import { Plugin } from "@/plugin"
 import { SystemPrompt } from "./system"
 import { Flag } from "@/flag/flag"
 import { PermissionNext } from "@/permission/next"
+import { ToolSelection } from "@/tool/selection"
 import { Auth } from "@/auth"
+import { SessionTelemetry } from "./telemetry"
 
 export namespace LLM {
   const log = Log.create({ service: "llm" })
@@ -39,6 +41,11 @@ export namespace LLM {
     small?: boolean
     tools: Record<string, Tool>
     retries?: number
+    /** Plan 13 task 1: message composition + tool origins for context telemetry. */
+    telemetry?: {
+      composition: MessageV2.Composition
+      origins?: Record<string, SessionTelemetry.Origin>
+    }
   }
 
   export type StreamOutput = StreamTextResult<ToolSet, unknown>
@@ -188,6 +195,18 @@ export namespace LLM {
       })
     }
 
+    // Plan 13 task 1: component estimates for the exact system + tool set about to ship.
+    // Provider usage is recorded separately after the step finishes.
+    const composition = SessionTelemetry.withSystem(
+      input.telemetry?.composition ?? MessageV2.composition([]),
+      system,
+    )
+    SessionTelemetry.recordContext({
+      sessionID: input.sessionID,
+      composition,
+      tools: SessionTelemetry.measureTools(tools, input.telemetry?.origins ?? {}),
+    })
+
     return streamText({
       onError(error) {
         l.error("stream error", {
@@ -293,12 +312,10 @@ export namespace LLM {
   }
 
   async function resolveTools(input: Pick<StreamInput, "tools" | "agent" | "user">) {
-    const wildcardDisable = input.user.tools?.["*"] === false
-    const disabled = PermissionNext.disabled(Object.keys(input.tools), input.agent.permission)
+    const selected = ToolSelection.applyMessage(Object.keys(input.tools), input.user.tools)
+    const denied = PermissionNext.disabled([...selected], input.agent.permission)
     for (const tool of Object.keys(input.tools)) {
-      if (wildcardDisable || input.user.tools?.[tool] === false || disabled.has(tool)) {
-        delete input.tools[tool]
-      }
+      if (!selected.has(tool) || denied.has(tool)) delete input.tools[tool]
     }
     return input.tools
   }

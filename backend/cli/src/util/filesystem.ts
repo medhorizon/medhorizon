@@ -1,5 +1,5 @@
 import { realpathSync } from "fs"
-import { dirname, isAbsolute, join, relative } from "path"
+import { dirname, isAbsolute, join, relative, resolve } from "path"
 
 export namespace Filesystem {
   export const exists = (p: string) =>
@@ -35,6 +35,15 @@ export namespace Filesystem {
   export function contains(parent: string, child: string) {
     const rel = relative(parent, child)
     return rel === "" || (!rel.startsWith("..") && !isAbsolute(rel))
+  }
+
+  /**
+   * Resolve `child` against `parent`. Prefer this over `path.join` when `child`
+   * may already be absolute — Bun's win32 `join` concatenates two absolute
+   * paths into a non-existent nested path (e.g. `D:\a` + `D:\a\b` → `D:\a\D:\a\b`).
+   */
+  export function resolvePath(parent: string, child: string) {
+    return resolve(parent, child)
   }
 
   export async function findUp(target: string, start: string, stop?: string) {

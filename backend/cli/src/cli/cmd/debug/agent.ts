@@ -6,6 +6,7 @@ import { Session } from "../../../session"
 import type { MessageV2 } from "../../../session/message-v2"
 import { Identifier } from "../../../id/id"
 import { ToolRegistry } from "../../../tool/registry"
+import { ToolSelection } from "../../../tool/selection"
 import { Instance } from "../../../project/instance"
 import { PermissionNext } from "../../../permission/next"
 import { iife } from "../../../util/iife"
@@ -71,7 +72,14 @@ export const AgentCommand = cmd({
 
 async function getAvailableTools(agent: Agent.Info) {
   const model = agent.model ?? (await Provider.defaultModel())
-  return ToolRegistry.tools(model, agent)
+  const toolset = await ToolSelection.effectiveToolset(agent)
+  const permission = agent.permission
+  const selected = ToolSelection.selected({
+    ids: await ToolRegistry.ids(model, agent),
+    toolset,
+    permission,
+  })
+  return ToolRegistry.tools(model, agent, selected)
 }
 
 async function resolveTools(agent: Agent.Info, availableTools: Awaited<ReturnType<typeof getAvailableTools>>) {

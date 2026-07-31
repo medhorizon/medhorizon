@@ -21,6 +21,7 @@ import { mergeDeep, pipe, sortBy, values } from "remeda"
 import { Global } from "@/global"
 import path from "path"
 import { Plugin } from "@/plugin"
+import * as Profile from "../tool/profile"
 
 export namespace Agent {
   export const Info = z
@@ -34,6 +35,7 @@ export namespace Agent {
       temperature: z.number().optional(),
       color: z.string().optional(),
       permission: PermissionNext.Ruleset,
+      toolset: z.array(z.string()).optional(),
       model: z
         .object({
           modelID: z.string(),
@@ -82,6 +84,7 @@ export namespace Agent {
           "Scientific research agent — literature review, data analysis, GPU compute, and synthesis across 241 skills.",
         options: {},
         color: "#06b6d4",
+        toolset: [...Profile.RESEARCH],
         permission: PermissionNext.merge(
           defaults,
           PermissionNext.fromConfig({
@@ -100,6 +103,7 @@ export namespace Agent {
           "Computational biology agent — bioinformatics analysis, 30+ biological database integrations, and systematic data-to-answer workflows.",
         options: {},
         color: "#10b981",
+        toolset: [...Profile.BIOLOGY],
         permission: PermissionNext.merge(
           defaults,
           PermissionNext.fromConfig({
@@ -117,6 +121,7 @@ export namespace Agent {
           "Computational physics agent — simulation, PDE solving, dynamical systems, symbolic regression, data analysis, and scientific computing.",
         options: {},
         color: "#8b5cf6",
+        toolset: [...Profile.COMPUTE_WORKFLOW],
         permission: PermissionNext.merge(
           defaults,
           PermissionNext.fromConfig({
@@ -134,6 +139,7 @@ export namespace Agent {
           "Machine learning agent — trains, evaluates, and analyzes models end-to-end (deep learning, LLMs, classical ML, RL) with rigorous evaluation, and builds specialized models to replace frontier APIs.",
         options: {},
         color: "#6366f1",
+        toolset: [...Profile.COMPUTE_WORKFLOW],
         permission: PermissionNext.merge(
           defaults,
           PermissionNext.fromConfig({
@@ -151,6 +157,7 @@ export namespace Agent {
           "Scientific & technical writing. Produces LaTeX papers, grants, literature reviews with verified citations and figures.",
         options: {},
         color: "#a78bfa",
+        toolset: [...Profile.WRITE],
         permission: PermissionNext.merge(
           defaults,
           PermissionNext.fromConfig({
@@ -165,6 +172,7 @@ export namespace Agent {
         name: "plan",
         description: "Plan mode. Disallows all edit tools.",
         options: {},
+        toolset: [...Profile.PLAN],
         permission: PermissionNext.merge(
           defaults,
           PermissionNext.fromConfig({
@@ -189,6 +197,7 @@ export namespace Agent {
       task: {
         name: "task",
         description: `General-purpose agent for researching complex questions and executing multi-step tasks. Use this agent to execute multiple units of work in parallel.`,
+        toolset: [...Profile.TASK],
         permission: PermissionNext.merge(
           defaults,
           PermissionNext.fromConfig({
@@ -203,6 +212,7 @@ export namespace Agent {
       },
       explore: {
         name: "explore",
+        toolset: [...Profile.EXPLORE],
         permission: PermissionNext.merge(
           defaults,
           PermissionNext.fromConfig({
@@ -232,6 +242,7 @@ export namespace Agent {
         name: "literature-review",
         description:
           "Full PRISMA literature review — systematic search, screening, eligibility, synthesis, verification.",
+        toolset: [...Profile.LITERATURE],
         permission: PermissionNext.merge(
           defaults,
           PermissionNext.fromConfig({
@@ -258,6 +269,7 @@ export namespace Agent {
         steps: 60,
         description:
           "Scientific critique specialist. Finds blocking errors — data leakage, wrong statistics, unsupported claims — in research artifacts before expensive or irreversible actions. Read-only.",
+        toolset: [...Profile.CRITIQUE],
         permission: PermissionNext.merge(
           defaults,
           PermissionNext.fromConfig({
@@ -280,6 +292,7 @@ export namespace Agent {
         steps: 60,
         description:
           "Physics critique specialist — validates computational physics results (PDE solutions, PINN outputs, fitted parameters) against rigorous physical and numerical criteria. Blind to generator reasoning (Aletheia pattern). Read-only.",
+        toolset: [...Profile.PHYSICS_CRITIQUE],
         permission: PermissionNext.merge(
           defaults,
           PermissionNext.fromConfig({
@@ -302,6 +315,7 @@ export namespace Agent {
         steps: 60,
         description:
           "Blind, adversarial reviewer of research outputs. Traces every claim, number, and figure back to the provenance DAG and evidence — flags citation mismatches, untraceable numbers, and figure/stat mismatches. Read-only.",
+        toolset: [...Profile.REVIEWER],
         permission: PermissionNext.merge(
           defaults,
           PermissionNext.fromConfig({
@@ -327,6 +341,7 @@ export namespace Agent {
         native: true,
         hidden: true,
         prompt: PROMPT_COMPACTION,
+        toolset: [...Profile.NONE],
         permission: PermissionNext.merge(
           defaults,
           PermissionNext.fromConfig({
@@ -343,6 +358,7 @@ export namespace Agent {
         native: true,
         hidden: true,
         temperature: 0.5,
+        toolset: [...Profile.NONE],
         permission: PermissionNext.merge(
           defaults,
           PermissionNext.fromConfig({
@@ -378,6 +394,7 @@ export namespace Agent {
       item.hidden = value.hidden ?? item.hidden
       item.name = value.name ?? item.name
       item.steps = value.steps ?? item.steps
+      item.toolset = value.toolset ?? item.toolset
       item.options = mergeDeep(item.options, value.options ?? {})
       item.permission = PermissionNext.merge(item.permission, PermissionNext.fromConfig(value.permission ?? {}))
     }

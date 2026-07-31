@@ -3,6 +3,7 @@ import { tmpdir } from "../fixture/fixture"
 import { Instance } from "../../src/project/instance"
 import { Agent } from "../../src/agent/agent"
 import { PermissionNext } from "../../src/permission/next"
+import { ToolSelection } from "../../src/tool/selection"
 
 // Helper to evaluate permission for a tool with wildcard pattern
 function evalPerm(agent: Agent.Info | undefined, permission: string): PermissionNext.Action | undefined {
@@ -38,6 +39,90 @@ test("research agent has correct default properties", async () => {
       expect(research?.native).toBe(true)
       expect(evalPerm(research, "edit")).toBe("allow")
       expect(evalPerm(research, "bash")).toBe("allow")
+      expect(research?.toolset).toBeDefined()
+      expect(ToolSelection.matches("stage", research!.toolset!)).toBe(true)
+      expect(ToolSelection.matches("skill", research!.toolset!)).toBe(true)
+      expect(ToolSelection.matches("atlas_graph", research!.toolset!)).toBe(true)
+      expect(ToolSelection.matches("atlas_stage", research!.toolset!)).toBe(true)
+      expect(ToolSelection.matches("provenance_record", research!.toolset!)).toBe(true)
+    },
+  })
+})
+
+test("ml and physics agents omit atlas graph tools", async () => {
+  await using tmp = await tmpdir()
+  await Instance.provide({
+    directory: tmp.path,
+    fn: async () => {
+      const ml = await Agent.get("ml")
+      const physics = await Agent.get("physics")
+      expect(ToolSelection.matches("notebook", ml!.toolset!)).toBe(true)
+      expect(ToolSelection.matches("atlas_graph", ml!.toolset!)).toBe(false)
+      expect(ToolSelection.matches("atlas_stage", physics!.toolset!)).toBe(false)
+    },
+  })
+})
+
+test("write agent omits graph and compute-only schemas", async () => {
+  await using tmp = await tmpdir()
+  await Instance.provide({
+    directory: tmp.path,
+    fn: async () => {
+      const write = await Agent.get("write")
+      expect(ToolSelection.matches("provenance_record", write!.toolset!)).toBe(true)
+      expect(ToolSelection.matches("atlas_graph", write!.toolset!)).toBe(false)
+      expect(ToolSelection.matches("notebook", write!.toolset!)).toBe(false)
+    },
+  })
+})
+
+test("compaction and title agents ship with empty toolsets", async () => {
+  await using tmp = await tmpdir()
+  await Instance.provide({
+    directory: tmp.path,
+    fn: async () => {
+      const compaction = await Agent.get("compaction")
+      const title = await Agent.get("title")
+      expect(compaction?.toolset).toEqual([])
+      expect(title?.toolset).toEqual([])
+    },
+  })
+})
+
+test("custom agent without toolset keeps backward-compatible all-tools default", async () => {
+  await using tmp = await tmpdir({
+    config: {
+      agent: {
+        my_custom_agent: {
+          description: "Custom",
+        },
+      },
+    },
+  })
+  await Instance.provide({
+    directory: tmp.path,
+    fn: async () => {
+      const custom = await Agent.get("my_custom_agent")
+      expect(custom?.toolset).toBeUndefined()
+    },
+  })
+})
+
+test("agent toolset config overrides native profile", async () => {
+  await using tmp = await tmpdir({
+    config: {
+      agent: {
+        research: {
+          toolset: ["read"],
+        },
+      },
+    },
+  })
+  await Instance.provide({
+    directory: tmp.path,
+    fn: async () => {
+      const research = await Agent.get("research")
+      expect(research?.toolset).toEqual(["read"])
     },
   })
 })

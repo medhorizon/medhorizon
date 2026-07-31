@@ -4,6 +4,29 @@ MedHorizon follows [semantic versioning](https://semver.org). GitHub Releases
 (`v0.x`) ship native binaries for Linux, macOS (Apple Silicon), and Windows via
 the `Release` workflow. Upstream OpenScience history is retained below.
 
+## MedHorizon v0.3.11 — 2026-07-31
+
+### Added
+
+- **Agent tool context optimization (plan 13, tasks 1/2/3/5):** context composition
+  telemetry (system/tool/message breakdown, no secrets in logs); `agent.toolset`
+  availability profiles separate from permissions; filter tools **before** `init()`
+  and JSON Schema conversion; deterministic shipped profiles (`research` includes
+  local Research Graph `atlas_*` + `stage`). Rollback: `experimental.tool_profiles:
+  false` restores all-tools behavior. Tasks 4 (MCP cache) and 6 (tool-result
+  bounding) deferred.
+
+### Fixed
+
+- Per-message tool allowlist: `tools["*"]: false` now keeps explicitly `true` tools
+  instead of removing everything.
+- File path traversal hardening in CLI file utilities.
+- Workspace session UI relative path normalization (`relpath` helper).
+
+### Changed
+
+- Documented bugfix RCA index in `docs/bugfix.md` and `docs/README.md`.
+
 ## MedHorizon v0.3.10 — 2026-07-31
 
 ### Changed

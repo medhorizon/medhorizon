@@ -103,6 +103,40 @@ export namespace ToolRegistry {
     custom.push(tool)
   }
 
+  function capable(
+    tools: Tool.Info[],
+    model: {
+      providerID: string
+      modelID: string
+    },
+    agent?: Agent.Info,
+  ) {
+    return tools.filter((t) => {
+      // Biology-only tools: only available for the biology agent.
+      if (BIOLOGY_TOOL_IDS.has(t.id)) {
+        return agent?.name === "biology"
+      }
+
+      // Artifact tool: only for artifact-oriented scientific agents.
+      if (t.id === ARTIFACT_TOOL_ID) {
+        return !!agent?.name && ARTIFACT_AGENTS.includes(agent.name)
+      }
+
+      // Enable websearch/codesearch for zen users OR via enable flag
+      if (t.id === "codesearch" || t.id === "websearch") {
+        return model.providerID === "synsci" || Flag.OPENSCIENCE_ENABLE_EXA
+      }
+
+      // use apply tool in same format as codex
+      const usePatch =
+        model.modelID.includes("gpt-") && !model.modelID.includes("oss") && !model.modelID.includes("gpt-4")
+      if (t.id === "apply_patch") return usePatch
+      if (t.id === "edit" || t.id === "write") return !usePatch
+
+      return true
+    })
+  }
+
   async function all(): Promise<Tool.Info[]> {
     const custom = await state().then((x) => x.custom)
     const config = await Config.get()
@@ -144,8 +178,20 @@ export namespace ToolRegistry {
   const ARTIFACT_TOOL_ID = "artifact"
   const ARTIFACT_AGENTS = ["research", "biology", "ml"]
 
-  export async function ids() {
-    return all().then((x) => x.map((t) => t.id))
+  export async function definitions() {
+    return all()
+  }
+
+  /** IDs contributed by plugins or `{tool,tools}/*` config modules (not built-ins). */
+  export async function customIds() {
+    const { custom } = await state()
+    return new Set(custom.map((tool) => tool.id))
+  }
+
+  export async function ids(model?: { providerID: string; modelID: string }, agent?: Agent.Info) {
+    const tools = await definitions()
+    if (!model) return tools.map((t) => t.id)
+    return capable(tools, model, agent).map((t) => t.id)
   }
 
   export async function tools(
@@ -154,41 +200,18 @@ export namespace ToolRegistry {
       modelID: string
     },
     agent?: Agent.Info,
+    selected?: ReadonlySet<string>,
   ) {
-    const tools = await all()
+    const defs = capable(await definitions(), model, agent)
+    const tools = selected ? defs.filter((t) => selected.has(t.id)) : defs
     const result = await Promise.all(
-      tools
-        .filter((t) => {
-          // Biology-only tools: only available for the biology agent.
-          if (BIOLOGY_TOOL_IDS.has(t.id)) {
-            return agent?.name === "biology"
-          }
-
-          // Artifact tool: only for artifact-oriented scientific agents.
-          if (t.id === ARTIFACT_TOOL_ID) {
-            return !!agent?.name && ARTIFACT_AGENTS.includes(agent.name)
-          }
-
-          // Enable websearch/codesearch for zen users OR via enable flag
-          if (t.id === "codesearch" || t.id === "websearch") {
-            return model.providerID === "synsci" || Flag.OPENSCIENCE_ENABLE_EXA
-          }
-
-          // use apply tool in same format as codex
-          const usePatch =
-            model.modelID.includes("gpt-") && !model.modelID.includes("oss") && !model.modelID.includes("gpt-4")
-          if (t.id === "apply_patch") return usePatch
-          if (t.id === "edit" || t.id === "write") return !usePatch
-
-          return true
-        })
-        .map(async (t) => {
-          using _ = log.time(t.id)
-          return {
-            id: t.id,
-            ...(await t.init({ agent })),
-          }
-        }),
+      tools.map(async (t) => {
+        using _ = log.time(t.id)
+        return {
+          id: t.id,
+          ...(await t.init({ agent })),
+        }
+      }),
     )
     return result
   }

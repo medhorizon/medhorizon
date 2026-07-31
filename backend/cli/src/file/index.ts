@@ -9,6 +9,7 @@ import path from "path"
 import fs from "fs"
 import ignore from "ignore"
 import { Log } from "../util/log"
+import { Filesystem } from "../util/filesystem"
 import { Instance } from "../project/instance"
 import { Ripgrep } from "./ripgrep"
 import fuzzysort from "fuzzysort"
@@ -289,7 +290,8 @@ export namespace File {
   export async function read(file: string): Promise<Content> {
     using _ = log.time("read", { file })
     const project = Instance.project
-    const full = path.join(Instance.directory, file)
+    const full = Filesystem.resolvePath(Instance.directory, file)
+    const local = path.relative(Instance.directory, full) || "."
 
     // TODO: Filesystem.contains is lexical only - symlinks inside the project can escape.
     // TODO: On Windows, cross-drive paths bypass this check. Consider realpath canonicalization.
@@ -318,11 +320,11 @@ export namespace File {
     const content = await bunFile.text().catch(() => "")
 
     if (project.vcs === "git") {
-      let diff = await $`git diff ${file}`.cwd(Instance.directory).quiet().nothrow().text()
-      if (!diff.trim()) diff = await $`git diff --staged ${file}`.cwd(Instance.directory).quiet().nothrow().text()
+      let diff = await $`git diff ${local}`.cwd(Instance.directory).quiet().nothrow().text()
+      if (!diff.trim()) diff = await $`git diff --staged ${local}`.cwd(Instance.directory).quiet().nothrow().text()
       if (diff.trim()) {
-        const original = await $`git show HEAD:${file}`.cwd(Instance.directory).quiet().nothrow().text()
-        const patch = structuredPatch(file, file, original, content, "old", "new", {
+        const original = await $`git show HEAD:${local}`.cwd(Instance.directory).quiet().nothrow().text()
+        const patch = structuredPatch(local, local, original, content, "old", "new", {
           context: Infinity,
           ignoreWhitespace: true,
         })
@@ -335,7 +337,7 @@ export namespace File {
 
   export async function write(file: string, content: string): Promise<Content> {
     using _ = log.time("write", { file })
-    const full = path.join(Instance.directory, file)
+    const full = Filesystem.resolvePath(Instance.directory, file)
     if (!Instance.containsPath(full)) {
       throw new Error(`Access denied: path escapes project directory`)
     }
@@ -368,7 +370,7 @@ export namespace File {
       }
       ignored = ig.ignores.bind(ig)
     }
-    const resolved = dir ? path.join(Instance.directory, dir) : Instance.directory
+    const resolved = dir ? Filesystem.resolvePath(Instance.directory, dir) : Instance.directory
 
     // TODO: Filesystem.contains is lexical only - symlinks inside the project can escape.
     // TODO: On Windows, cross-drive paths bypass this check. Consider realpath canonicalization.

@@ -1,5 +1,7 @@
 # Local verification
 
+Bugfix RCA and the fix index live in [`docs/bugfix.md`](../bugfix.md).
+
 Before pushing to `main` (or opening a PR), run the same gates CI enforces, so a
 red build never reaches the default branch.
 
