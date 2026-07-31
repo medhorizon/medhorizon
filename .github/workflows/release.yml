@@ -209,29 +209,36 @@ jobs:
         with:
           name: "MedHorizon ${{ github.ref_name }}"
           body: |
-            ## 本版本亮点（v0.3.9）
+            ## MedHorizon v0.3.11 — 2026-07-31
 
-            - **修复**流式 `tool_calls` 截断导致的 `AI_JSONParseError` / Unterminated string：自动重试该轮，不再硬失败
-            - Research Graph sidecar + 内置插件仍随 MedHorizon 一起启动
-            - Research Graph UI+API：`http://127.0.0.1:8000`
-            - 安装包仍为离线二进制（`medhorizon` + `research-graph`）
+            ### Added
+
+            - **Agent tool context optimization (plan 13):** context composition telemetry; `agent.toolset` profiles; filter tools before schema conversion; `research` includes local Research Graph `atlas_*` + `stage`. Rollback: `experimental.tool_profiles: false`.
+
+            ### Fixed
+
+            - Tool allowlist: `tools["*"]: false` keeps explicitly `true` tools.
+            - Path traversal hardening; workspace relpath normalization.
+
+            ### Changed
+
+            - Bugfix RCA index: `docs/bugfix.md`.
 
             ## 一键安装
 
             ### Windows
-            1. 下载 [`medhorizon-windows-installer.zip`](https://github.com/medhorizon/medhorizon/releases/latest/download/medhorizon-windows-installer.zip)
+            1. 下载 [`medhorizon-windows-installer.zip`](https://github.com/medhorizon/medhorizon/releases/download/${{ github.ref_name }}/medhorizon-windows-installer.zip)
             2. 解压后双击 `install.bat`（含 `medhorizon.exe` + `research-graph.exe`）
-            3. 桌面快捷方式启动后会自动拉起 Research Graph sidecar + 插件
 
             ### macOS (Apple Silicon)
             ```bash
-            curl -fsSL -o mh.tgz https://github.com/medhorizon/medhorizon/releases/latest/download/medhorizon-macos-arm64-installer.tar.gz
+            curl -fsSL -o mh.tgz https://github.com/medhorizon/medhorizon/releases/download/${{ github.ref_name }}/medhorizon-macos-arm64-installer.tar.gz
             mkdir mh && tar -xzf mh.tgz -C mh && cd mh && ./install.sh
             ```
 
             ### Linux
             ```bash
-            curl -fsSL -o mh.tgz https://github.com/medhorizon/medhorizon/releases/latest/download/medhorizon-linux-x64-installer.tar.gz
+            curl -fsSL -o mh.tgz https://github.com/medhorizon/medhorizon/releases/download/${{ github.ref_name }}/medhorizon-linux-x64-installer.tar.gz
             mkdir mh && tar -xzf mh.tgz -C mh && cd mh && ./install.sh
             ```
 
@@ -239,7 +246,7 @@ jobs:
             设置环境变量 `RESEARCH_GRAPH_DISABLE=1` 可跳过 sidecar 与内置插件。
 
             ---
-            完整说明见 [README](https://github.com/medhorizon/medhorizon#readme)
+            完整说明见 [README](https://github.com/medhorizon/medhorizon#readme) · [CHANGELOG](https://github.com/medhorizon/medhorizon/blob/release/v0.3.11/CHANGELOG.md)
           files: |
             artifacts/*
           draft: false
