@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState, type RefObject } from "react"
 import {
   Background,
   Controls,
@@ -7,6 +7,7 @@ import {
   MarkerType,
   useEdgesState,
   useNodesState,
+  useReactFlow,
   type Edge as FlowEdge,
   type Node as FlowNode,
 } from "@xyflow/react"
@@ -29,6 +30,47 @@ function isStageNode(node: Node) {
 
 type Menu = { x: number; y: number; node: Node }
 
+/** Refit when host grows from 0×0 (iframe/flex mount) or when graph content changes. */
+function ViewportSync(props: { hostRef: RefObject<HTMLDivElement | null>; revision: string }) {
+  const { fitView } = useReactFlow()
+  const last = useRef({ w: 0, h: 0, revision: "" })
+
+  useEffect(() => {
+    const host = props.hostRef.current
+    if (!host) return
+
+    const apply = (force: boolean) => {
+      const rect = host.getBoundingClientRect()
+      const w = rect.width
+      const h = rect.height
+      if (w < 8 || h < 8) {
+        last.current.w = 0
+        last.current.h = 0
+        return
+      }
+      const grew = last.current.w < 8 || last.current.h < 8
+      const revChanged = last.current.revision !== props.revision
+      if (!force && !grew && !revChanged) {
+        last.current.w = w
+        last.current.h = h
+        return
+      }
+      last.current = { w, h, revision: props.revision }
+      // rAF: wait for React Flow layout after nodes land / size settles
+      requestAnimationFrame(() => {
+        void fitView({ padding: 0.15, duration: 0 })
+      })
+    }
+
+    apply(true)
+    const ro = new ResizeObserver(() => apply(false))
+    ro.observe(host)
+    return () => ro.disconnect()
+  }, [fitView, props.hostRef, props.revision])
+
+  return null
+}
+
 export function GraphCanvas(props: {
   nodes: Node[]
   edges: Edge[]
@@ -36,6 +78,7 @@ export function GraphCanvas(props: {
   onOpenSession?: (node: Node) => void
   onBranch?: (node: Node) => void
 }) {
+  const wrapRef = useRef<HTMLDivElement>(null)
   const [menu, setMenu] = useState<Menu | null>(null)
 
   const initialNodes: FlowNode[] = useMemo(
@@ -79,6 +122,12 @@ export function GraphCanvas(props: {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes)
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges)
 
+  // Key off rendered RF graph ids (not props) so fitView runs after setNodes lands.
+  const revision = useMemo(
+    () => `${nodes.map((n) => n.id).join("|")}#${edges.map((e) => e.id).join("|")}`,
+    [nodes, edges],
+  )
+
   useEffect(() => {
     setNodes(initialNodes)
     setEdges(initialEdges)
@@ -91,13 +140,20 @@ export function GraphCanvas(props: {
   }, [])
 
   return (
-    <div className="canvas-wrap" onContextMenu={(e) => e.preventDefault()}>
+    <div className="canvas-wrap" ref={wrapRef} onContextMenu={(e) => e.preventDefault()}>
       <ReactFlow
         nodes={nodes}
         edges={edges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         fitView
+        fitViewOptions={{ padding: 0.15 }}
+        proOptions={{ hideAttribution: true }}
+        onInit={(instance) => {
+          requestAnimationFrame(() => {
+            void instance.fitView({ padding: 0.15, duration: 0 })
+          })
+        }}
         onNodeClick={(_, node) => {
           setMenu(null)
           const found = props.nodes.find((n) => n.id === node.id) ?? null
@@ -123,9 +179,10 @@ export function GraphCanvas(props: {
           props.onSelect?.(null)
         }}
       >
+        <ViewportSync hostRef={wrapRef} revision={revision} />
         <Background color="#2a3830" gap={18} />
         <MiniMap nodeStrokeColor="#3d9b6e" maskColor="rgb(10,14,12,0.7)" />
-        <Controls />
+        <Controls showFitView />
       </ReactFlow>
       {menu ? (
         <div className="rg-context-menu" style={{ left: menu.x, top: menu.y }} role="menu">

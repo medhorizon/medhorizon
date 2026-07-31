@@ -8,6 +8,7 @@ import { uiStore, type RightPaneTab } from "@/atlas/store/ui"
 import { SkillLibraryDialog } from "@/atlas/SkillsBrowser"
 import { AtlasCanvas } from "@/atlas/AtlasCanvas"
 import { StagesPanel } from "@/atlas/StagesPanel"
+import { ResearchGraphPane } from "@/atlas/ResearchGraphPane"
 import { toast } from "@/atlas/Toast"
 import { useLanguage } from "@/context/language"
 import {
@@ -18,6 +19,7 @@ import {
   IconChevronLeft,
   IconSettings,
   IconTerminal,
+  IconNetwork,
 } from "@/atlas/shared/Icon"
 
 const RIGHT_PANE_WIDTH_KEY = "thesis-right-pane-width-v1"
@@ -51,6 +53,7 @@ export function RightPane(): JSX.Element {
   const TABS: { k: RightPaneTab; label?: string; Icon: (p: { size?: number; strokeWidth?: number }) => JSX.Element }[] =
     [
       { k: "canvas", label: "atlas", Icon: IconLayoutGrid },
+      { k: "research-graph", label: "research graph", Icon: IconNetwork },
       { k: "stages", label: language.t("atlas.tab.stages"), Icon: IconActivity },
       { k: "terminal", Icon: IconTerminal },
     ]
@@ -225,6 +228,9 @@ export function RightPane(): JSX.Element {
         <div style={{ flex: 1, "min-height": 0, position: "relative", display: "flex", "flex-direction": "column" }}>
           <KeepAlive show={tab() === "canvas"} mounted={visited().has("canvas")}>
             <CanvasTab />
+          </KeepAlive>
+          <KeepAlive show={tab() === "research-graph"} mounted={visited().has("research-graph")}>
+            <ResearchGraphPane />
           </KeepAlive>
           <KeepAlive show={tab() === "stages"} mounted={visited().has("stages")}>
             <StagesPanel />

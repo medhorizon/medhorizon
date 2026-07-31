@@ -209,12 +209,17 @@ jobs:
         with:
           name: "MedHorizon ${{ github.ref_name }}"
           body: |
-            ## MedHorizon v0.3.12 — 2026-07-31
+            ## MedHorizon v0.3.14 — 2026-07-31
 
             ### Added
 
-            - **MCP manifest cache (plan 13 task 4):** TTL + last-good `listTools()` cache, single-flight refresh, cache metrics. Flag: `experimental.mcp_manifest_cache` (default off).
-            - **Bounded tool results (plan 13 task 6):** deterministic truncation, log severity retention, search hit index, RG keep-lists, artifact spill. Flag: `experimental.tool_result_bound` (default off).
+            - **Research Graph sidebar:** RightPane embeds `/embed/graph/:id` (canvas-only). Session→graph: bind → stages/by-session → title match → skip empty stub; auto pinBind.
+            - **Embed ViewportSync:** fitView when iframe host grows or graph content changes.
+
+            ### Fixed
+
+            - UTF-8 BOM in `openscience.json` no longer breaks RG OpenAI/`/health` config load.
+            - Local OpenAI-compatible providers: default context 32k→256k (legacy placeholder upgrade).
 
             ## 一键安装
 
@@ -238,7 +243,7 @@ jobs:
             设置环境变量 `RESEARCH_GRAPH_DISABLE=1` 可跳过 sidecar 与内置插件。
 
             ---
-            完整说明见 [README](https://github.com/medhorizon/medhorizon#readme) · [CHANGELOG](https://github.com/medhorizon/medhorizon/blob/release/v0.3.12/CHANGELOG.md)
+            完整说明见 [README](https://github.com/medhorizon/medhorizon#readme) · [CHANGELOG](https://github.com/medhorizon/medhorizon/blob/release/v0.3.14/CHANGELOG.md)
           files: |
             artifacts/*
           draft: false

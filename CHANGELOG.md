@@ -4,6 +4,29 @@ MedHorizon follows [semantic versioning](https://semver.org). GitHub Releases
 (`v0.x`) ship native binaries for Linux, macOS (Apple Silicon), and Windows via
 the `Release` workflow. Upstream OpenScience history is retained below.
 
+## MedHorizon v0.3.14 — 2026-07-31
+
+### Added
+
+- **Research Graph MedHorizon sidebar:** RightPane tab embeds the session graph via
+  `/embed/graph/:id` (canvas-only UI). Session→graph resolve order: bind →
+  `stages/by-session` → title match → latest populated (skip empty stub); auto
+  `pinBind` on successful resolve.
+- **Embed ViewportSync:** React Flow `fitView` when the iframe host grows from 0×0
+  or graph content changes.
+
+### Fixed
+
+- Research Graph `/health` / OpenAI config load: strip UTF-8 BOM when parsing
+  MedHorizon `openscience.json` (`medhorizon_openai.py`).
+- Local OpenAI-compatible providers: default model context **32k → 256k**; upgrade
+  legacy 32k placeholders on remote gateways so compaction does not fire early
+  (catalog may still shrink the window).
+
+### Changed
+
+- Documented plan 14 (orchestrator parent + narrow subagents) in `docs/plans/`.
+
 ## MedHorizon v0.3.12 — 2026-07-31
 
 ### Added

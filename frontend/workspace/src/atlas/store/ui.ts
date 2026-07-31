@@ -1,6 +1,6 @@
 import { createSignal } from "solid-js"
 
-export type RightPaneTab = "canvas" | "stages" | "terminal"
+export type RightPaneTab = "canvas" | "stages" | "terminal" | "research-graph"
 
 const PANE_OPEN_KEY = "thesis-rightpane-open-v1"
 const HIDDEN_TABS_KEY = "thesis-rightpane-hidden-tabs-v1"

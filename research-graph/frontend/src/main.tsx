@@ -16,6 +16,8 @@ createRoot(document.getElementById("root")!).render(
     <BrowserRouter>
       <Routes>
         <Route path="embed/card" element={<EmbedCard />} />
+        {/* Chromeless graph canvas for MedHorizon right-pane iframe */}
+        <Route path="embed/graph/:id" element={<GraphView />} />
         <Route element={<Shell />}>
           <Route index element={<Dashboard />} />
           <Route path="graphs/:id" element={<GraphView />} />

@@ -116,6 +116,33 @@ export namespace LocalProvider {
    *  but the SDK rejects an empty key. */
   export const DEFAULT_API_KEY = "local"
 
+  /** Default per-model context written by `buildProviderConfig` when the user
+   *  does not pass `contextLimit`. Compaction reads `model.limit.context`. */
+  export const DEFAULT_CONTEXT = 256_000
+  export const DEFAULT_OUTPUT = 8_192
+
+  /** Legacy discovery placeholder from older OpenScience builds. */
+  export const LEGACY_PLACEHOLDER_CONTEXT = 32_768
+
+  /** True for user-defined OpenAI-compatible gateways (e.g. CPA :8317), not Ollama presets. */
+  export function isRemoteCompatible(providerID: string, npm?: string) {
+    if (npm !== NPM) return false
+    return !PRESETS.some((preset) => preset.id === providerID)
+  }
+
+  /**
+   * Resolve the effective context window for compaction:
+   * - New models default to 256k in config.
+   * - If models.dev reports a **smaller** window, use the catalog value (do not overclaim).
+   * - Legacy 32k placeholders on remote gateways upgrade to 256k (unless catalog is smaller).
+   */
+  export function resolveContext(configured: number, catalog?: number, remote = false) {
+    const base =
+      configured === LEGACY_PLACEHOLDER_CONTEXT && remote ? DEFAULT_CONTEXT : configured || DEFAULT_CONTEXT
+    if (catalog && catalog > 0 && catalog < base) return catalog
+    return base
+  }
+
   /** Normalize a user-entered base URL to an OpenAI-compatible `…/v1` root:
    *  trims whitespace and trailing slashes, adds `http://` if no scheme, and
    *  appends `/v1` when the path doesn't already end in a version segment. */
@@ -212,7 +239,7 @@ export namespace LocalProvider {
     baseURL: string
     apiKey?: string
     models: string[]
-    /** Per-model context window; local models vary widely, 32k is a safe default. */
+    /** Per-model context window; defaults to 256k (catalog may shrink at merge). */
     contextLimit?: number
     outputLimit?: number
   }): Record<string, unknown> {
@@ -224,7 +251,10 @@ export namespace LocalProvider {
         reasoning: false,
         temperature: true,
         cost: { input: 0, output: 0 },
-        limit: { context: input.contextLimit ?? 32_768, output: input.outputLimit ?? 8_192 },
+        limit: {
+          context: input.contextLimit ?? DEFAULT_CONTEXT,
+          output: input.outputLimit ?? DEFAULT_OUTPUT,
+        },
       }
     }
     return {

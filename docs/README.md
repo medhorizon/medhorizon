@@ -5,6 +5,7 @@ Internal documentation for MedHorizon / OpenScience (not the public docs site un
 | Path | Purpose |
 | ---- | ------- |
 | [bugfix.md](bugfix.md) | **Bugfix 索引 + RCA**（已落地缺陷修复） |
+| [releases/](releases/) | Version release notes (`v0.3.x`) |
 | [notes/](notes/) | Release, verification, deferred work, inventory |
 | [plans/](plans/) | Sprint / workstream plans（见 [plans/README.md](plans/README.md)） |
 

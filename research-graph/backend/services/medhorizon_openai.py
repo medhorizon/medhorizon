@@ -63,7 +63,8 @@ def strip_jsonc(text: str) -> str:
 
 
 def parse_jsonc(text: str) -> dict[str, Any]:
-    data = json.loads(strip_jsonc(text))
+    # Windows editors often save JSON/JSONC with a UTF-8 BOM; json.loads rejects it.
+    data = json.loads(strip_jsonc(text.lstrip("\ufeff")))
     return data if isinstance(data, dict) else {}
 
 
@@ -277,7 +278,7 @@ def load_medhorizon_openai(
     path = find_config_file(config_path=config_path, config_dir=config_dir)
     if path is None:
         return None
-    data = parse_jsonc(path.read_text(encoding="utf-8"))
+    data = parse_jsonc(path.read_text(encoding="utf-8-sig"))
     picked = pick_provider(data, provider_id=provider_id)
     if picked is None:
         return None

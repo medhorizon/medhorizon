@@ -58,6 +58,16 @@ def test_load_medhorizon_openai_from_temp_jsonc(tmp_path: Path):
     assert loaded.source == "medhorizon"
 
 
+def test_load_medhorizon_openai_accepts_utf8_bom(tmp_path: Path):
+    path = tmp_path / "medhorizon.jsonc"
+    path.write_bytes(b"\xef\xbb\xbf" + SAMPLE.encode("utf-8"))
+    clear_medhorizon_openai_cache()
+    loaded = load_medhorizon_openai(config_path=str(path))
+    assert loaded is not None
+    assert loaded.api_key == "sk-test-from-jsonc"
+    assert parse_jsonc("\ufeff" + SAMPLE)["model"] == "local-8317/claude-4.5-sonnet"
+
+
 def test_resolve_env_overrides_medhorizon(tmp_path: Path, monkeypatch):
     path = tmp_path / "medhorizon.jsonc"
     path.write_text(SAMPLE, encoding="utf-8")

@@ -61,7 +61,7 @@ describe("LocalProvider.buildProviderConfig", () => {
       name: "llama3.1",
       tool_call: true,
       cost: { input: 0, output: 0 },
-      limit: { context: 32768, output: 8192 },
+      limit: { context: LocalProvider.DEFAULT_CONTEXT, output: LocalProvider.DEFAULT_OUTPUT },
     })
   })
   test("uses a supplied apiKey when given", () => {
@@ -72,6 +72,38 @@ describe("LocalProvider.buildProviderConfig", () => {
       models: ["m"],
     }) as any
     expect(block.options.apiKey).toBe("sk-local")
+  })
+})
+
+describe("LocalProvider.resolveContext", () => {
+  test("new models default to 256k when configured is unset/zero", () => {
+    expect(LocalProvider.resolveContext(0, undefined, false)).toBe(LocalProvider.DEFAULT_CONTEXT)
+  })
+  test("keeps an explicit context when catalog is larger", () => {
+    expect(LocalProvider.resolveContext(256_000, 1_000_000, true)).toBe(256_000)
+  })
+  test("uses models.dev when the catalog window is smaller", () => {
+    expect(LocalProvider.resolveContext(256_000, 128_000, false)).toBe(128_000)
+    expect(LocalProvider.resolveContext(200_000, 32_768, true)).toBe(32_768)
+  })
+  test("upgrades legacy 32k remote placeholder to 256k", () => {
+    expect(
+      LocalProvider.resolveContext(LocalProvider.LEGACY_PLACEHOLDER_CONTEXT, undefined, true),
+    ).toBe(LocalProvider.DEFAULT_CONTEXT)
+  })
+  test("legacy 32k remote + smaller catalog uses catalog", () => {
+    expect(
+      LocalProvider.resolveContext(LocalProvider.LEGACY_PLACEHOLDER_CONTEXT, 100_000, true),
+    ).toBe(100_000)
+  })
+  test("leaves legacy 32k on ollama presets when there is no catalog hit", () => {
+    expect(
+      LocalProvider.resolveContext(LocalProvider.LEGACY_PLACEHOLDER_CONTEXT, undefined, false),
+    ).toBe(LocalProvider.LEGACY_PLACEHOLDER_CONTEXT)
+  })
+  test("isRemoteCompatible is true for custom gateways, false for presets", () => {
+    expect(LocalProvider.isRemoteCompatible("local-8317", LocalProvider.NPM)).toBe(true)
+    expect(LocalProvider.isRemoteCompatible("ollama", LocalProvider.NPM)).toBe(false)
   })
 })
 

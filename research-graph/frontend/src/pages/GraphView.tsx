@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { Link, useParams } from "react-router-dom"
+import { Link, useLocation, useParams } from "react-router-dom"
 import { GraphCanvas } from "../components/GraphCanvas"
 import { NodePanel } from "../components/NodePanel"
 import { api, type Edge, type Experiment, type Node } from "../lib/api"
@@ -10,6 +10,8 @@ function openUrl(url: string) {
 
 export function GraphView() {
   const params = useParams()
+  const location = useLocation()
+  const embed = location.pathname.startsWith("/embed/graph/")
   const graphId = params.id!
   const [nodes, setNodes] = useState<Node[]>([])
   const [edges, setEdges] = useState<Edge[]>([])
@@ -73,6 +75,22 @@ export function GraphView() {
     selected?.kind === "experiment"
       ? (experiments.find((e) => e.title === selected.title) ?? experiments[0])
       : experiments.find((e) => e.hypothesis_node_id === selected?.id)
+
+  // MedHorizon sidebar: canvas only for the bound session graph.
+  if (embed) {
+    return (
+      <div className="embed-graph embed-graph-canvas">
+        {error ? <div className="error embed-graph-error">{error}</div> : null}
+        <GraphCanvas
+          nodes={visible}
+          edges={edges}
+          onSelect={setSelected}
+          onOpenSession={(n) => void openSession(n)}
+          onBranch={(n) => void branchHere(n)}
+        />
+      </div>
+    )
+  }
 
   return (
     <div className="stack">

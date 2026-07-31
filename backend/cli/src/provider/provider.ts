@@ -40,9 +40,28 @@ import { createPerplexity } from "@ai-sdk/perplexity"
 import { createVercel } from "@ai-sdk/vercel"
 import { createGitLab } from "@gitlab/gitlab-ai-provider"
 import { ProviderTransform } from "./transform"
+import { LocalProvider } from "./local"
 
 export namespace Provider {
   const log = Log.create({ service: "provider" })
+
+  /** Best models.dev context for a model id (any provider). Used to upgrade the
+   *  LocalProvider 32k discovery placeholder so compaction does not fire early. */
+  export function catalogContext(modelID: string, database: Record<string, ModelsDev.Provider>) {
+    const ids = [modelID]
+    const bare = modelID.replace(/-thinking$/i, "").replace(/-high$/i, "")
+    if (bare !== modelID) ids.push(bare)
+    for (const id of ids) {
+      for (const provider of Object.values(database)) {
+        const direct = provider.models[id]
+        if (direct?.limit?.context) return direct.limit.context
+        for (const model of Object.values(provider.models)) {
+          if (model.id === id && model.limit?.context) return model.limit.context
+        }
+      }
+    }
+    return undefined
+  }
 
   // Models exposed by the ChatGPT / Codex OAuth transport. Keep the dot and
   // dash spellings because older models.dev snapshots normalized version dots
@@ -1373,7 +1392,11 @@ export namespace Provider {
           },
           options: mergeDeep(existingModel?.options ?? {}, model.options ?? {}),
           limit: {
-            context: model.limit?.context ?? existingModel?.limit?.context ?? 0,
+            context: LocalProvider.resolveContext(
+              model.limit?.context ?? existingModel?.limit?.context ?? 0,
+              catalogContext(model.id ?? modelID, modelsDev),
+              LocalProvider.isRemoteCompatible(providerID, provider.npm ?? existing?.npm ?? LocalProvider.NPM),
+            ),
             output: model.limit?.output ?? existingModel?.limit?.output ?? 0,
           },
           headers: mergeDeep(existingModel?.headers ?? {}, model.headers ?? {}),
