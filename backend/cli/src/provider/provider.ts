@@ -1395,7 +1395,10 @@ export namespace Provider {
             context: LocalProvider.resolveContext(
               model.limit?.context ?? existingModel?.limit?.context ?? 0,
               catalogContext(model.id ?? modelID, modelsDev),
-              LocalProvider.isRemoteCompatible(providerID, provider.npm ?? existing?.npm ?? LocalProvider.NPM),
+              LocalProvider.isRemoteCompatible(
+                providerID,
+                provider.npm ?? existingModel?.api.npm ?? modelsDev[providerID]?.npm ?? LocalProvider.NPM,
+              ),
             ),
             output: model.limit?.output ?? existingModel?.limit?.output ?? 0,
           },

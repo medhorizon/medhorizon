@@ -1093,7 +1093,7 @@ export namespace SessionPrompt {
 
         const mcpServer = SessionTelemetry.mcpServer(key, servers) ?? "unknown"
         const run = () => execute(args, opts)
-        const result = await run().catch(async (error) => {
+        const result = await run().catch(async (error: unknown) => {
           const cfg = await Config.get()
           if (cfg.experimental?.mcp_manifest_cache && MCP.isStaleToolError(error) && mcpServer !== "unknown") {
             await MCP.refreshManifest(mcpServer)
@@ -1157,7 +1157,7 @@ export namespace SessionPrompt {
         const truncated = await Truncate.bound(textParts.join("\n\n"), { tool: key }, input.agent)
         const bound = (await Config.get()).experimental?.tool_result_bound === true
         const content = bound
-          ? result.content.map((contentItem) => {
+          ? result.content.map((contentItem: (typeof result.content)[number]) => {
               if (contentItem.type !== "text") return contentItem
               return { ...contentItem, text: truncated.content }
             })
