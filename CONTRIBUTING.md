@@ -17,7 +17,7 @@ Any UI or core product feature should go through a design discussion with the ma
 You need Bun 1.3 or newer. Install dependencies and run the CLI from source:
 
 ```bash
-bun install
+bun install --frozen-lockfile
 bun dev
 ```
 
@@ -38,11 +38,11 @@ bun dev web             # start the server and open the workspace
 
 ### Checks
 
-Before pushing, run the same gates CI enforces — typecheck, tests, and formatting:
+Before pushing, run the same gates CI enforces — typecheck, tests with a coverage report, and formatting:
 
 ```bash
 bun run typecheck
-bun test --cwd backend/cli
+bun run --cwd backend/cli test:coverage
 bunx prettier --check .
 ```
 

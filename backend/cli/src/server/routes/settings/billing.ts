@@ -2,7 +2,7 @@ import { Hono } from "hono"
 import { describeRoute, resolver, validator } from "hono-openapi"
 import z from "zod"
 import { Config } from "../../../config/config"
-import { OpenScience } from "../../../openscience"
+import { AtlasDisabled, OpenScience, atlasCloudEnabled } from "../../../openscience"
 import { lazy } from "../../../util/lazy"
 import { Log } from "../../../util/log"
 
@@ -30,6 +30,14 @@ const BillingPatch = z.object({
 })
 
 async function readState(): Promise<BillingState> {
+  if (!atlasCloudEnabled()) {
+    // Old managed config stays on disk but is interpreted as BYOK/local only.
+    return {
+      llm: "byok",
+      compute: "byok",
+      wallet: { signedIn: false, balanceUsd: -1 },
+    }
+  }
   const cfg = await Config.getGlobal()
   const session = await OpenScience.getSession().catch(() => null)
   const balanceUsd = (session ? await OpenScience.getBalance().catch(() => null) : null) ?? -1
@@ -71,6 +79,16 @@ export const BillingSettingsRoutes = lazy(() =>
       validator("json", BillingPatch),
       async (c) => {
         const patch = c.req.valid("json")
+        if (!atlasCloudEnabled()) {
+          // Accept writes but coerce managed → byok and never hit Atlas.
+          const coerced = {
+            llm: patch.llm === "managed" ? ("byok" as const) : (patch.llm ?? "byok"),
+            compute: patch.compute === "managed" ? ("byok" as const) : (patch.compute ?? "byok"),
+          }
+          await Config.updateGlobal({ billing: coerced })
+          log.info("update (atlas disabled)", { keys: Object.keys(coerced), code: AtlasDisabled.code })
+          return c.json(await readState())
+        }
         // Persist only the delta. updateGlobal deep-merges into the raw file;
         // writing back Config.getGlobal() would bake resolved {env:}/{file:}
         // secrets into openscience.json in plaintext.

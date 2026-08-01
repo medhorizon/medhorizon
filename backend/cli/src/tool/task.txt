@@ -23,6 +23,12 @@ Usage notes:
 5. Clearly tell the agent whether you expect it to write code or just to do research (search, file reads, web fetches, etc.), since it is not aware of the user's intent
 6. If the agent description mentions that it should be used proactively, then you should try your best to use it without the user having to ask for it first. Use your judgement.
 
+Result envelope (caller-visible):
+Every Task completion returns a structured <task_result> JSON object plus <task_metadata> with the authoritative child session_id.
+Statuses: success | partial | failure | cancelled | timeout.
+Failure-like statuses include stable code and message. Fields: findings, failures, assumptions, artifactRefs, suggestions, parameters, sessionID.
+Missing structure, empty output, cancellation, and timeout are never reported as success. Artifact refs point at artifacts already stored in the child session — resolve them with that session_id.
+
 Example usage (NOTE: The agents below are fictional examples for illustration only - use the actual agents listed above):
 
 <example_agent_descriptions>

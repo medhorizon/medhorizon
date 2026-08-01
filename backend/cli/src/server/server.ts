@@ -11,6 +11,7 @@ import { isAllowedHost, isAllowedOrigin, isCrossOrigin } from "./host-guard"
 import { timingSafeEqual } from "../util/timing-safe"
 import { FolderResolveRoutes } from "./routes/folder-resolve"
 import { AtlasBridgeRoutes } from "./routes/atlas-bridge"
+import { AtlasDisabled, atlasCloudEnabled } from "../openscience"
 import { RepoRoutes } from "./routes/repo"
 import z from "zod"
 import { Provider } from "../provider/provider"
@@ -237,6 +238,13 @@ export namespace Server {
         .route("/api/resolve-folder", FolderResolveRoutes())
         // Atlas graph bridge — proxies /api/atlas/* to the Atlas REST API
         // using the user's stored thk_ key (see routes/atlas-bridge.ts).
+        // Default-off: return a stable disabled contract without upstream calls.
+        .use("/api/atlas/*", async (c, next) => {
+          if (!atlasCloudEnabled()) {
+            return c.json({ error: AtlasDisabled.code, message: AtlasDisabled.message }, 404)
+          }
+          return next()
+        })
         .route("/api/atlas", AtlasBridgeRoutes())
         // Repository tab (status/commit/push/remote) — shells out to git.
         .route("/api/repo", RepoRoutes())

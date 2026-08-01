@@ -28,6 +28,8 @@ export namespace Flag {
   export const OPENSCIENCE_FAKE_VCS = process.env["OPENSCIENCE_FAKE_VCS"]
   export const OPENSCIENCE_CLIENT = process.env["OPENSCIENCE_CLIENT"] ?? "cli"
   export const OPENSCIENCE_TRUST_PROXY = truthy("OPENSCIENCE_TRUST_PROXY")
+  /** Non-UI Atlas cloud bridge / auto lifecycle. Default off. Does not restore Canvas/billing UI. */
+  export declare const OPENSCIENCE_ENABLE_ATLAS: boolean
 
   // Experimental
   export const OPENSCIENCE_EXPERIMENTAL = truthy("OPENSCIENCE_EXPERIMENTAL")
@@ -79,6 +81,15 @@ Object.defineProperty(Flag, "OPENSCIENCE_DISABLE_PROJECT_CONFIG", {
 Object.defineProperty(Flag, "OPENSCIENCE_CONFIG_DIR", {
   get() {
     return process.env["OPENSCIENCE_CONFIG_DIR"]
+  },
+  enumerable: true,
+  configurable: false,
+})
+
+// Dynamic getter so tests can toggle OPENSCIENCE_ENABLE_ATLAS without reloading the module.
+Object.defineProperty(Flag, "OPENSCIENCE_ENABLE_ATLAS", {
+  get() {
+    return truthy("OPENSCIENCE_ENABLE_ATLAS")
   },
   enumerable: true,
   configurable: false,

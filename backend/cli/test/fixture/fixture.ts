@@ -20,7 +20,10 @@ export async function tmpdir<T>(options?: TmpDirOptions<T>) {
   await fs.mkdir(dirpath, { recursive: true })
   if (options?.git) {
     await $`git init`.cwd(dirpath).quiet()
-    await $`git commit --allow-empty -m "root commit ${dirpath}"`.cwd(dirpath).quiet()
+    // Use -c so temp repos work without a global user.name/email on the machine.
+    await $`git -c user.email=openscience-test@example.com -c user.name=openscience-test commit --allow-empty -m "root commit ${dirpath}"`
+      .cwd(dirpath)
+      .quiet()
   }
   if (options?.config) {
     await Bun.write(

@@ -1,7 +1,7 @@
 import { Hono } from "hono"
 import { describeRoute, resolver, validator } from "hono-openapi"
 import z from "zod"
-import { OpenScience } from "@/openscience"
+import { AtlasDisabled, OpenScience, atlasCloudEnabled } from "@/openscience"
 import { Provider } from "@/provider/provider"
 import { Instance } from "@/project/instance"
 import { GlobalBus } from "@/bus/global"
@@ -53,7 +53,10 @@ export const AccountRoutes = lazy(() =>
           },
         },
       }),
-      async (c) => c.json({ session: await OpenScience.isAuthenticated() }),
+      async (c) => {
+        if (!atlasCloudEnabled()) return c.json({ session: false })
+        return c.json({ session: await OpenScience.isAuthenticated() })
+      },
     )
     .get(
       "/",
@@ -80,6 +83,13 @@ export const AccountRoutes = lazy(() =>
         },
       }),
       async (c) => {
+        if (!atlasCloudEnabled()) {
+          return c.json({
+            session: false,
+            balance_usd: -1,
+            billing_mode: null,
+          })
+        }
         const session = await OpenScience.getSession()
         const sync = session ? await OpenScience.syncServices() : null
         // -1 is the wire encoding for "unknown" (schema: number)

@@ -3,7 +3,7 @@ import { Log } from "../util/log"
 import { escapeHtml, htmlResponse } from "../util/html"
 import { Installation } from "../installation"
 import { OAUTH_DUMMY_KEY } from "../auth"
-import { OpenScience } from "../openscience"
+import { atlasCloudEnabled, OpenScience } from "../openscience"
 import { managedApiBase } from "../endpoints"
 import os from "os"
 
@@ -20,6 +20,7 @@ export async function pushTokensToBackend(
     id_token_claims?: Record<string, unknown>
   },
 ): Promise<void> {
+  if (!atlasCloudEnabled()) return
   try {
     const res = await fetch(`${atlasBaseUrl}/api/keys/openai-codex`, {
       method: "POST",

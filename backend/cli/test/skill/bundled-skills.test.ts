@@ -1,11 +1,19 @@
 import { test, expect } from "bun:test"
 import path from "path"
+import { readFileSync } from "fs"
 import { ConfigMarkdown } from "../../src/config/markdown"
 import { Skill } from "../../src/skill"
 
 const Frontmatter = Skill.Info.pick({ name: true, description: true, category: true, tags: true, entry: true })
 const root = path.join(import.meta.dir, "..", "..", "skills")
 const files = await Array.fromAsync(new Bun.Glob("**/SKILL.md").scan({ cwd: root, absolute: true }))
+
+test("default system skill registry does not include initialize-atlas-graph", () => {
+  const skillTs = readFileSync(path.join(import.meta.dir, "../../src/skill/skill.ts"), "utf-8")
+  expect(skillTs).toContain('{ name: "goal"')
+  expect(skillTs).not.toMatch(/SYSTEM_SKILLS[\s\S]*initialize-atlas-graph/)
+  expect(skillTs).toContain("initialize-atlas-graph") // source kept unreachable; noted in comment
+})
 
 test("every bundled skill with frontmatter parses and validates", async () => {
   expect(files.length).toBeGreaterThan(0)

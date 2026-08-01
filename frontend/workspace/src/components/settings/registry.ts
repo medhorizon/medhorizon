@@ -32,9 +32,11 @@ export type SettingsPanelId =
   | "permissions"
   | "sandbox"
   | "credentials"
-  | "billing"
   | "storage"
   | "general"
+
+/** Legacy panel IDs that used to open Atlas billing/wallet UI. */
+const RETIRED_PANELS = new Set(["billing", "wallet"])
 
 export interface SettingsPanel {
   /** Stable key used for routing/history. */
@@ -118,15 +120,6 @@ export const SETTINGS_PANELS: SettingsPanel[] = [
     section: "workspace",
     component: lazy(() => import("./Credentials")),
   },
-  // Wallet + Spend + Usage merged into one Billing panel (they each rendered a
-  // duplicate balance card). Balance · Spend routing · Usage · Ledger.
-  {
-    id: "billing",
-    title: "Billing",
-    icon: "sliders",
-    section: "workspace",
-    component: lazy(() => import("./Billing")),
-  },
   { id: "storage", title: "Storage", icon: "folder", section: "workspace", component: lazy(() => import("./Storage")) },
   {
     id: "general",
@@ -142,8 +135,15 @@ export const SETTINGS_SECTIONS: { id: SettingsSection; label: string }[] = [
   { id: "workspace", label: "Workspace" },
 ]
 
-export function findPanel(id: SettingsPanelId): SettingsPanel {
-  return SETTINGS_PANELS.find((p) => p.id === id) ?? SETTINGS_PANELS[0]
+export function resolvePanelId(id: string): SettingsPanelId {
+  if (RETIRED_PANELS.has(id)) return "general"
+  if (SETTINGS_PANELS.some((p) => p.id === id)) return id as SettingsPanelId
+  return DEFAULT_PANEL
+}
+
+export function findPanel(id: SettingsPanelId | string): SettingsPanel {
+  const resolved = resolvePanelId(id)
+  return SETTINGS_PANELS.find((p) => p.id === resolved) ?? SETTINGS_PANELS[0]
 }
 
 export const DEFAULT_PANEL: SettingsPanelId = "connectors"

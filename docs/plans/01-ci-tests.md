@@ -1,5 +1,12 @@
 # 01 — CI + test suite: trustworthy + deterministic
 
+> Implementation update (2026-08-01): deterministic catalog fixtures and frozen root
+> installs are implemented; PR CI now emits a Bun-native coverage report. The
+> static floor awaits a green Linux baseline. Feature-specific tests stay with
+> the workstream that changes that behavior. The body below is retained as the
+> kickoff snapshot; current evidence lives in
+> [`tasks/plans/00-ci-test-guardrails.md`](../../tasks/plans/00-ci-test-guardrails.md).
+
 Workstream: make the suite trustworthy and deterministic, and add coverage on the paths this sprint touches. Findings-first; citations `file:line` under `backend/cli`.
 
 ## Current state

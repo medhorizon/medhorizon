@@ -3,7 +3,7 @@ import * as prompts from "@clack/prompts"
 import { mkdirSync, writeFileSync } from "fs"
 import { basename, join } from "path"
 import { UI } from "../ui"
-import { OpenScience, API_BASE } from "../../openscience"
+import { AtlasDisabled, OpenScience, API_BASE, atlasCloudEnabled } from "../../openscience"
 import { computeDedupeKey, initProjectDetailed } from "../../server/routes/atlas-bridge"
 import type { InitProjectFailure } from "../../server/routes/atlas-bridge"
 
@@ -35,6 +35,17 @@ const ProjectInitCommand = cmd({
       .option("format", { choices: ["text", "json"] as const, default: "text", describe: "output format" }),
   async handler(args) {
     const json = args.format === "json"
+    if (!atlasCloudEnabled()) {
+      if (json) {
+        process.stdout.write(
+          JSON.stringify({ project_id: null, error: AtlasDisabled.code, message: AtlasDisabled.message }) + "\n",
+        )
+        return
+      }
+      UI.empty()
+      prompts.log.error(AtlasDisabled.message)
+      return
+    }
     const session = await OpenScience.getSession()
     if (!session) {
       // Fail fast: without a managed session no request can succeed, so don't
@@ -147,6 +158,12 @@ const ProjectMergeCommand = cmd({
   async handler(args) {
     UI.empty()
     prompts.intro("MedHorizon — project merge")
+
+    if (!atlasCloudEnabled()) {
+      prompts.log.error(AtlasDisabled.message)
+      prompts.outro("Aborted")
+      return
+    }
 
     const session = await OpenScience.getSession()
     if (!session) {

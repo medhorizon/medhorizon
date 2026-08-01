@@ -11,8 +11,19 @@ import { Auth } from "../auth"
 import { isSyncedEnvAllowed, BYOK_LLM_ENV_KEYS, managedOpenRouterBaseURL } from "./synced-env-policy"
 import { resolveAtlasPackageDir } from "./atlas-package"
 import { DEFAULT_MANAGED_API_BASE, MANAGED_API_BASE } from "../endpoints"
+import { Flag } from "../flag/flag"
 
 const log = Log.create({ service: "openscience" })
+
+/** Stable typed result when Atlas cloud is default-off. Not a network/account failure. */
+export const AtlasDisabled = {
+  code: "ATLAS_DISABLED" as const,
+  message: "Atlas cloud is disabled. Set OPENSCIENCE_ENABLE_ATLAS=1 to enable compatibility mode.",
+}
+
+export function atlasCloudEnabled() {
+  return Flag.OPENSCIENCE_ENABLE_ATLAS
+}
 
 // Atlas is the unified backend for openscience-cli auth, BYOK, and billing. The
 // base URL resolves through the shared endpoints module (neutral public
@@ -310,6 +321,9 @@ export namespace OpenScience {
   // single /skill take 62s because these inherited the 60s default. Bound tighter.
   const SKILL_FETCH_TIMEOUT_MS = Number(process.env["OPENSCIENCE_SKILL_TIMEOUT_MS"]) || 8_000
   function atlasFetch(input: string, init: RequestInit = {}, timeoutMs = ATLAS_FETCH_TIMEOUT_MS): Promise<Response> {
+    if (!atlasCloudEnabled()) {
+      return Promise.reject(Object.assign(new Error(AtlasDisabled.message), { code: AtlasDisabled.code }))
+    }
     // Combine (don't replace) a caller's signal with the timeout, so passing an
     // abort signal never silently drops the hang guard this function exists for.
     const timeout = AbortSignal.timeout(timeoutMs)
@@ -373,6 +387,7 @@ export namespace OpenScience {
    * the same backend the OpenScience key is issued for. Best-effort; never throws.
    */
   export async function ensureAtlasCliConfig(session?: OpenScienceSession | null): Promise<void> {
+    if (!atlasCloudEnabled()) return
     const active = session ?? (await getSession())
     if (!active?.api_key) return
     try {
@@ -419,6 +434,7 @@ export namespace OpenScience {
    * the current one continues with the existing provider config.
    */
   export async function refreshIfStale(): Promise<void> {
+    if (!atlasCloudEnabled()) return
     const session = await getSession()
     if (!session) return
 
@@ -670,6 +686,7 @@ export namespace OpenScience {
     onApprovalUrl?: (url: string) => void
     timeoutMs?: number
   }): Promise<OpenScienceSession> {
+    if (!atlasCloudEnabled()) throw Object.assign(new Error(AtlasDisabled.message), { code: AtlasDisabled.code })
     const state = randomUUID()
     const name = deviceName()
     const callback = startCallbackServer(state)
@@ -727,6 +744,7 @@ export namespace OpenScience {
   /** Headless / CI login: validate a pasted ``thk_`` key and persist it.
    *  Used when no local browser + loopback callback is available. */
   export async function loginWithKey(rawKey: string): Promise<OpenScienceSession> {
+    if (!atlasCloudEnabled()) throw Object.assign(new Error(AtlasDisabled.message), { code: AtlasDisabled.code })
     const key = rawKey.trim()
     if (!key.startsWith("thk_")) {
       throw new Error("Expected an API key starting with `thk_`.")
@@ -768,6 +786,10 @@ export namespace OpenScience {
     user: SyncResponse["user"]
     credentials: number
   } | null> {
+    if (!atlasCloudEnabled()) {
+      log.info("atlas disabled; skipping syncServices", { code: AtlasDisabled.code })
+      return null
+    }
     const session = await getSession()
     if (!session) return null
 
@@ -1228,6 +1250,7 @@ export namespace OpenScience {
    *  session, API failure). null is distinct from a real negative balance —
    *  the old -1 sentinel collided with an overdraft of exactly -$1. */
   export async function getBalance(): Promise<number | null> {
+    if (!atlasCloudEnabled()) return null
     if (cachedBalance && Date.now() - cachedBalance.at < BALANCE_CACHE_TTL) {
       return cachedBalance.value
     }
@@ -1360,6 +1383,10 @@ export namespace OpenScience {
   export async function reportUsage(
     params: UsageParams,
   ): Promise<{ recorded: boolean; event_id?: string; estimated_cost_usd?: number; modelBlocked?: boolean } | null> {
+    if (!atlasCloudEnabled()) {
+      log.info("atlas disabled; skipping usage report", { code: AtlasDisabled.code })
+      return null
+    }
     const session = await getSession()
     if (!session) {
       log.warn("cannot report usage: not authenticated")
@@ -1391,6 +1418,7 @@ export namespace OpenScience {
    *  drops only the lines actually read so an append landing mid-flush
    *  survives. Best-effort: never throws. */
   export async function flushPendingUsage(): Promise<void> {
+    if (!atlasCloudEnabled()) return
     try {
       using _ = await Lock.write(pendingQueuePath)
       const raw = await fs.readFile(pendingQueuePath, "utf-8").catch(() => "")

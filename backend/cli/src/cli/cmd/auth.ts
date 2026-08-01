@@ -11,7 +11,7 @@ import { Global } from "../../global"
 import { managedApiBase } from "../../endpoints"
 import { Plugin } from "../../plugin"
 import { Instance } from "../../project/instance"
-import { OpenScience } from "../../openscience"
+import { atlasCloudEnabled, OpenScience } from "../../openscience"
 import { Log } from "../../util/log"
 import { runLocalModelSetup } from "./local"
 import type { Hooks } from "@synsci/plugin"
@@ -524,6 +524,7 @@ export const AuthLoginCommand = cmd({
  *  We check both before showing the "Already signed in" prompt so the
  *  flow stays robust under that drift. */
 async function backendHasCodex(): Promise<boolean | null> {
+  if (!atlasCloudEnabled()) return null
   const session = await OpenScience.getSession?.()
   const thkToken = session?.api_key
   if (!thkToken) return null
@@ -708,13 +709,14 @@ export const AuthLogoutCommand = cmd({
     // and backend drift (local removed, backend still connected).
     if (providerID === "openai-codex") {
       await revokeCodexOnBackend()
-      await OpenScience.syncServices?.().catch(() => {})
+      if (atlasCloudEnabled()) await OpenScience.syncServices?.().catch(() => {})
     }
     prompts.outro("Logout successful")
   },
 })
 
 async function revokeCodexOnBackend(): Promise<void> {
+  if (!atlasCloudEnabled()) return
   const atlasBase = managedApiBase()
   const session = await OpenScience.getSession?.()
   const thkToken = session?.api_key

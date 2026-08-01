@@ -30,10 +30,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
@@ -42,8 +38,7 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install dependencies
-        run: bun install
+      - uses: ./.github/actions/setup-bun
 
       - name: Build frontend + backend binary
         run: bun run script/build.ts --single
@@ -209,17 +204,21 @@ jobs:
         with:
           name: "MedHorizon ${{ github.ref_name }}"
           body: |
-            ## MedHorizon v0.3.14 — 2026-07-31
+            ## MedHorizon v0.3.15 — 2026-08-01
 
             ### Added
 
-            - **Research Graph sidebar:** RightPane embeds `/embed/graph/:id` (canvas-only). Session→graph: bind → stages/by-session → title match → skip empty stub; auto pinBind.
-            - **Embed ViewportSync:** fitView when iframe host grows or graph content changes.
+            - **TaskResult contract:** Zod-backed TaskTool child outcomes (`success` / `partial` / `failure` / `cancelled` / `timeout`); strict-success only.
+            - **CI coverage report:** Test job runs `test:coverage`; installs use `--frozen-lockfile`.
+
+            ### Changed
+
+            - **Atlas surface retired:** Stage + Research Graph only; Canvas/account/wallet/managed billing UI removed from the live tree. Default right pane: Research Graph.
+            - **`OPENSCIENCE_ENABLE_ATLAS` default-off** (non-UI cloud bridge/sync only; does not restore product UI).
 
             ### Fixed
 
-            - UTF-8 BOM in `openscience.json` no longer breaks RG OpenAI/`/health` config load.
-            - Local OpenAI-compatible providers: default context 32k→256k (legacy placeholder upgrade).
+            - Task/RLM decoding no longer treats empty/unknown status as success.
 
             ## 一键安装
 
@@ -243,7 +242,7 @@ jobs:
             设置环境变量 `RESEARCH_GRAPH_DISABLE=1` 可跳过 sidecar 与内置插件。
 
             ---
-            完整说明见 [README](https://github.com/medhorizon/medhorizon#readme) · [CHANGELOG](https://github.com/medhorizon/medhorizon/blob/release/v0.3.14/CHANGELOG.md)
+            完整说明见 [README](https://github.com/medhorizon/medhorizon#readme) · [CHANGELOG](https://github.com/medhorizon/medhorizon/blob/release/v0.3.15/CHANGELOG.md)
           files: |
             artifacts/*
           draft: false

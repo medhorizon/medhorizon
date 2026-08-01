@@ -5,12 +5,16 @@ import { Global } from "../../src/global"
 import { BillingSettingsRoutes } from "../../src/server/routes/settings/billing"
 
 const file = path.join(Global.Path.config, "openscience.json")
+const prevAtlas = process.env.OPENSCIENCE_ENABLE_ATLAS
 
 afterEach(async () => {
   await fs.rm(file, { force: true }).catch(() => {})
+  if (prevAtlas === undefined) delete process.env.OPENSCIENCE_ENABLE_ATLAS
+  else process.env.OPENSCIENCE_ENABLE_ATLAS = prevAtlas
 })
 
 test("PUT persists the toggle without baking resolved secrets into the config file", async () => {
+  process.env.OPENSCIENCE_ENABLE_ATLAS = "1"
   process.env["SPEND_TOGGLE_TEST_KEY"] = "sk-live-super-secret-123"
   await fs.mkdir(Global.Path.config, { recursive: true })
   await Bun.write(
@@ -36,6 +40,7 @@ test("PUT persists the toggle without baking resolved secrets into the config fi
 })
 
 test("PUT llm null sets the toggle back to auto", async () => {
+  process.env.OPENSCIENCE_ENABLE_ATLAS = "1"
   await fs.mkdir(Global.Path.config, { recursive: true })
   await Bun.write(file, JSON.stringify({ billing: { llm: "managed" } }, null, 2))
 

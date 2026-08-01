@@ -11,10 +11,20 @@ import { iife } from "@/util/iife"
 import { defer } from "@/util/defer"
 import { Config } from "../config/config"
 import { PermissionNext } from "@/permission/next"
-import { RLMState } from "../session/rlm/state"
 import { HierarchicalSemaphore } from "../util/semaphore"
+import {
+  TASK_RESULT_INSTRUCTION,
+  applyTerminal,
+  decode,
+  emitDiagnostics,
+  encode,
+  failure,
+  terminalCause,
+  type TaskResult,
+  type TerminalCause,
+  TaskResultCode,
+} from "./task-result"
 
-const ARTIFACT_AGENTS = ["research", "biology", "ml"]
 const COMPUTE_SUBAGENTS = new Set(["biology", "ml", "physics"])
 const configuredComputeCap = Number(process.env.OPENSCIENCE_MAX_COMPUTE_SUBAGENTS)
 const MAX_COMPUTE_SUBAGENTS =
@@ -163,7 +173,8 @@ export const TaskTool = Tool.define("task", async (ctx) => {
       using _ = defer(() => ctx.abort.removeEventListener("abort", cancel))
       const promptParts = await SessionPrompt.resolvePromptParts(params.prompt)
 
-      const result = await SessionPrompt.prompt({
+      const injected = ctx.extra?.terminalCause as TerminalCause | undefined
+      const promptResult = await SessionPrompt.prompt({
         messageID,
         sessionID: session.id,
         model: {
@@ -177,15 +188,34 @@ export const TaskTool = Tool.define("task", async (ctx) => {
           ...(hasTaskPermission ? {} : { task: false }),
           ...Object.fromEntries((config.experimental?.primary_tools ?? []).map((t) => [t, false])),
         },
-        parts: promptParts,
-      }).finally(() => {
-        unsub()
+        parts: [
+          ...promptParts,
+          {
+            type: "text" as const,
+            text: TASK_RESULT_INSTRUCTION,
+            synthetic: true,
+          },
+        ],
       })
+        .catch((error: unknown) => {
+          const cause = terminalCause(ctx.abort, injected)
+          if (cause) {
+            return { kind: "terminal" as const, cause }
+          }
+          const message = error instanceof Error ? error.message : "Task execution failed"
+          return {
+            kind: "error" as const,
+            result: failure(session.id, TaskResultCode.execution_error, message),
+          }
+        })
+        .finally(() => {
+          unsub()
+        })
 
       const messages = await Session.messages({ sessionID: session.id })
       const summary = messages
         .filter((x) => x.info.role === "assistant")
-        .flatMap((msg) => msg.parts.filter((x: any) => x.type === "tool") as MessageV2.ToolPart[])
+        .flatMap((item) => item.parts.filter((part) => part.type === "tool") as MessageV2.ToolPart[])
         .map((part) => ({
           id: part.id,
           tool: part.tool,
@@ -194,42 +224,42 @@ export const TaskTool = Tool.define("task", async (ctx) => {
             title: part.state.status === "completed" ? part.state.title : undefined,
           },
         }))
-      const text = result.parts.findLast((x) => x.type === "text")?.text ?? ""
 
-      const callingAgent = msg.info.agent
-      const useStructuredOutput = callingAgent && ARTIFACT_AGENTS.includes(callingAgent)
-
-      let output: string
-      if (useStructuredOutput) {
-        const compressed = RLMState.parseExecutorOutput(text)
-        output = [
-          "<task_result>",
-          `<status>${compressed.status}</status>`,
-          `<findings>${JSON.stringify(compressed.findings)}</findings>`,
-          `<failures>${JSON.stringify(compressed.failures)}</failures>`,
-          `<assumptions>${JSON.stringify(compressed.assumptions)}</assumptions>`,
-          `<parameters>${JSON.stringify(compressed.parameters)}</parameters>`,
-          `<artifact_refs>${JSON.stringify(compressed.artifactRefs)}</artifact_refs>`,
-          `<suggestions>${JSON.stringify(compressed.suggestions)}</suggestions>`,
-          "</task_result>",
-          "",
-          "<task_metadata>",
-          `session_id: ${session.id}`,
-          "</task_metadata>",
-        ].join("\n")
-      } else {
-        output = text + "\n\n" + ["<task_metadata>", `session_id: ${session.id}`, "</task_metadata>"].join("\n")
-      }
-
-      return {
+      const finish = (result: TaskResult) => ({
         title: params.description,
         metadata: {
           summary,
           sessionId: session.id,
           model,
+          taskResult: result,
         },
-        output,
+        output: encode(result),
+      })
+
+      if (promptResult && typeof promptResult === "object" && "kind" in promptResult) {
+        if (promptResult.kind === "terminal") {
+          return finish(applyTerminal(promptResult.cause, session.id))
+        }
+        if (promptResult.kind === "error") {
+          return finish(promptResult.result)
+        }
       }
+
+      const text =
+        promptResult && "parts" in promptResult
+          ? (promptResult.parts.findLast((x) => x.type === "text")?.text ?? "")
+          : ""
+
+      const decoded = decode(text, session.id)
+      emitDiagnostics(decoded.diagnostics, session.id)
+
+      const cause = terminalCause(ctx.abort, injected)
+      if (cause) {
+        // Control-flow terminal overrides any late worker success text.
+        return finish(applyTerminal(cause, session.id, decoded.result))
+      }
+
+      return finish(decoded.result)
     },
   }
 })

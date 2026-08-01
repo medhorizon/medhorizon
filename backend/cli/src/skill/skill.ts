@@ -8,7 +8,6 @@ import { State } from "../project/state"
 import { runtimeRegexPass, classifierInjectionRegexPass } from "./install/review"
 import { NamedError } from "@synsci/util/error"
 import { ConfigMarkdown } from "../config/markdown"
-import INITIALIZE_ATLAS_GRAPH_MD from "./system/initialize-atlas-graph.txt"
 import GOAL_MD from "./system/goal.txt"
 import { Log } from "../util/log"
 import { Global } from "@/global"
@@ -20,15 +19,12 @@ import { Session } from "@/session"
 import { OpenScience } from "@/openscience"
 import { Installation } from "@/installation"
 
-// System skills the product invokes directly (e.g. the canvas prefills
-// `/initialize-atlas-graph`) but which are not part of the server skill
-// catalog. Their SKILL.md is embedded so they resolve in every install —
-// including the compiled binary, which ships no skills and otherwise depends on
-// the API index. Kept in sync with skills/research/<name>/SKILL.md by a test.
-const SYSTEM_SKILLS: Array<{ name: string; content: string }> = [
-  { name: "goal", content: GOAL_MD },
-  { name: "initialize-atlas-graph", content: INITIALIZE_ATLAS_GRAPH_MD },
-]
+// System skills the product invokes directly but which are not part of the
+// server skill catalog. Their SKILL.md is embedded so they resolve in every
+// install — including the compiled binary. Atlas Canvas skill
+// `initialize-atlas-graph` is retired from the default registry (source file
+// kept unreachable for a later cleanup task).
+const SYSTEM_SKILLS: Array<{ name: string; content: string }> = [{ name: "goal", content: GOAL_MD }]
 
 export namespace Skill {
   const log = Log.create({ service: "skill" })

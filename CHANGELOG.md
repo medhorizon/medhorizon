@@ -4,6 +4,36 @@ MedHorizon follows [semantic versioning](https://semver.org). GitHub Releases
 (`v0.x`) ship native binaries for Linux, macOS (Apple Silicon), and Windows via
 the `Release` workflow. Upstream OpenScience history is retained below.
 
+## MedHorizon v0.3.15 — 2026-08-01
+
+### Added
+
+- **TaskResult contract (plan 01):** Zod-backed discriminated union for TaskTool child
+  outcomes (`success` / `partial` / `failure` / `cancelled` / `timeout`). Strict-success:
+  only a fully schema-valid envelope may be `success`; empty/malformed output cannot be
+  misreported as success. Legacy `<rlm_result>` / tag formats remain readable during
+  migration.
+- **CI coverage report (plan 00 / WS1):** PR Test job runs `test:coverage` (Bun-native
+  text reporter); `setup-bun` installs with `--frozen-lockfile`.
+
+### Changed
+
+- **Atlas product surface retired (plan 15):** Stage and Research Graph are the only
+  visible research workflow UI. Atlas Canvas, artifacts, account/wallet/managed billing
+  settings, and setup paths are removed from the live render tree. Default right pane is
+  Research Graph.
+- **`OPENSCIENCE_ENABLE_ATLAS` default-off:** Atlas cloud bridge, auto sync, companion
+  CLI install, and related managed routes stay quiet unless explicitly opt-in. Flag does
+  **not** restore Canvas/billing UI.
+- Onboarding and research prompts favor local/BYOK + Research Graph; `initialize-atlas-graph`
+  dropped from the default system skill registry.
+- Historical Atlas workstreams in `docs/plans/` marked superseded; active roadmap lives
+  under `tasks/plans/`.
+
+### Fixed
+
+- RLM/TaskTool result decoding no longer treats missing or unknown status as success.
+
 ## MedHorizon v0.3.14 — 2026-07-31
 
 ### Added

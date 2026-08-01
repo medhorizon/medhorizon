@@ -1,7 +1,7 @@
 import { Hono } from "hono"
 import { describeRoute, resolver } from "hono-openapi"
 import z from "zod"
-import { OpenScience } from "../../../openscience"
+import { OpenScience, atlasCloudEnabled } from "../../../openscience"
 import { lazy } from "../../../util/lazy"
 
 // Settings → Billing. Read-only view of Credits: balance, plan
@@ -37,6 +37,7 @@ const SIGNED_OUT: WalletState = {
 }
 
 async function readWallet(): Promise<WalletState> {
+  if (!atlasCloudEnabled()) return SIGNED_OUT
   const session = await OpenScience.getSession().catch(() => null)
   if (!session) return SIGNED_OUT
   const [credits, mode, txns] = await Promise.all([

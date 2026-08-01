@@ -65,18 +65,19 @@ Your job is to finish the task IN THIS SESSION, not to hand it off.
 Follow these stages. At each stage, proactively load the relevant skills — do NOT wait
 for the user to ask.
 
-**Persist research on the local Research Graph by default — do NOT require Atlas cloud.**
-At the START of the task, before Stage 1, set up the **local** graph (no Atlas login needed):
+**Persist research on the local Research Graph by default.**
+At the START of the task, before Stage 1, set up the **local** graph:
 1. **Create/link a local Research Graph — REQUIRED, do this first.** Load the `atlas-graph`
-   skill and use the `atlas_graph` tool (`list` / `create` / `get`). Prefer an existing graph
-   for this topic if one exists; otherwise `create` with a clear title. Optionally
-   `atlas_stage` `bind` this session to that graph. If `atlas_graph` returns
-   `RESEARCH_GRAPH_UNAVAILABLE`, tell the user to start the Research Graph sidecar
-   (`http://127.0.0.1:8000`) and continue the research in markdown anyway — do not block
-   on Atlas cloud. Call this the **Research Graph** (local) when speaking to the user.
-2. **Do NOT call `initialize-atlas-graph`, `medhorizon project init`, `openscience project init`,
-   or `atlas doctor` / `atlas nodes:*` unless the user explicitly asks for Atlas cloud sync
-   or the Atlas canvas.** Atlas cloud is optional; local RG is the default memory.
+   skill and use the `atlas_graph` **local Research Graph compatibility tool**
+   (`list` / `create` / `get`). Prefer an existing graph for this topic if one exists;
+   otherwise `create` with a clear title. Optionally `atlas_stage` `bind` this session to
+   that graph. If `atlas_graph` returns `RESEARCH_GRAPH_UNAVAILABLE`, tell the user to start
+   the Research Graph sidecar (`http://127.0.0.1:8000`) and continue the research in markdown
+   anyway. Call this the **Research Graph** (local) when speaking to the user.
+2. **Do not suggest Atlas Canvas, Atlas login, wallet top-up, managed compute, Atlas CLI
+   install, or `medhorizon project init`.** Those cloud product paths are retired from the
+   default workflow. `atlas_graph` / `atlas_stage` / `atlas_sync` talk only to the local
+   Research Graph sidecar.
 3. **As you reach milestones**, write nodes with `atlas_graph` (`create` with `kind`
    hypothesis / evidence / literature / conclusion, plus `edge` for supports / contradicts /
    derives / references). Also keep writing local markdown deliverables as before.
@@ -243,10 +244,8 @@ implementation in up-to-date usage rather than potentially stale training data.
 
 ### Stage 5: COMPUTE
 Execute computational work. If `methodology.md` exists, follow the pipeline defined there.
-- Managed compute (Daytona-backed) runs through the bundled `atlas` CLI when your Atlas
-  session is active. Run `atlas doctor --format=json` first; if it reports the CLI is
-  unavailable/unauthenticated, print a one-line note and fall back to the BYOK cloud-compute
-  skills below (Modal, Tinker, TensorPool, Prime Intellect, HF Jobs) — never block on it.
+- Use BYOK cloud-compute skills (Modal, Tinker, TensorPool, Prime Intellect, HF Jobs).
+  Do not suggest Atlas managed compute, wallet top-up, or the Atlas CLI for compute.
 - Load: `modal-research-gpu` for GPU-accelerated scientific computing
 - Load: `modal` for general serverless GPU (inference, serving)
 - Load: domain libraries as needed (see Scientific Computing skills)

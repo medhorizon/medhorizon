@@ -5,7 +5,14 @@ import { Icon } from "@synsci/ui/icon"
 import { IconButton } from "@synsci/ui/icon-button"
 import { useDialog } from "@synsci/ui/context/dialog"
 import { usePlatform } from "@/context/platform"
-import { SETTINGS_PANELS, SETTINGS_SECTIONS, DEFAULT_PANEL, findPanel, type SettingsPanelId } from "./settings/registry"
+import {
+  SETTINGS_PANELS,
+  SETTINGS_SECTIONS,
+  DEFAULT_PANEL,
+  findPanel,
+  resolvePanelId,
+  type SettingsPanelId,
+} from "./settings/registry"
 import { SettingsNavContext } from "./settings/nav"
 
 // Scoped to the settings dialog only. Reshapes shared primitives (Switch,
@@ -79,10 +86,11 @@ export const DialogSettings: Component = () => {
   const canBack = createMemo(() => cursor() > 0)
   const canForward = createMemo(() => cursor() < history().length - 1)
 
-  const navigate = (id: SettingsPanelId) => {
-    if (history()[cursor()] === id) return
+  const navigate = (id: SettingsPanelId | string) => {
+    const panel = resolvePanelId(id)
+    if (history()[cursor()] === panel) return
     const next = history().slice(0, cursor() + 1)
-    next.push(id)
+    next.push(panel)
     setHistory(next)
     setCursor(next.length - 1)
   }
