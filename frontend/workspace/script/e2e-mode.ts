@@ -1,3 +1,5 @@
+import { fileURLToPath } from "node:url"
+
 export const E2E_MODE_ENV = "OPENSCIENCE_E2E_MODE"
 
 export type E2EMode = "isolated" | "external"
@@ -80,5 +82,14 @@ export function forwardedPlaywrightArgs(args: string[]) {
 }
 
 export function playwrightCommand(args: string[]) {
+  // Prefer a real Node binary + local CLI. Bun's `node` shim (and `bun x`
+  // executing the Playwright CLI under Bun) can hang on Windows during worker
+  // / loader spawn.
+  const node = Bun.which("node")
+  const bunShim = !!node?.replaceAll("\\", "/").includes("/bun-node-")
+  if (node && !bunShim) {
+    const cli = fileURLToPath(new URL("../node_modules/@playwright/test/cli.js", import.meta.url))
+    return [node, cli, "test", ...args]
+  }
   return [process.execPath, "x", "playwright", "test", ...args]
 }

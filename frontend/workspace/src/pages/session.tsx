@@ -41,7 +41,6 @@ import { DialogSettings } from "@/components/dialog-settings"
 import { DisconnectedPanel } from "@/atlas/DisconnectedPanel"
 import { CommandPalette } from "@/atlas/CommandPalette"
 import { HelpOverlay } from "@/atlas/HelpOverlay"
-import { ToastContainer } from "@/atlas/Toast"
 import {
   IconChevronDown,
   IconChevronLeft,
@@ -455,7 +454,6 @@ export default function Page(): JSX.Element {
         background: "var(--color-bg)",
       }}
     >
-      <ToastContainer />
       <HelpOverlay open={uiStore.helpOpen()} onClose={() => uiStore.setHelpOpen(false)} />
       <CommandPalette open={uiStore.paletteOpen()} onClose={() => uiStore.setPaletteOpen(false)} />
 
@@ -544,7 +542,7 @@ export default function Page(): JSX.Element {
             >
               <Switch>
                 <Match when={params.id && messages().length > 0}>
-                  {/* Scoped to just the scroll area (not the revert banner / Composer
+                  {/* Scoped to just the scroll area (not the revert banner / PromptInput
                       below) so the jump-to-latest pill's position:absolute resolves
                       against this box instead of the whole chat column. */}
                   <div

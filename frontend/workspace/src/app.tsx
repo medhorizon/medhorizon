@@ -17,6 +17,7 @@ import { CommentsProvider } from "@/context/comments"
 import { NotificationProvider } from "@/context/notification"
 import { ModelsProvider } from "@/context/models"
 import { DialogProvider } from "@synsci/ui/context/dialog"
+import { Toast } from "@synsci/ui/toast"
 import { CommandProvider } from "@/context/command"
 import { LanguageProvider, useLanguage } from "@/context/language"
 import { usePlatform } from "@/context/platform"
@@ -56,7 +57,10 @@ export function AppBaseProviders(props: ParentProps) {
         <LanguageProvider>
           <UiI18nBridge>
             <ErrorBoundary fallback={(error) => <ErrorPage error={error} />}>
-              <DialogProvider>{props.children}</DialogProvider>
+              <DialogProvider>
+                <Toast.Region />
+                {props.children}
+              </DialogProvider>
             </ErrorBoundary>
           </UiI18nBridge>
         </LanguageProvider>

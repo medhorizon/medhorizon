@@ -16,7 +16,6 @@ import { Wordmark } from "@/atlas/Wordmark"
 import { AppHeader, HeaderIconButton } from "@/atlas/AppHeader"
 import { AgentIcon } from "@/atlas/shared/AgentIcon"
 import { toast } from "@/atlas/Toast"
-import { ToastContainer } from "@/atlas/Toast"
 import { DialogSettings } from "@/components/dialog-settings"
 import { DisconnectedPanel } from "@/atlas/DisconnectedPanel"
 import { uiStore } from "@/atlas/store/ui"
@@ -192,7 +191,6 @@ export default function Home(): JSX.Element {
         background: "var(--color-bg)",
       }}
     >
-      <ToastContainer />
       <HelpOverlay open={uiStore.helpOpen()} onClose={() => uiStore.setHelpOpen(false)} />
       <CommandPalette open={uiStore.paletteOpen()} onClose={() => uiStore.setPaletteOpen(false)} />
       <DisconnectedPanel />

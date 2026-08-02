@@ -63,7 +63,14 @@ export default defineConfig({
   projects: [
     {
       name: "chromium",
-      use: { ...devices["Desktop Chrome"] },
+      use: {
+        ...devices["Desktop Chrome"],
+        // Prefer an installed Chrome when Playwright's bundled Chromium is
+        // unavailable (common on fresh Windows hosts before `playwright install`).
+        ...(process.env.PLAYWRIGHT_CHANNEL
+          ? { channel: process.env.PLAYWRIGHT_CHANNEL as "chrome" | "msedge" | "chrome-beta" }
+          : {}),
+      },
     },
   ],
 })

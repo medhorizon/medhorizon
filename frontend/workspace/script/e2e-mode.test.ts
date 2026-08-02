@@ -57,12 +57,13 @@ describe("E2E command selection", () => {
   })
 
   test("raw Playwright invocation has one non-recursive command", () => {
-    expect(playwrightCommand(["--grep", "settings"]).slice(1)).toEqual([
-      "x",
-      "playwright",
-      "test",
-      "--grep",
-      "settings",
-    ])
+    const cmd = playwrightCommand(["--grep", "settings"])
+    expect(cmd.filter((part) => part === "test").length).toBe(1)
+    expect(cmd.slice(-3)).toEqual(["test", "--grep", "settings"])
+    if (cmd[1] === "x") {
+      expect(cmd.slice(1, 4)).toEqual(["x", "playwright", "test"])
+      return
+    }
+    expect(cmd[1]?.replaceAll("\\", "/")).toMatch(/\/@playwright\/test\/cli\.js$/)
   })
 })
