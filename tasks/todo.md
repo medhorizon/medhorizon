@@ -40,6 +40,77 @@ Plan 00 是后端/运行时代码的合并门槛；纯 UI 实施可与其并行�
 - [ ] effective tool IDs 与 profile 一致，Batch capability bypass 为 0
 - [ ] flag off/shadow/bash/scientific/shell/on 与 scoped env 回退均已演练
 
+## 本地科学工作台与证据闭环
+
+### [19 — 科学文件识别、受限检查与文档标签页路由](plans/19-scientific-file-routing.md)
+
+- [ ] 冻结 project-file 分类、扩展名/magic 优先级、renderer capability 与 inspect 预算
+- [ ] 实现 canonical、bounded server-side science inspect API 并生成 SDK
+- [ ] 建立 project-file renderer registry，复用现有 science renderer 且不混 tool/session artifact identity
+- [ ] 在统一 FileView 接入 drawer 与中心文档 tab 自动路由、错误恢复和大文件 fallback
+- [ ] 用真实 CSV/FASTA/VCF/PDB/HDF5/unknown fixtures 锁定全链路与零 Atlas 请求
+- [ ] 通过 Plan 19 Checkpoint A/B
+- [ ] 完成 Plan 19 Definition of done
+
+### Plan 19 checkpoint
+
+- [ ] 所有 project path canonical containment 与 inspect 输入/输出预算有真实负向测试
+- [ ] drawer/中心 tab 只经过一个 FileView/renderer contract，普通 Markdown/PDF/图片/代码行为不回归
+- [ ] project file、tool artifact 与 session artifact 只共享 renderer capability，不混 identity/transport/ownership
+- [ ] Plan 20/21 可消费同一 classification contract，无第二份扩展名表或 Atlas surface
+
+### [20 — 交互式 CSV/TSV 数据表工作台](plans/20-interactive-data-table.md)
+
+- [ ] 冻结 CSV/TSV parser、schema/type inference、client/stream mode 与 operation capability
+- [ ] 实现 quoted multiline 安全的流式 page/scan API、stale cursor 与生成 SDK
+- [ ] 实现可访问的分页/虚拟化 table、bounded DOM 与可恢复资源状态
+- [ ] 增加精确筛选/稳定排序/schema/列统计及范围明确的导出
+- [ ] 通过真实小/中/100 MiB CSV/TSV FileView E2E
+- [ ] 通过 Plan 20 Checkpoint A/B
+- [ ] 完成 Plan 20 Definition of done
+
+### Plan 20 checkpoint
+
+- [ ] BOM、CRLF、quoted delimiter/quote/multiline、重复/空 header、ragged/malformed fixtures 结果稳定
+- [ ] client mode 操作覆盖完整数据；stream mode 不把 sample/partial 伪报为完整 total/filter/sort/stats/export
+- [ ] server read、network response、browser state 和 DOM 都有可测上限，大文件不完整加载
+- [ ] DataTable 只作为 Plan 19 registry renderer 接入，不创建第二套 Files/tab/state
+
+### [21 — Project Artifact discovery、manifest、inspector 与 provenance](plans/21-project-artifact-evidence.md)
+
+- [ ] 冻结 discovery/exclude、stable artifact ID、content version、rename 与 stale/missing contract
+- [ ] 实现 bounded scanner、streaming hash 与 deterministic complete/incomplete manifest
+- [ ] 增加分页 catalog、detail、manifest、Git/local provenance API 并生成 SDK
+- [ ] 实现 project-scoped、versioned annotations 与 recoverable revision/tombstone
+- [ ] 作为独立 `project-artifacts` provider 接入 Plan 16 Explorer core 与上下文 Inspector
+- [ ] 通过真实 discover→inspect→annotate→manifest→provenance E2E
+- [ ] 通过 Plan 21 Checkpoint A/B
+- [ ] 完成 Plan 21 Definition of done
+
+### Plan 21 checkpoint
+
+- [ ] project/session/tool/RG identity 与事实源保持分离，只通过 typed ref 关联
+- [ ] scanner 拒绝 traversal/symlink external，manifest 路径排序/digest 可复现且 incomplete 不伪装 verified
+- [ ] annotation 与 provenance 在内容变化、rename/delete 时显示 stale/missing，不静默迁移或丢证据
+- [ ] Project Artifacts 复用 Explorer/FileView，不恢复 Atlas artifact UI/API 或创建第二套 viewer/graph
+
+### [22 — 将 EvidenceGraph 交互迁移到现有 Research Graph](plans/22-research-graph-evidence-interactions.md)
+
+- [ ] 冻结现有 RG baseline、evidence projection/read model、external ref 与 deep-link contract
+- [ ] 在现有 RG graph/node/edge API/store 实现幂等、事务化 evidence projection
+- [ ] 在现有 GraphView/GraphCanvas 增加 filter、search、focus、neighbor exploration 与 reset
+- [ ] 扩展 NodePanel/ProvenancePanel 的 evidence detail、stale/missing 和同源 source/inspector 跳转
+- [ ] 通过真实闭环、重放/并发/重启、5k/10k 性能、无 evidence 回退与 graph uniqueness 验证
+- [ ] 通过 Plan 22 Checkpoint A/B
+- [ ] 完成 Plan 22 Definition of done
+
+### Plan 22 checkpoint
+
+- [ ] projection 始终写入 Plans 03/04 绑定的现有 RG graph，无 binding 时 fail closed
+- [ ] 重放、并发、partial failure、source update/delete 无 duplicate/dangling/静默证据丢失
+- [ ] 所有 filter/focus/detail/deep link 使用现有 graph/node/edge contract 与同源 gateway
+- [ ] 仓库没有第二套 graph database、route namespace、frontend store/tab 或恢复的 Atlas/EvidenceGraph surface
+
 ## Wave A：基础契约与低耦合清理
 
 ### [01 — TaskResult 可靠结果契约](plans/01-task-result-contract.md)
@@ -77,7 +148,7 @@ Plan 00 是后端/运行时代码的合并门槛；纯 UI 实施可与其并行�
 - [x] 将旧工作台 Toast facade 收窄为 `@synsci/ui` 薄兼容层，并保留 Stage/Research Graph 调用点
 - [x] 增加真实 Toast 生命周期回归
 - [x] 通过 Plan 05 Checkpoint
-- [x] 完成 Plan 05 Definition of done
+- [ ] 完成 Plan 05 Definition of done（backend 全量 `bun test` 因既有 Windows 环境失败/挂起未勾选；见计划 Progress）
 
 ### [06 — Settings Dialog 收敛](plans/06-settings-dialogs.md)
 
@@ -245,6 +316,9 @@ Plan 00 是后端/运行时代码的合并门槛；纯 UI 实施可与其并行�
 - [ ] 默认配置无 Atlas 产品 UI、自动云行为或外部请求，Stage/Research Graph 回归通过
 - [ ] 本地 session artifacts 可在 Explorer 中分页浏览、bounded preview 与下载，且不恢复 Atlas artifact 产品入口
 - [ ] 独立 Python/R 默认走 ephemeral process；persistent kernel、Batch 和外围 I/O 工具满足 Plan 18 的资源与安全门槛
+- [ ] 科学文件在统一 FileView 自动识别并受限预览，CSV/TSV 小文件精确交互且大文件不完整加载/伪报 sample 结果
+- [ ] Project Artifacts 可发现、inspect、annotation、生成可复现 manifest 并查看 provenance，且与 Session Artifacts 保持独立事实源
+- [ ] Evidence 投影幂等进入唯一 Research Graph，stale/missing 可见且无第二套 graph database/API/store/tab
 - [ ] `bun run typecheck` 与 build 通过
 - [ ] `cd backend/cli && bun test` 完整通过并记录耗时
 - [ ] API 变化后已从仓库根运行 `./tooling/repo/generate.ts`

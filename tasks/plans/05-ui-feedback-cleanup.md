@@ -249,7 +249,7 @@
 
 - [x] Tasks 1–5 的 acceptance、Checkpoint 与 verification 完成。
 - [x] `typecheck`、workspace build、reachability test 和 targeted e2e 通过。
-- [ ] 从 `backend/cli` 运行完整 `bun test` 通过（运行中；完成后回填 Progress）。
+- [ ] 从 `backend/cli` 运行完整 `bun test` 通过（见 Progress：Windows 上存在与本计划无关的既有失败/挂起，未扩大范围修复）。
 - [x] `git diff --check` 与 Markdown 格式检查通过。
 - [x] 没有新增 mock、bundle analyzer、第二个 toast store、页面级 Toast host 或无关 Atlas cleanup。
 - [x] 每个行为变更都有可独立回退的提交边界，实施结果详细回填本计划 Progress。
@@ -268,3 +268,4 @@
   - `bun run test:e2e -- e2e/prompt.spec.ts e2e/model-picker.spec.ts e2e/skills.spec.ts e2e/setup-gate.spec.ts e2e/session.spec.ts` → 全部通过。
   - 关联 suite：`session.spec.ts` 通过；`atlas-retirement.spec.ts` 因 Research Graph sidecar「unavailable」失败、`home-projects` in-app picker 因临时 home 路径失败——与 Toast/Composer diff 无关，归属 Plan 15 / 既有 e2e 环境残留，未扩大本计划范围。
   - 辅助：`playwright.config.ts` 支持 `PLAYWRIGHT_CHANNEL`；本机用系统 Chrome 跑通。
+  - `backend/cli` 完整 `bun test`：中途统计约 759 pass / 30 fail（含 Windows 路径 `D:\` vs POSIX 期望、缺 `python3`、sandbox/seatbelt 等），后在 `test/science/http.test.ts` 挂起；失败与挂起均与 Composer/Toast diff 无关，归属既有 Windows/环境问题，不扩大本计划修复。DoD 该项保持未勾选。
