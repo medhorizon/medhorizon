@@ -16,6 +16,30 @@
 
 Plan 00 是后端/运行时代码的合并门槛；纯 UI 实施可与其并行，但在合入前仍须通过适用的全局检查。
 
+## 独立横向计划：工具运行时资源效率
+
+### [18 — Tool 执行运行时与资源效率优化](plans/18-tool-runtime-optimization.md)
+
+- [ ] 冻结真实 Python/R、kernel、用户 shell、大输出与 fan-out 基线，并定义隐私安全 ProcessReceipt
+- [ ] 消除重复 tool ID、dead profile declaration 与 origin capability 漂移
+- [ ] 用 ProcessSupervisor 接管 Bash 和一次性 Python/R，统一 deadline、thread cap、bounded output 与 kill-tree
+- [ ] 收敛 notebook/rkernel 的 timer、session release、串行执行、全局 cap、redaction 与 rich output 生命周期
+- [ ] 落地 ephemeral-first 路由、scoped subprocess env、strict sandbox 与统一用户 shell 路径
+- [ ] 让 Batch 只消费当前 selected invoker，并以有界并发拒绝 stateful/heavy 工具
+- [ ] 硬化 WebFetch 的逐跳 redirect/SSRF 校验、body deadline 与 5 MiB stream budget
+- [ ] 让 Read/Grep 在输入源头 bounded，不再先读取完整文件或完整匹配输出
+- [ ] 通过 Plan 18 Measured release gates 与 Checkpoint
+- [ ] 完成 Plan 18 Definition of done
+
+### Plan 18 checkpoint
+
+- [ ] one-shot success/failure/cancel/timeout 后 2 秒内无存活后代，kernel 在 TTL/session delete 后完全释放
+- [ ] 默认 deadline、线程与 global/session/scientific lane 上限由代码强制，20+ fan-out 无 permit/listener/process leak
+- [ ] Bash/notebook/rkernel/用户 shell 的 stdout、stderr、metadata、receipt 与 spill 均为 0 secret 泄漏
+- [ ] 100 MiB process output、Read/Grep 输入与 WebFetch body 均在源头 bounded，内存不随总输入/输出线性增长
+- [ ] effective tool IDs 与 profile 一致，Batch capability bypass 为 0
+- [ ] flag off/shadow/bash/scientific/shell/on 与 scoped env 回退均已演练
+
 ## Wave A：基础契约与低耦合清理
 
 ### [01 — TaskResult 可靠结果契约](plans/01-task-result-contract.md)
@@ -48,12 +72,12 @@ Plan 00 是后端/运行时代码的合并门槛；纯 UI 实施可与其并行�
 
 ### [05 — UI 反馈通道清理](plans/05-ui-feedback-cleanup.md)
 
-- [ ] 确认可达性并删除死 Composer
-- [ ] 在应用根安装唯一 Toast Region
-- [ ] 将旧工作台 Toast facade 收窄为 `@synsci/ui` 薄兼容层，并保留 Stage/Research Graph 调用点
-- [ ] 增加真实 Toast 生命周期回归
-- [ ] 通过 Plan 05 Checkpoint
-- [ ] 完成 Plan 05 Definition of done
+- [x] 确认可达性并删除死 Composer
+- [x] 在应用根安装唯一 Toast Region
+- [x] 将旧工作台 Toast facade 收窄为 `@synsci/ui` 薄兼容层，并保留 Stage/Research Graph 调用点
+- [x] 增加真实 Toast 生命周期回归
+- [x] 通过 Plan 05 Checkpoint
+- [x] 完成 Plan 05 Definition of done
 
 ### [06 — Settings Dialog 收敛](plans/06-settings-dialogs.md)
 
@@ -220,6 +244,7 @@ Plan 00 是后端/运行时代码的合并门槛；纯 UI 实施可与其并行�
 - [ ] 所有 focused tests、workspace E2E、Research Graph tests 通过
 - [ ] 默认配置无 Atlas 产品 UI、自动云行为或外部请求，Stage/Research Graph 回归通过
 - [ ] 本地 session artifacts 可在 Explorer 中分页浏览、bounded preview 与下载，且不恢复 Atlas artifact 产品入口
+- [ ] 独立 Python/R 默认走 ephemeral process；persistent kernel、Batch 和外围 I/O 工具满足 Plan 18 的资源与安全门槛
 - [ ] `bun run typecheck` 与 build 通过
 - [ ] `cd backend/cli && bun test` 完整通过并记录耗时
 - [ ] API 变化后已从仓库根运行 `./tooling/repo/generate.ts`

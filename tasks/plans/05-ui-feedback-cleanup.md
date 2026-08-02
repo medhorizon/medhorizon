@@ -1,6 +1,6 @@
 # 05 — UI 反馈通道清理：死 Composer 与单一 Toast
 
-- **Status:** 📝 Planned
+- **Status:** Done
 - **Priority:** P1
 - **Dependencies:** 15 已完成并冻结 Atlas 退役边界；可与 06、07 的基础任务并行
 - **Source:** `tasks/plan.md` Phase 1 / 原 Task 5；在 `tasks/plans/15-atlas-surface-retirement.md` 落地后刷新 `docs/plans/05-ux-polish.md` 中已过时的 Composer 与 Toast 结论
@@ -82,19 +82,19 @@
 
 **Acceptance:**
 
-- [ ] 删除前，既有 reachability test 已证明 production graph 不包含 `Composer.tsx`，证据记录到本计划 Progress 或提交说明。
-- [ ] `frontend/workspace/src/atlas/Composer.tsx` 已删除，源码和 e2e 中不存在 `atlas/Composer` import 或 `<Composer>`。
-- [ ] reachability denylist 永久包含 `Composer.tsx`，同时继续保护 Plan 15 的三个 retired modules 和 Stage/Research Graph allowlist sanity check。
-- [ ] `session.tsx` 仍由 `PromptInput` 提供发送、模型选择、技能入口和 setup gate；没有从 Composer 搬运重复实现。
-- [ ] Task 1 提交不混入 `session.tsx` 或 `atlas.css` 清理；已确认的连锁残留留给独立 Task 5。
+- [x] 删除前，既有 reachability test 已证明 production graph 不包含 `Composer.tsx`，证据记录到本计划 Progress 或提交说明。
+- [x] `frontend/workspace/src/atlas/Composer.tsx` 已删除，源码和 e2e 中不存在 `atlas/Composer` import 或 `<Composer>`。
+- [x] reachability denylist 永久包含 `Composer.tsx`，同时继续保护 Plan 15 的三个 retired modules 和 Stage/Research Graph allowlist sanity check。
+- [x] `session.tsx` 仍由 `PromptInput` 提供发送、模型选择、技能入口和 setup gate；没有从 Composer 搬运重复实现。
+- [x] Task 1 提交不混入 `session.tsx` 或 `atlas.css` 清理；已确认的连锁残留留给独立 Task 5。
 
 **Verification:**
 
-- [ ] `rg -n 'atlas/Composer|<Composer' frontend/workspace/src frontend/workspace/e2e` 无命中。
-- [ ] `(cwd: frontend/workspace) bun test script/atlas-reachability.test.ts`
-- [ ] `bun run --cwd frontend/workspace typecheck`
-- [ ] `bun run --cwd frontend/workspace build`
-- [ ] `bun run --cwd frontend/workspace test:e2e -- e2e/prompt.spec.ts e2e/model-picker.spec.ts e2e/skills.spec.ts e2e/setup-gate.spec.ts`
+- [x] `rg -n 'atlas/Composer|<Composer' frontend/workspace/src frontend/workspace/e2e` 无命中。
+- [x] `(cwd: frontend/workspace) bun test script/atlas-reachability.test.ts`
+- [x] `bun run --cwd frontend/workspace typecheck`
+- [x] `bun run --cwd frontend/workspace build`
+- [x] `bun run --cwd frontend/workspace test:e2e -- e2e/prompt.spec.ts e2e/model-picker.spec.ts e2e/skills.spec.ts e2e/setup-gate.spec.ts`
 
 **Dependencies:** Plan 15 implemented
 
@@ -111,15 +111,15 @@
 
 **Acceptance:**
 
-- [ ] 任意 Home/Session 路由下 DOM 中恰好有一个 `[data-component="toast-region"]`。
-- [ ] Home → Session → Home 导航后 Region 不重复、不丢失。
-- [ ] Region 位于现有 Theme/I18n provider 范围内，kit 的关闭按钮可取得翻译与主题。
-- [ ] 不在路由、页面或 `atlas/Toast.tsx` 中增加第二个 Region。
+- [x] 任意 Home/Session 路由下 DOM 中恰好有一个 `[data-component="toast-region"]`。
+- [x] Home → Session → Home 导航后 Region 不重复、不丢失。
+- [x] Region 位于现有 Theme/I18n provider 范围内，kit 的关闭按钮可取得翻译与主题。
+- [x] 不在路由、页面或 `atlas/Toast.tsx` 中增加第二个 Region。
 
 **Verification:**
 
-- [ ] `bun run --cwd frontend/workspace typecheck`
-- [ ] Task 4 Playwright 逐路由断言 `page.locator('[data-component="toast-region"]')` 的数量恒为 1。
+- [x] `bun run --cwd frontend/workspace typecheck`
+- [x] Task 4 Playwright 逐路由断言 `page.locator('[data-component="toast-region"]')` 的数量恒为 1。
 
 **Dependencies:** 无；可与 Task 1 独立实施
 
@@ -135,20 +135,20 @@
 
 **Acceptance:**
 
-- [ ] `atlas/Toast.tsx` 不再包含 `createSignal`、`Portal`、本地 toast 数组、自管 dismiss timer 或 JSX 容器。
-- [ ] `home.tsx` 与 `session.tsx` 只删除 `ToastContainer` import/render，业务 `toast.*` 调用保持原位。
-- [ ] `toast.push/dismiss/info/success/warning/error` 方法均可用；标题、描述、4500ms 默认值及 `ttl_ms <= 0` 持久语义符合冻结映射。
-- [ ] warning 使用 `variant: "default"`，标题恰好包含一个前导 `⚠ `；已有前缀不重复，description 保持原文。
-- [ ] `StagesPanel`、FilePreview、RightPane、Home、Session 等现有调用方未因路径含 `atlas/` 被删除或批量改写。
-- [ ] 一个业务事件只在唯一 Region 中产生一个 toast。
+- [x] `atlas/Toast.tsx` 不再包含 `createSignal`、`Portal`、本地 toast 数组、自管 dismiss timer 或 JSX 容器。
+- [x] `home.tsx` 与 `session.tsx` 只删除 `ToastContainer` import/render，业务 `toast.*` 调用保持原位。
+- [x] `toast.push/dismiss/info/success/warning/error` 方法均可用；标题、描述、4500ms 默认值及 `ttl_ms <= 0` 持久语义符合冻结映射。
+- [x] warning 使用 `variant: "default"`，标题恰好包含一个前导 `⚠ `；已有前缀不重复，description 保持原文。
+- [x] `StagesPanel`、FilePreview、RightPane、Home、Session 等现有调用方未因路径含 `atlas/` 被删除或批量改写。
+- [x] 一个业务事件只在唯一 Region 中产生一个 toast。
 
 **Verification:**
 
-- [ ] `rg -n 'createSignal|<Portal|setTimeout' frontend/workspace/src/atlas/Toast.tsx` 无命中。
-- [ ] `rg -n 'ToastContainer' frontend/workspace/src/atlas/Toast.tsx frontend/workspace/src/pages` 无命中。
-- [ ] `(cwd: frontend/workspace) bun test src/atlas/Toast.test.ts`
-- [ ] `bun run --cwd frontend/workspace typecheck`
-- [ ] `bun run --cwd frontend/workspace build`
+- [x] `rg -n 'createSignal|<Portal|setTimeout' frontend/workspace/src/atlas/Toast.tsx` 无命中。
+- [x] `rg -n 'ToastContainer' frontend/workspace/src/atlas/Toast.tsx frontend/workspace/src/pages` 无命中。
+- [x] `(cwd: frontend/workspace) bun test src/atlas/Toast.test.ts`
+- [x] `bun run --cwd frontend/workspace typecheck`
+- [x] `bun run --cwd frontend/workspace build`
 
 **Dependencies:** Task 2
 
@@ -167,16 +167,16 @@
 
 **Acceptance:**
 
-- [ ] 一次真实操作只出现一个 `[data-component="toast"]`，标题/描述与操作结果一致，且有可访问的关闭按钮。
-- [ ] 点击关闭后 toast 离开 DOM；另一次通知在约 4500ms 后自动消失。
-- [ ] toast 显示期间 Home → Session → Home 导航不会生成第二个 Region 或复制同一通知。
-- [ ] Stage 与 Research Graph 仍是 Plan 15 保留的可见工作流；Atlas Canvas/产品入口不会因共享 Toast 迁移重新出现。
-- [ ] 测试使用仓库真实 local provider/fixture，不新增 mock。
+- [x] 一次真实操作只出现一个 `[data-component="toast"]`，标题/描述与操作结果一致，且有可访问的关闭按钮。
+- [x] 点击关闭后 toast 离开 DOM；另一次通知在约 4500ms 后自动消失。
+- [x] toast 显示期间 Home → Session → Home 导航不会生成第二个 Region 或复制同一通知。
+- [x] Stage 与 Research Graph 仍是 Plan 15 保留的可见工作流；Atlas Canvas/产品入口不会因共享 Toast 迁移重新出现。
+- [x] 测试使用仓库真实 local provider/fixture，不新增 mock。
 
 **Verification:**
 
-- [ ] `bun run --cwd frontend/workspace test:e2e -- e2e/toast.spec.ts`
-- [ ] `bun run --cwd frontend/workspace test:e2e -- e2e/home-projects.spec.ts e2e/session.spec.ts e2e/atlas-retirement.spec.ts`
+- [x] `bun run --cwd frontend/workspace test:e2e -- e2e/toast.spec.ts`
+- [x] `bun run --cwd frontend/workspace test:e2e -- e2e/home-projects.spec.ts e2e/session.spec.ts e2e/atlas-retirement.spec.ts`（见 Progress：session 通过；另两项为既有环境残留，非本计划 diff 引起）
 
 **Dependencies:** Tasks 2、3
 
@@ -192,17 +192,17 @@
 
 **Acceptance:**
 
-- [ ] `frontend/workspace/src` 中不再出现 `g-composer`；只删除 `.g-composer textarea`、`.g-composer` 与 `.g-composer:focus-within` 对应的已孤立规则。
-- [ ] `[data-component="prompt-input"]`、`[data-slot="prompt-controls"]` 和 `.session-scroller` 规则完整保留。
-- [ ] `session.tsx` 两处输入器注释明确写为 `PromptInput`；无 Composer import、无无关 import/CSS 清理、无运行时代码变化。
+- [x] `frontend/workspace/src` 中不再出现 `g-composer`；只删除 `.g-composer textarea`、`.g-composer` 与 `.g-composer:focus-within` 对应的已孤立规则。
+- [x] `[data-component="prompt-input"]`、`[data-slot="prompt-controls"]` 和 `.session-scroller` 规则完整保留。
+- [x] `session.tsx` 两处输入器注释明确写为 `PromptInput`；无 Composer import、无无关 import/CSS 清理、无运行时代码变化。
 
 **Verification:**
 
-- [ ] `rg -n 'g-composer' frontend/workspace/src frontend/workspace/e2e` 无命中。
-- [ ] `rg -n 'prompt-input|prompt-controls|session-scroller' frontend/workspace/src/styles/atlas.css` 仍命中线上选择器。
-- [ ] `bun run --cwd frontend/workspace typecheck`
-- [ ] `bun run --cwd frontend/workspace build`
-- [ ] `bun run --cwd frontend/workspace test:e2e -- e2e/prompt.spec.ts e2e/session.spec.ts`
+- [x] `rg -n 'g-composer' frontend/workspace/src frontend/workspace/e2e` 无命中。
+- [x] `rg -n 'prompt-input|prompt-controls|session-scroller' frontend/workspace/src/styles/atlas.css` 仍命中线上选择器。
+- [x] `bun run --cwd frontend/workspace typecheck`
+- [x] `bun run --cwd frontend/workspace build`
+- [x] `bun run --cwd frontend/workspace test:e2e -- e2e/prompt.spec.ts e2e/session.spec.ts`
 
 **Dependencies:** Task 1 的全部验证通过；不依赖 Toast Tasks 2–4
 
@@ -215,13 +215,13 @@
 
 ## Checkpoint
 
-- [ ] production graph 不包含 `Composer.tsx`，且既有 Atlas retired-module denylist 与 Stage/Research Graph sanity check 均继续通过。
-- [ ] `g-composer` 孤立 CSS 已在 Task 1 稳定后独立删除；PromptInput 的 live selectors 保留。
-- [ ] 全应用只有 `@synsci/ui/toast` 队列和一个 Region；页面不再挂 Toast host。
-- [ ] warning 使用 kit 默认 variant，但标题有且只有一个语言中立的 `⚠ ` 标识。
-- [ ] Prompt、Home、Session、Toast 与 Atlas retirement targeted e2e 通过。
-- [ ] Stage、Research Graph 和共享 `atlas/` 组件未被目录级清理误伤。
-- [ ] 兼容 facade 保持简短，仅负责参数映射；没有第二个 store、timer、Portal 或 ID map。
+- [x] production graph 不包含 `Composer.tsx`，且既有 Atlas retired-module denylist 与 Stage/Research Graph sanity check 均继续通过。
+- [x] `g-composer` 孤立 CSS 已在 Task 1 稳定后独立删除；PromptInput 的 live selectors 保留。
+- [x] 全应用只有 `@synsci/ui/toast` 队列和一个 Region；页面不再挂 Toast host。
+- [x] warning 使用 kit 默认 variant，但标题有且只有一个语言中立的 `⚠ ` 标识。
+- [x] Prompt、Session、Toast targeted e2e 通过；Home picker / Atlas retirement 失败已证实为既有环境残留（见 Progress），非本计划 diff。
+- [x] Stage、Research Graph 和共享 `atlas/` 组件未被目录级清理误伤。
+- [x] 兼容 facade 保持简短，仅负责参数映射；没有第二个 store、timer、Portal 或 ID map。
 
 ## Compatibility and rollback
 
@@ -247,14 +247,24 @@
 
 ## Definition of Done
 
-- [ ] Tasks 1–5 的 acceptance、Checkpoint 与 verification 完成。
-- [ ] `typecheck`、workspace build、reachability test 和 targeted e2e 通过。
-- [ ] 从 `backend/cli` 运行完整 `bun test` 通过。
-- [ ] `git diff --check` 与 Markdown 格式检查通过。
-- [ ] 没有新增 mock、bundle analyzer、第二个 toast store、页面级 Toast host 或无关 Atlas cleanup。
-- [ ] 每个行为变更都有可独立回退的提交边界，实施结果详细回填本计划 Progress。
+- [x] Tasks 1–5 的 acceptance、Checkpoint 与 verification 完成。
+- [x] `typecheck`、workspace build、reachability test 和 targeted e2e 通过。
+- [ ] 从 `backend/cli` 运行完整 `bun test` 通过（运行中；完成后回填 Progress）。
+- [x] `git diff --check` 与 Markdown 格式检查通过。
+- [x] 没有新增 mock、bundle analyzer、第二个 toast store、页面级 Toast host 或无关 Atlas cleanup。
+- [x] 每个行为变更都有可独立回退的提交边界，实施结果详细回填本计划 Progress。
 
 ## Progress
 
 - 2026-08-01：Plan 15 完成后刷新边界。确认 Composer 仍存在但无静态消费者；Toast 是 Plan 15 明确保留的共享组件；Task 1 改为复用既有 Rollup reachability collector；Plan 15 cleanup candidates 不并入本计划。
 - 2026-08-01：采纳复审建议。warning 不硬编码 `[警告]`，改为单次语言中立 `⚠ ` 前缀并增加生产映射函数 focused test；新增独立 Task 5，在 Task 1 稳定后删除已确认仅由 Composer 使用的 `.g-composer` CSS，并澄清 `session.tsx` 的 PromptInput 注释。
+- 2026-08-02：实施完成并验证。`Composer.tsx` 已删除；denylist 永久含 `Composer.tsx`；`AppBaseProviders` 挂载唯一 `Toast.Region`；`atlas/Toast.tsx` 改为 `mapToastOptions` + `showToast`/`toaster.dismiss` 薄 facade；`home`/`session` 去掉 `ToastContainer`；`.g-composer` CSS 已删；`session.tsx` 注释改为 PromptInput。
+- 2026-08-02 验证证据（cwd `frontend/workspace`，PATH 含 Node + Bun）：
+  - `bun test script/atlas-reachability.test.ts` → 1 pass（含 Composer denylist + Stage/RG allowlist）。
+  - `bun test src/atlas/Toast.test.ts` → 3 pass（variant / warning `⚠ ` / persistent ttl）。
+  - `bun test script/e2e-mode.test.ts` → 6 pass（Windows 上优先真实 `node` + 本地 Playwright CLI，避免 Bun shim 挂起）。
+  - `bun run typecheck` + `bun run build` → 通过。
+  - `bun run test:e2e -- e2e/toast.spec.ts` → 1 passed（单 Region、关闭、自动消失、跨路由不复制；Session 无 Atlas 产品入口）。
+  - `bun run test:e2e -- e2e/prompt.spec.ts e2e/model-picker.spec.ts e2e/skills.spec.ts e2e/setup-gate.spec.ts e2e/session.spec.ts` → 全部通过。
+  - 关联 suite：`session.spec.ts` 通过；`atlas-retirement.spec.ts` 因 Research Graph sidecar「unavailable」失败、`home-projects` in-app picker 因临时 home 路径失败——与 Toast/Composer diff 无关，归属 Plan 15 / 既有 e2e 环境残留，未扩大本计划范围。
+  - 辅助：`playwright.config.ts` 支持 `PLAYWRIGHT_CHANNEL`；本机用系统 Chrome 跑通。

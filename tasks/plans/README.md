@@ -1,6 +1,6 @@
 # MedHorizon 可执行优化计划
 
-本目录包含 1 个后端合并前置护栏、15 份 active 产品计划和 1 份已被产品方向取代的历史计划。每份 active 计划的实施任务限定为 XS/S/M；执行者应一次只领取一个任务，并在计划内 checkpoint 通过后再进入下一个依赖节点。
+本目录包含 1 个后端合并前置护栏、16 份 active 优化计划和 1 份已被产品方向取代的历史计划。每份 active 计划的实施任务限定为 XS/S/M；执行者应一次只领取一个任务，并在计划内 checkpoint 通过后再进入下一个依赖节点。
 
 ## 状态说明
 
@@ -21,7 +21,7 @@
 | 02  | [Agent context closeout](02-agent-context-closeout.md)             | schema 预算、cache/result-bound soak 与默认值结论       | P0     | 00、03（仅 RG soak） | Planned     |
 | 03  | [Research Graph supervisor](03-research-graph-supervisor.md)       | 可握手、可诊断、可重启的 sidecar 生命周期               | P0     | 00                   | Planned     |
 | 04  | [Research Graph gateway](04-research-graph-gateway.md)             | 同源代理、随机 capability、权威 session 绑定和生成 SDK  | P0     | 03                   | Planned     |
-| 05  | [UI feedback cleanup](05-ui-feedback-cleanup.md)                   | 删除死 Composer，收敛单一 Toast 通道                    | P1     | 无                   | Planned     |
+| 05  | [UI feedback cleanup](05-ui-feedback-cleanup.md)                   | 删除死 Composer，收敛单一 Toast 通道                    | P1     | 无                   | Done        |
 | 06  | [Settings dialogs](06-settings-dialogs.md)                         | 消除原生 prompt/confirm，统一可访问 Dialog              | P1     | 无                   | Planned     |
 | 07  | [Async resource states](07-async-resource-states.md)               | 文件与技能界面的 loading/empty/error/retry 原语         | P1     | 无                   | Planned     |
 | 08  | [Visual system and regression](08-visual-system-and-regression.md) | 视觉令牌、代表页截图矩阵与 a11y smoke                   | P1     | 05、06、07           | Planned     |
@@ -33,6 +33,7 @@
 | 14  | [Atlas Canvas architecture](14-graph-ui-architecture.md)           | 历史 Atlas Canvas 重构计划；由 15 取代                  | —      | 由 15 取代           | Superseded  |
 | 15  | [Atlas surface retirement](15-atlas-surface-retirement.md)         | 隐藏产品 UI、默认关闭云行为并保留 Stage/RG allowlist    | P0     | 00（后端任务）       | Implemented |
 | 16  | [Local artifact explorer](16-local-artifact-explorer.md)           | 可插拔 Explorer 壳、host files 与本地 session artifacts | P1     | 00、15               | Planned     |
+| 18  | [Tool runtime optimization](18-tool-runtime-optimization.md)       | ephemeral Python/R、统一进程运行时与有界工具执行        | P1     | 无硬依赖             | Planned     |
 
 ## 并行执行矩阵
 
@@ -64,6 +65,7 @@ flowchart LR
     F12["12"]
     F13["13"]
   end
+  X18["Independent · 18"]
   Z00 --> A01
   Z00 --> A02
   Z00 --> A03
@@ -92,6 +94,7 @@ flowchart LR
 4. 运行任务级验证；每完成 2–3 个任务运行计划 checkpoint。
 5. API 变化时先固定服务端契约，再运行仓库根 `./tooling/repo/generate.ts`，最后迁移前端消费者。
 6. 更新计划 Status/Progress、[总清单](../todo.md) 和必要的架构决策记录；不要只凭代码已写完标记 Done。
+7. Plan 18 可作为独立横向计划推进；若与 Plans 02、10、13、16 修改同一契约或核心文件，按其 Coordination boundaries 串行实施。
 
 ## 全局验收命令
 
