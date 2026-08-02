@@ -8,7 +8,12 @@ import { workspaceManualChunks } from "../vite.config"
 const root = fileURLToPath(new URL("..", import.meta.url))
 
 /** Retired Atlas product modules that must not appear in production chunk graphs. */
-const DENYLIST = ["AtlasCanvas.tsx", "atlas/api/atlas.ts", "components/settings/Billing.tsx"]
+const DENYLIST = [
+  "AtlasCanvas.tsx",
+  "atlas/api/atlas.ts",
+  "components/settings/Billing.tsx",
+  "Composer.tsx",
+]
 
 test("production Rollup chunk.modules exclude retired Atlas product modules", async () => {
   const modules = new Set<string>()
