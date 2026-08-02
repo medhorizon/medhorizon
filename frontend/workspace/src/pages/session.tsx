@@ -206,7 +206,7 @@ export default function Page(): JSX.Element {
   const activeSession = createMemo(() => (params.id ? sync.session.get(params.id) : undefined))
   const revertInfo = createMemo(() => activeSession()?.revert)
   // New-session worktree selection, shared between the empty-state view and the
-  // composer (matches the v1.1.116 new-session flow).
+  // PromptInput (matches the v1.1.116 new-session flow).
   const [newSessionWorktree, setNewSessionWorktree] = createSignal("main")
 
   // A `path.md` mentioned in an assistant message dispatches this; open it as a
