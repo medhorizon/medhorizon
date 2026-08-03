@@ -2,8 +2,10 @@ import { For, Show, createSignal, onMount } from "solid-js"
 import { currentDirectory } from "@/utils/base64"
 import { Icon } from "@synsci/ui/icon"
 import { Switch } from "@synsci/ui/switch"
+import { useDialog } from "@synsci/ui/context/dialog"
 import { useGlobalSDK } from "@/context/global-sdk"
 import { usePlatform } from "@/context/platform"
+import { confirmDialog } from "@/atlas/dialogs"
 
 // Persistent notes/instructions the agent recalls across sessions. Wired to a
 // real backend store: GET/PUT /settings/memory (backend/cli/src/settings/memory.ts).
@@ -21,6 +23,7 @@ const uid = () =>
 export default function Memory() {
   const sdk = useGlobalSDK()
   const platform = usePlatform()
+  const dialog = useDialog()
   const doFetch = platform.fetch ?? fetch
 
   const [scope, setScope] = createSignal<Scope>("global")
@@ -30,6 +33,7 @@ export default function Memory() {
   const [error, setError] = createSignal<string>()
   const [newCategory, setNewCategory] = createSignal("")
   const [drafts, setDrafts] = createSignal<Record<string, string>>({})
+  let clearAllBtn: HTMLButtonElement | undefined
 
   function endpoint() {
     const u = new URL(`${sdk.url}/settings/memory`)
@@ -65,9 +69,11 @@ export default function Memory() {
       })
       if (!res.ok) throw new Error(await res.text())
       setDoc((await res.json()) as Doc)
+      return true
     } catch (e) {
       setDoc(previous)
       setError(e instanceof Error ? e.message : String(e))
+      return false
     } finally {
       setSaving(false)
     }
@@ -83,10 +89,18 @@ export default function Memory() {
     void persist({ ...doc(), enabled })
   }
 
-  function clearAll() {
-    if (!window.confirm(`Clear all ${scope() === "global" ? "global" : "project"} memory? This cannot be undone.`))
-      return
-    void persist({ enabled: doc().enabled, categories: [] })
+  async function clearAll() {
+    await confirmDialog(dialog, {
+      title: "Clear memory?",
+      message: `Clear all ${scope() === "global" ? "global" : "project"} memory? This cannot be undone.`,
+      danger: true,
+      confirmLabel: "clear",
+      returnFocus: clearAllBtn,
+      submit: async () => {
+        const saved = await persist({ enabled: doc().enabled, categories: [] })
+        if (!saved) throw new Error("Could not clear memory. See the panel error for details.")
+      },
+    })
   }
 
   function addCategory() {
@@ -184,6 +198,7 @@ export default function Memory() {
                 type="button"
                 class="h-8 px-3 rounded-xs text-12-medium text-text-danger hover:bg-surface-raised-base/60 transition-colors"
                 disabled={saving()}
+                ref={clearAllBtn}
                 onClick={clearAll}
               >
                 clear all

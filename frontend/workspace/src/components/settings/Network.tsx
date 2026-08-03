@@ -2,8 +2,10 @@ import { For, Show, createMemo, createSignal, onMount } from "solid-js"
 import { currentDirectory } from "@/utils/base64"
 import { Icon } from "@synsci/ui/icon"
 import { Switch } from "@synsci/ui/switch"
+import { useDialog } from "@synsci/ui/context/dialog"
 import { useGlobalSDK } from "@/context/global-sdk"
 import { usePlatform } from "@/context/platform"
+import { confirmDialog } from "@/atlas/dialogs"
 
 // Outbound domain allow-list. Wired to a real backend store:
 // GET/PUT /settings/network (backend/cli/src/settings/network.ts). The catalog
@@ -17,6 +19,7 @@ type State = { allowlistEnabled: boolean; enabled: string[]; custom: string[] }
 export default function Network() {
   const sdk = useGlobalSDK()
   const platform = usePlatform()
+  const dialog = useDialog()
   const doFetch = platform.fetch ?? fetch
 
   const [catalog, setCatalog] = createSignal<Group[]>([])
@@ -26,6 +29,7 @@ export default function Network() {
   const [error, setError] = createSignal<string>()
   const [expanded, setExpanded] = createSignal<Record<string, boolean>>({})
   const [customDomain, setCustomDomain] = createSignal("")
+  let clearBtn: HTMLButtonElement | undefined
 
   const endpoint = () => `${sdk.url}/settings/network?directory=${encodeURIComponent(currentDirectory())}`
 
@@ -59,9 +63,11 @@ export default function Network() {
       if (!res.ok) throw new Error(await res.text())
       const data = (await res.json()) as { state: State }
       setState(data.state)
+      return true
     } catch (e) {
       setState(previous)
       setError(e instanceof Error ? e.message : String(e))
+      return false
     } finally {
       setSaving(false)
     }
@@ -96,10 +102,19 @@ export default function Network() {
     void persist({ ...state(), custom: state().custom.filter((d) => d !== domain) })
   }
 
-  function clearCustom() {
+  async function clearCustom() {
     if (state().custom.length === 0) return
-    if (!window.confirm("Remove all custom allowed domains?")) return
-    void persist({ ...state(), custom: [] })
+    await confirmDialog(dialog, {
+      title: "Clear custom domains?",
+      message: `Remove all ${state().custom.length} custom allowed domains?`,
+      danger: true,
+      confirmLabel: "clear",
+      returnFocus: clearBtn,
+      submit: async () => {
+        const saved = await persist({ ...state(), custom: [] })
+        if (!saved) throw new Error("Could not clear custom domains. See the panel error for details.")
+      },
+    })
   }
 
   const effectiveCount = createMemo(() => {
@@ -194,6 +209,7 @@ export default function Network() {
                   type="button"
                   class="text-11-medium text-text-danger hover:opacity-80 transition-opacity"
                   disabled={saving()}
+                  ref={clearBtn}
                   onClick={clearCustom}
                 >
                   clear
