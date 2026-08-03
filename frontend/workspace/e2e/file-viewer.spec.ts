@@ -79,7 +79,7 @@ test("a binary file shows the unsupported capability state, not an error", async
   }
 })
 
-test("a file deleted on disk re-reads as empty content after a refresh", async ({ page, gotoSession }) => {
+test("a file deleted on disk surfaces an inspect error after a refresh", async ({ page, gotoSession }) => {
   const directory = mkdtempSync(path.join(tmpdir(), "openscience-gone-"))
   const filename = "gone.txt"
   const filepath = path.join(directory, filename)
@@ -91,9 +91,11 @@ test("a file deleted on disk re-reads as empty content after a refresh", async (
     rmSync(filepath)
     await page.locator('[title="refresh"]:visible').click()
 
-    // The backend's File.read is lenient for a missing file (returns empty
-    // content), so the FileView maps the re-read to the successful-empty state.
-    await expect(page.getByText("empty file", { exact: true })).toBeVisible()
+    // Inspect-first: a deleted file now 404s during `file.inspect` (the old
+    // lenient File.read path is no longer reached), so the view surfaces the
+    // error state with retry — never a fake "empty file" and never a full read.
+    await expect(page.getByText("couldn't open this file", { exact: true })).toBeVisible()
+    await expect(page.getByText("empty file", { exact: true })).toHaveCount(0)
   } finally {
     rmSync(directory, { recursive: true, force: true })
   }
