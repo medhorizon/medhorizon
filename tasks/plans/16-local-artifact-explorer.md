@@ -1,6 +1,6 @@
 # 16 — Atlas-independent Explorer shell 与 Session Artifacts
 
-- **Status:** 📝 Planned
+- **Status:** 🟡 In progress（Checkpoint A 完成；Checkpoint B 与 DoD 待续）
 - **Priority:** P1
 - **Dependencies:** Plan 15 已冻结 Atlas 退役边界；涉及 backend/CLI 与 SDK 的任务须通过 Plan 00 合并护栏
 - **Coordination:** Plan 07 Task 1 的 `AsyncState` 是本计划 Task 4 的 UI 前置；Task 3 在集成时复核 Plan 07 后的 `FileExplorer` export，并且只能在薄 adapter 内适配。Plan 19 可与 backend contract 并行，但 SDK generator、`session.tsx` 接线与 workspace E2E 必须串行。Plan 21 只消费本计划的 `ExplorerModule` core，以独立 `project-artifacts` provider 接入；不得扩大或合并本计划的 session artifact 事实源

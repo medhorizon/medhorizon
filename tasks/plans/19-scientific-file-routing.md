@@ -1,6 +1,6 @@
 # 19 — 科学文件识别、受限检查与文档标签页路由
 
-- **Status:** 📝 Planned
+- **Status:** 🟡 In progress（Checkpoint A 完成；Checkpoint B 与 DoD 待续）
 - **Priority:** P1
 - **Dependencies:** Plan 15 的 Atlas 退役边界；backend/API 任务须通过 Plan 00。Tasks 1–3 不依赖 Plans 07/16，但在本计划内按 Task 1 → 2 → 3 推进；Task 4 硬依赖 Plan 07 Tasks 1、3 的 `AsyncState` 与 `FileView` 状态基线
 - **Coordination:** backend `ScienceFile` 是扩展名、magic、预算和分类的唯一事实源，frontend 只消费生成 inspect contract。Plan 16 不提供 project-file 数据，但拥有 `session.tsx` Explorer 接线；Plan 19 默认对 `session.tsx` 保持 0 行功能修改。两计划的 SDK generation 与 workspace E2E 必须串行

@@ -1,6 +1,6 @@
 # 06 — Settings Dialog 收敛与原生 prompt/confirm 清理
 
-- **Status:** 🟡 Tasks 1–4 完成并集成于 `plan06/integration`；Final DoD 验证完成（8 处原生调用清零；唯一 E2E 失败为计划外既有 `settings-panels.spec.ts` Billing 残留）
+- **Status:** 🟢 Done（Tasks 1–4 完成并集成于 plans/16-19；8 处原生调用清零，settings-panels 陈旧 Billing 引用已随 `fabd211` 修复；backend 全量 `bun test` 因既有 Windows 挂起未勾选，见 Progress 与 Plan 05 同类）
 - **Priority:** P1
 - **Dependencies:** 业务迁移依赖 Task 1；Tasks 2–4 文件无重叠，可在 Task 1 后并行；可与 05、07 并行
 - **Source:** `tasks/plan.md` Phase 1 / 原 Task 6；细化 `docs/plans/05-ux-polish.md` 的 Settings 交互项
