@@ -204,21 +204,23 @@ jobs:
         with:
           name: "MedHorizon ${{ github.ref_name }}"
           body: |
-            ## MedHorizon v0.3.15 — 2026-08-01
+            ## MedHorizon v0.3.17 — 2026-08-03
 
             ### Added
 
-            - **TaskResult contract:** Zod-backed TaskTool child outcomes (`success` / `partial` / `failure` / `cancelled` / `timeout`); strict-success only.
-            - **CI coverage report:** Test job runs `test:coverage`; installs use `--frozen-lockfile`.
+            - **Session artifact catalog (plan 16):** RLMArtifacts register/resolve/list baseline frozen; session artifact metadata commits atomically with the `.dat` write as the single visibility commit, backed by paginated list, bounded preview, and download endpoints in the generated SDK.
+            - **Local Explorer core shell (plan 16):** contract-driven `features/explorer` shell with a single Files adapter mounted in `session.tsx`; the host `FileExplorer` tree is unchanged and still browses host files through host endpoints only (zero `/api/atlas`).
+            - **Scientific file routing (plan 19):** single backend `ScienceFile` detector (`family`/`format`/`mode`/`capability`/`readPolicy`) with frozen budgets, a shared canonical path resolver (rejects `..`, symlinks, cross-drive, and directory targets), and bounded inspect/preview/raw endpoints surfaced as `file.inspect`/`file.preview`/`file.raw` in the generated SDK.
+            - **Project-file renderer registry (plan 19):** maps `capability × readPolicy` to the existing science renderers through a thin project wrapper that clips bounded content; GenomeTrack is not registered in v1, and empty/invalid input can never mount sample content.
+            - **Hardened Dialog context (plan 06):** rebuilt Promise-based dialog helpers on a tightened context contract.
 
             ### Changed
 
-            - **Atlas surface retired:** Stage + Research Graph only; Canvas/account/wallet/managed billing UI removed from the live tree. Default right pane: Research Graph.
-            - **`OPENSCIENCE_ENABLE_ATLAS` default-off** (non-UI cloud bridge/sync only; does not restore product UI).
+            - SDK regenerated with the session-artifact catalog and science inspect routes; the generator is now Windows-portable (explicit `bun` invocation, `.prettierignore` excludes the Vite symlink stub).
 
             ### Fixed
 
-            - Task/RLM decoding no longer treats empty/unknown status as success.
+            - The file-explorer E2E request capture no longer aborts page navigation when it hits an unparseable lifecycle URL.
 
             ## 一键安装
 
@@ -242,7 +244,7 @@ jobs:
             设置环境变量 `RESEARCH_GRAPH_DISABLE=1` 可跳过 sidecar 与内置插件。
 
             ---
-            完整说明见 [README](https://github.com/medhorizon/medhorizon#readme) · [CHANGELOG](https://github.com/medhorizon/medhorizon/blob/release/v0.3.15/CHANGELOG.md)
+            完整说明见 [README](https://github.com/medhorizon/medhorizon#readme) · [CHANGELOG](https://github.com/medhorizon/medhorizon/blob/release/v0.3.17/CHANGELOG.md)
           files: |
             artifacts/*
           draft: false
