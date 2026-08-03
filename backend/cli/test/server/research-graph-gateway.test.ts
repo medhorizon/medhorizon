@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from "bun:test"
-import { ResearchGraphProxyRoutes } from "../../src/server/routes/research-graph"
+import { ResearchGraphControlRoutes, ResearchGraphProxyRoutes } from "../../src/server/routes/research-graph"
 import type { CurrentEndpoint } from "../../src/sidecar/research-graph"
 
 const servers: Array<ReturnType<typeof Bun.serve>> = []
@@ -124,5 +124,75 @@ describe("research graph gateway proxy", () => {
     expect(response.status).toBe(400)
     expect(await response.json()).toEqual({ status: "invalid_path" })
     expect(hits.value).toBe(0)
+  })
+
+  test("resolves a binding into a same-origin embed path", async () => {
+    const seen: { authorization?: string; path?: string } = {}
+    const upstream = Bun.serve({
+      hostname: "127.0.0.1",
+      port: 0,
+      fetch: (request) => {
+        seen.authorization = request.headers.get("authorization") ?? undefined
+        seen.path = new URL(request.url).pathname
+        return Response.json({
+          status: "bound",
+          graph: { id: "graph/1", title: "Bound", updated_at: "2026-08-03T00:00:00Z" },
+          binding_updated_at: "2026-08-03T00:01:00Z",
+        })
+      },
+    })
+    servers.push(upstream)
+    const route = ResearchGraphControlRoutes(() => current(upstream.url.origin))
+
+    const response = await route.request("/resolve?sessionId=session-1", {
+      headers: { Authorization: "Bearer browser-token" },
+    })
+
+    expect(response.status).toBe(200)
+    expect(await response.json()).toEqual({
+      status: "bound",
+      graph: { id: "graph/1", title: "Bound", updatedAt: "2026-08-03T00:00:00Z" },
+      embedPath: "/research-graph/embed/graph/graph%2F1",
+    })
+    expect(seen.authorization).toBe("Bearer capability-1")
+    expect(seen.path).toBe("/api/sessions/resolve")
+  })
+
+  test("binds through the explicit control contract with a typed response", async () => {
+    const seen: { body?: string; path?: string } = {}
+    const upstream = Bun.serve({
+      hostname: "127.0.0.1",
+      port: 0,
+      fetch: async (request) => {
+        seen.path = new URL(request.url).pathname
+        seen.body = await request.text()
+        return Response.json({
+          session_id: "session-1",
+          graph_id: "graph-1",
+          directory: null,
+          created_at: "2026-08-03T00:00:00Z",
+          updated_at: "2026-08-03T00:01:00Z",
+        })
+      },
+    })
+    servers.push(upstream)
+    const route = ResearchGraphControlRoutes(() => current(upstream.url.origin))
+
+    const response = await route.request("/bind", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sessionId: "session-1", graphId: "graph-1", reason: "test" }),
+    })
+
+    expect(response.status).toBe(200)
+    expect(await response.json()).toEqual({
+      sessionId: "session-1",
+      graphId: "graph-1",
+      directory: null,
+      createdAt: "2026-08-03T00:00:00Z",
+      updatedAt: "2026-08-03T00:01:00Z",
+    })
+    expect(seen.path).toBe("/api/sessions/bind")
+    expect(JSON.parse(seen.body ?? "{}")).toMatchObject({ session_id: "session-1", graph_id: "graph-1" })
   })
 })

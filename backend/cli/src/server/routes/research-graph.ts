@@ -1,6 +1,8 @@
 import { Hono } from "hono"
 import type { Context } from "hono"
 import type { ContentfulStatusCode } from "hono/utils/http-status"
+import { describeRoute, resolver, validator } from "hono-openapi"
+import z from "zod"
 import { currentResearchGraphSidecar } from "../../sidecar/research-graph"
 import type { CurrentEndpoint } from "../../sidecar/research-graph"
 
@@ -48,6 +50,42 @@ const REPLAYABLE = new Set(["GET", "HEAD", "OPTIONS"])
 type Source = () => CurrentEndpoint | null
 type Failure = "unavailable" | "timeout"
 
+const ErrorBody = z.object({
+  status: z.string(),
+  code: z.string().optional(),
+  message: z.string().optional(),
+})
+const ResolveQuery = z.object({ sessionId: z.string().min(1).max(256) })
+const BindInput = z.object({
+  sessionId: z.string().min(1).max(256),
+  graphId: z.string().min(1).max(256),
+  directory: z.string().max(4096).nullable().optional(),
+  messageId: z.string().max(256).optional(),
+  reason: z.string().max(512).optional(),
+})
+const GraphSummary = z.object({ id: z.string(), title: z.string(), updatedAt: z.string() })
+const ResolveOutput = z.discriminatedUnion("status", [
+  z.object({ status: z.literal("bound"), graph: GraphSummary, embedPath: z.string() }),
+  z.object({ status: z.literal("not_bound") }),
+])
+const BindOutput = z.object({
+  sessionId: z.string(),
+  graphId: z.string(),
+  directory: z.string().nullable(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+})
+const UpstreamResolve = z.discriminatedUnion("status", [
+  z.object({
+    status: z.literal("bound"),
+    graph: z.object({ id: z.string(), title: z.string(), updated_at: z.string() }),
+    binding_updated_at: z.string(),
+  }),
+  z.object({ status: z.literal("not_bound") }),
+])
+
+type ControlFailure = Failure | "rejected" | "incompatible" | "integrity" | "upstream_error"
+
 function source(): CurrentEndpoint | null {
   return currentResearchGraphSidecar()
 }
@@ -58,6 +96,10 @@ function json(c: Context, body: Record<string, string>, status: ContentfulStatus
 
 function failure(c: Context, code: Failure): Response {
   return json(c, { status: code }, code === "timeout" ? 504 : 503)
+}
+
+function controlFailure(c: Context, code: ControlFailure, status: ContentfulStatusCode, message?: string): Response {
+  return c.json({ status: code, code: `research_graph_${code}`, ...(message ? { message } : {}) }, status)
 }
 
 function path(c: Context): string | null {
@@ -151,6 +193,55 @@ function pass(response: Response, endpoint: CurrentEndpoint): Response {
   })
 }
 
+async function controlRequest(
+  endpoint: CurrentEndpoint,
+  pathname: string,
+  search: string,
+  method: "GET" | "POST",
+  body?: string,
+): Promise<Response | Failure> {
+  const requestHeaders = new Headers({ accept: "application/json" })
+  if (body !== undefined) requestHeaders.set("content-type", "application/json")
+  if (endpoint.endpoint.token) requestHeaders.set("authorization", `Bearer ${endpoint.endpoint.token}`)
+  try {
+    return await fetch(target(endpoint, pathname, search), {
+      method,
+      headers: requestHeaders,
+      body,
+      redirect: "manual",
+      signal: AbortSignal.timeout(30000),
+    })
+  } catch (error) {
+    return timedOut(error) ? "timeout" : "unavailable"
+  }
+}
+
+async function upstreamBody(response: Response): Promise<unknown> {
+  try {
+    return await response.json()
+  } catch {
+    return null
+  }
+}
+
+async function controlResponse(c: Context, response: Response): Promise<Response | unknown> {
+  if (response.status === 401 || response.status === 403) {
+    await response.body?.cancel()
+    return controlFailure(c, "rejected", 502)
+  }
+  const body = await upstreamBody(response)
+  if (!response.ok) {
+    const detail = z
+      .object({ detail: z.object({ code: z.string(), message: z.string().optional() }).optional() })
+      .safeParse(body)
+    if (response.status === 409 && detail.success && detail.data.detail?.code === "binding_integrity") {
+      return controlFailure(c, "integrity", 409, detail.data.detail.message)
+    }
+    return controlFailure(c, "upstream_error", 502)
+  }
+  return body
+}
+
 async function proxy(c: Context, get: Source): Promise<Response> {
   const pathname = path(c)
   if (!pathname) return json(c, { status: "invalid_path" }, 400)
@@ -179,4 +270,106 @@ async function proxy(c: Context, get: Source): Promise<Response> {
 
 export function ResearchGraphProxyRoutes(get: Source = source): Hono {
   return new Hono().all("/*", (c) => proxy(c, get))
+}
+
+export function ResearchGraphControlRoutes(get: Source = source): Hono {
+  return new Hono()
+    .get(
+      "/resolve",
+      describeRoute({
+        summary: "Resolve a session's Research Graph binding",
+        description: "Return the authoritative graph binding for a session without title matching or graph scans.",
+        operationId: "researchGraph.session.resolve",
+        responses: {
+          200: { description: "Resolved binding", content: { "application/json": { schema: resolver(ResolveOutput) } } },
+          400: { description: "Invalid session id", content: { "application/json": { schema: resolver(ErrorBody) } } },
+          409: { description: "Binding integrity failure", content: { "application/json": { schema: resolver(ErrorBody) } } },
+          502: { description: "Research Graph rejected or failed", content: { "application/json": { schema: resolver(ErrorBody) } } },
+          503: { description: "Research Graph unavailable", content: { "application/json": { schema: resolver(ErrorBody) } } },
+          504: { description: "Research Graph timed out", content: { "application/json": { schema: resolver(ErrorBody) } } },
+        },
+      }),
+      validator("query", ResolveQuery),
+      async (c) => {
+        const endpoint = get()
+        if (!endpoint) return controlFailure(c, "unavailable", 503)
+        const sessionId = c.req.valid("query").sessionId
+        const result = await controlRequest(
+          endpoint,
+          "/api/sessions/resolve",
+          `?session_id=${encodeURIComponent(sessionId)}`,
+          "GET",
+        )
+        if (typeof result === "string") return controlFailure(c, result, result === "timeout" ? 504 : 503)
+        const body = await controlResponse(c, result)
+        if (body instanceof Response) return body
+        const parsed = UpstreamResolve.safeParse(body)
+        if (!parsed.success) return controlFailure(c, "incompatible", 502)
+        if (parsed.data.status === "not_bound") return c.json(parsed.data)
+        return c.json({
+          status: "bound",
+          graph: {
+            id: parsed.data.graph.id,
+            title: parsed.data.graph.title,
+            updatedAt: parsed.data.graph.updated_at,
+          },
+          embedPath: `${PREFIX}/embed/graph/${encodeURIComponent(parsed.data.graph.id)}`,
+        })
+      },
+    )
+    .post(
+      "/bind",
+      describeRoute({
+        summary: "Bind a session to a Research Graph",
+        description: "Create or update the authoritative session-to-graph binding.",
+        operationId: "researchGraph.session.bind",
+        responses: {
+          200: { description: "Binding saved", content: { "application/json": { schema: resolver(BindOutput) } } },
+          400: { description: "Invalid binding", content: { "application/json": { schema: resolver(ErrorBody) } } },
+          502: { description: "Research Graph rejected or failed", content: { "application/json": { schema: resolver(ErrorBody) } } },
+          503: { description: "Research Graph unavailable", content: { "application/json": { schema: resolver(ErrorBody) } } },
+          504: { description: "Research Graph timed out", content: { "application/json": { schema: resolver(ErrorBody) } } },
+        },
+      }),
+      validator("json", BindInput),
+      async (c) => {
+        const endpoint = get()
+        if (!endpoint) return controlFailure(c, "unavailable", 503)
+        const input = c.req.valid("json")
+        const result = await controlRequest(
+          endpoint,
+          "/api/sessions/bind",
+          "",
+          "POST",
+          JSON.stringify({
+            session_id: input.sessionId,
+            graph_id: input.graphId,
+            directory: input.directory,
+            message_id: input.messageId,
+            reason: input.reason,
+          }),
+        )
+        if (typeof result === "string") return controlFailure(c, result, result === "timeout" ? 504 : 503)
+        const body = await controlResponse(c, result)
+        if (body instanceof Response) return body
+        const parsed = z
+          .object({
+            session_id: z.string(),
+            graph_id: z.string(),
+            directory: z.string().nullable(),
+            created_at: z.string(),
+            updated_at: z.string(),
+          })
+          .safeParse(body)
+        if (!parsed.success) return controlFailure(c, "incompatible", 502)
+        return c.json({
+          sessionId: parsed.data.session_id,
+          graphId: parsed.data.graph_id,
+          directory: parsed.data.directory,
+          createdAt: parsed.data.created_at,
+          updatedAt: parsed.data.updated_at,
+        })
+      },
+    )
+    .all("/*", (c) => c.notFound())
 }
