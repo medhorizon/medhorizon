@@ -5,7 +5,7 @@ import { test, expect } from "./fixtures"
 const escapeRegex = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
 
 async function openFile(page: Page, directory: string, relativePath: string) {
-  await page.getByRole("tab", { name: "Files", exact: true }).click()
+  await page.locator('[role="tab"][title="Files"]').click()
 
   const folder = path.join(directory, path.dirname(relativePath))
   const filename = path.basename(relativePath)
@@ -25,11 +25,11 @@ test("markdown files render and can toggle their raw source", async ({ page, dir
   await openFile(page, directory, "README.md")
 
   await expect(page.locator("[data-component=markdown].atlas-md")).toBeVisible()
-  await expect(page.getByText("The open-source AI workbench for scientific research", { exact: true })).toBeVisible()
+  await expect(page.getByText("支持可控节点与人机协作的 AI Agent 工作台", { exact: true })).toBeVisible()
   await page.getByTitle("raw source", { exact: true }).click()
   await expect(page.getByTitle("rendered view", { exact: true })).toBeVisible()
   await expect(
-    page.getByText("### The open-source AI workbench for scientific research", { exact: true }),
+    page.getByText("### 支持可控节点与人机协作的 AI Agent 工作台", { exact: true }),
   ).toBeVisible()
 })
 

@@ -20,7 +20,7 @@ const escapeRegex = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$
 async function openFile(page: Page, filename: string) {
   // Re-show the Files tab (opening a doc hides it, but the explorer stays
   // mounted with its cwd intact) and open the file by filter.
-  await page.getByRole("tab", { name: "Files", exact: true }).click()
+  await page.locator('[role="tab"][title="Files"]').click()
   await page.getByPlaceholder("filter this folder…").fill(filename)
   const item = page.getByRole("button", { name: new RegExp(`^${escapeRegex(filename)}\\b`) }).first()
   await expect(item).toBeVisible()
@@ -48,7 +48,7 @@ test("science fixtures route inspect -> policy -> renderer/fallback with zero /a
 
   try {
     await gotoSession()
-    await page.getByRole("tab", { name: "Files", exact: true }).click()
+    await page.locator('[role="tab"][title="Files"]').click()
     await page.getByPlaceholder("/absolute/path").fill(directory)
     await page.getByPlaceholder("/absolute/path").press("Enter")
 
@@ -81,7 +81,7 @@ test("science fixtures route inspect -> policy -> renderer/fallback with zero /a
 
     // markdown still renders through the editable-full path
     await openFile(page, "notes.md")
-    await expect(page.locator("[data-component=markdown].atlas-md")).toBeVisible()
+    await expect(page.locator("[data-component=markdown].atlas-md").filter({ visible: true })).toBeVisible()
     await expect(page.getByText("Hello science")).toBeVisible()
 
     expect(atlas).toEqual([])
@@ -99,7 +99,7 @@ test("fast switching between science files never shows a stale renderer", async 
 
   try {
     await gotoSession()
-    await page.getByRole("tab", { name: "Files", exact: true }).click()
+    await page.locator('[role="tab"][title="Files"]').click()
     await page.getByPlaceholder("/absolute/path").fill(directory)
     await page.getByPlaceholder("/absolute/path").press("Enter")
 
@@ -132,7 +132,7 @@ test("a pdf project file streams through the canonical same-origin raw URL", asy
   copyFileSync(new URL("./fixtures/science/sample.pdf", import.meta.url), path.join(directory, "sample.pdf"))
   try {
     await gotoSession()
-    await page.getByRole("tab", { name: "Files", exact: true }).click()
+    await page.locator('[role="tab"][title="Files"]').click()
     await page.getByPlaceholder("/absolute/path").fill(directory)
     await page.getByPlaceholder("/absolute/path").press("Enter")
     await openFile(page, "sample.pdf")

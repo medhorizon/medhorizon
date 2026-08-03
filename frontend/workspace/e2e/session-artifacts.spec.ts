@@ -67,7 +67,7 @@ test("session artifacts list, preview, and download use only the session API", a
     await gotoSession(sessionID)
 
     // Open the center Files surface, then the Session Artifacts module tab.
-    await page.getByRole("tab", { name: "Files", exact: true }).click()
+    await page.locator('[role="tab"][title="Files"]').click()
     await page.getByRole("tab", { name: "Session Artifacts", exact: true }).click()
 
     // Rows render summary, type, size and created time; the legacy entry is
