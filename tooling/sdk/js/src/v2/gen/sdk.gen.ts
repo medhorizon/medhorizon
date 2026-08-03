@@ -32,9 +32,12 @@ import type {
   ConfigUpdateResponses,
   EventSubscribeResponses,
   ExperimentalResourceListResponses,
+  FileInspectResponses,
   FileListResponses,
   FilePartInput,
   FilePartSource,
+  FilePreviewResponses,
+  FileRawResponses,
   FileReadResponses,
   FileStatusResponses,
   FileWriteResponses,
@@ -120,6 +123,12 @@ import type {
   QuestionReplyResponses,
   SessionAbortErrors,
   SessionAbortResponses,
+  SessionArtifactContentErrors,
+  SessionArtifactContentResponses,
+  SessionArtifactPreviewErrors,
+  SessionArtifactPreviewResponses,
+  SessionArtifactsListErrors,
+  SessionArtifactsListResponses,
   SessionChildrenErrors,
   SessionChildrenResponses,
   SessionCommandErrors,
@@ -1936,6 +1945,120 @@ export class Experimental extends HeyApiClient {
   }
 }
 
+export class Artifacts extends HeyApiClient {
+  /**
+   * List session artifacts
+   *
+   * Paginated, newest-first list of the session's registered artifacts. The cursor is a stable created-time + id ordering; responses never expose server paths.
+   */
+  public list<ThrowOnError extends boolean = false>(
+    parameters: {
+      sessionID: string
+      directory?: string
+      limit?: number
+      cursor?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "sessionID" },
+            { in: "query", key: "directory" },
+            { in: "query", key: "limit" },
+            { in: "query", key: "cursor" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<
+      SessionArtifactsListResponses,
+      SessionArtifactsListErrors,
+      ThrowOnError
+    >({
+      url: "/session/{sessionID}/artifacts",
+      ...options,
+      ...params,
+    })
+  }
+}
+
+export class Artifact extends HeyApiClient {
+  /**
+   * Preview session artifact
+   *
+   * Bounded UTF-8 preview of an artifact's payload. Reads a fixed slice only, never the full file; `truncated` reports whether content was cut.
+   */
+  public preview<ThrowOnError extends boolean = false>(
+    parameters: {
+      sessionID: string
+      artifactID: string
+      directory?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "sessionID" },
+            { in: "path", key: "artifactID" },
+            { in: "query", key: "directory" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<
+      SessionArtifactPreviewResponses,
+      SessionArtifactPreviewErrors,
+      ThrowOnError
+    >({
+      url: "/session/{sessionID}/artifacts/{artifactID}/preview",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Download session artifact
+   *
+   * Stream the raw artifact payload as an explicit download with safe filename/content headers. Never requested implicitly.
+   */
+  public content<ThrowOnError extends boolean = false>(
+    parameters: {
+      sessionID: string
+      artifactID: string
+      directory?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "sessionID" },
+            { in: "path", key: "artifactID" },
+            { in: "query", key: "directory" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<
+      SessionArtifactContentResponses,
+      SessionArtifactContentErrors,
+      ThrowOnError
+    >({
+      url: "/session/{sessionID}/artifacts/{artifactID}/content",
+      ...options,
+      ...params,
+    })
+  }
+}
+
 export class Session extends HeyApiClient {
   /**
    * List sessions
@@ -2792,6 +2915,16 @@ export class Session extends HeyApiClient {
       },
     })
   }
+
+  private _artifacts?: Artifacts
+  get artifacts(): Artifacts {
+    return (this._artifacts ??= new Artifacts({ client: this.client }))
+  }
+
+  private _artifact?: Artifact
+  get artifact(): Artifact {
+    return (this._artifact ??= new Artifact({ client: this.client }))
+  }
 }
 
 export class Part extends HeyApiClient {
@@ -3380,6 +3513,96 @@ export class File extends HeyApiClient {
         ...options?.headers,
         ...params.headers,
       },
+    })
+  }
+
+  /**
+   * Inspect file
+   *
+   * Bounded, project-scoped classification of a project file. Reads only the frozen head/tail byte windows (never the full file), resolves .gz/.bgz by decompressing the inspected window, and returns detection plus a fixed-cap text preview (binary files are metadata-only).
+   */
+  public inspect<ThrowOnError extends boolean = false>(
+    parameters: {
+      directory?: string
+      path: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "path" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<FileInspectResponses, unknown, ThrowOnError>({
+      url: "/file/inspect",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Preview file
+   *
+   * Bounded text preview of a project file with fixed byte/line caps and totalBytes/truncated. Binary files return metadata only. Reads at most a PREVIEW_BYTES window, never the full file.
+   */
+  public preview<ThrowOnError extends boolean = false>(
+    parameters: {
+      directory?: string
+      path: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "path" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<FilePreviewResponses, unknown, ThrowOnError>({
+      url: "/file/preview",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Download file
+   *
+   * Same-origin, path-safe byte stream of a project file. Streams from disk (never base64/JSON/data-URL) and supports HTTP Range for partial downloads. Each request re-resolves the path against the project boundary.
+   */
+  public raw<ThrowOnError extends boolean = false>(
+    parameters: {
+      directory?: string
+      path: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "path" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<FileRawResponses, unknown, ThrowOnError>({
+      url: "/file/raw",
+      ...options,
+      ...params,
     })
   }
 

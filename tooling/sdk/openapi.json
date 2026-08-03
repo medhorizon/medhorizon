@@ -6502,6 +6502,235 @@
         ]
       }
     },
+    "/session/{sessionID}/artifacts": {
+      "get": {
+        "operationId": "session.artifacts.list",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "directory",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "sessionID",
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+            },
+            "required": true,
+            "description": "Session ID"
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200
+            },
+            "description": "Maximum items to return (default 50, max 200)"
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Opaque pagination cursor from a previous page"
+          }
+        ],
+        "summary": "List session artifacts",
+        "description": "Paginated, newest-first list of the session's registered artifacts. The cursor is a stable created-time + id ordering; responses never expose server paths.",
+        "tags": [
+          "Session"
+        ],
+        "responses": {
+          "200": {
+            "description": "List of artifacts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionArtifactList"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid limit or cursor",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionArtifactsError"
+                }
+              }
+            }
+          }
+        },
+        "x-codeSamples": [
+          {
+            "lang": "js",
+            "source": "import { createOpenScienceClient } from \"@synsci/sdk\"\n\nconst client = createOpenScienceClient()\nawait client.session.artifacts.list({\n  ...\n})"
+          }
+        ]
+      }
+    },
+    "/session/{sessionID}/artifacts/{artifactID}/preview": {
+      "get": {
+        "operationId": "session.artifact.preview",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "directory",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "sessionID",
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+            },
+            "required": true,
+            "description": "Session ID"
+          },
+          {
+            "in": "path",
+            "name": "artifactID",
+            "schema": {
+              "type": "string",
+              "pattern": "^art-[A-Za-z0-9_-]{1,80}$"
+            },
+            "required": true,
+            "description": "Artifact ID"
+          }
+        ],
+        "summary": "Preview session artifact",
+        "description": "Bounded UTF-8 preview of an artifact's payload. Reads a fixed slice only, never the full file; `truncated` reports whether content was cut.",
+        "tags": [
+          "Session"
+        ],
+        "responses": {
+          "200": {
+            "description": "Bounded preview",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionArtifactPreview"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid artifact id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionArtifactsError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Session or artifact not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionArtifactsError"
+                }
+              }
+            }
+          }
+        },
+        "x-codeSamples": [
+          {
+            "lang": "js",
+            "source": "import { createOpenScienceClient } from \"@synsci/sdk\"\n\nconst client = createOpenScienceClient()\nawait client.session.artifact.preview({\n  ...\n})"
+          }
+        ]
+      }
+    },
+    "/session/{sessionID}/artifacts/{artifactID}/content": {
+      "get": {
+        "operationId": "session.artifact.content",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "directory",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "sessionID",
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+            },
+            "required": true,
+            "description": "Session ID"
+          },
+          {
+            "in": "path",
+            "name": "artifactID",
+            "schema": {
+              "type": "string",
+              "pattern": "^art-[A-Za-z0-9_-]{1,80}$"
+            },
+            "required": true,
+            "description": "Artifact ID"
+          }
+        ],
+        "summary": "Download session artifact",
+        "description": "Stream the raw artifact payload as an explicit download with safe filename/content headers. Never requested implicitly.",
+        "tags": [
+          "Session"
+        ],
+        "responses": {
+          "200": {
+            "description": "Raw artifact payload",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid artifact id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionArtifactsError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Session or artifact not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionArtifactsError"
+                }
+              }
+            }
+          }
+        },
+        "x-codeSamples": [
+          {
+            "lang": "js",
+            "source": "import { createOpenScienceClient } from \"@synsci/sdk\"\n\nconst client = createOpenScienceClient()\nawait client.session.artifact.content({\n  ...\n})"
+          }
+        ]
+      }
+    },
     "/permission/{requestID}/reply": {
       "post": {
         "operationId": "permission.reply",
@@ -7428,6 +7657,142 @@
           {
             "lang": "js",
             "source": "import { createOpenScienceClient } from \"@synsci/sdk\"\n\nconst client = createOpenScienceClient()\nawait client.file.write({\n  ...\n})"
+          }
+        ]
+      }
+    },
+    "/file/inspect": {
+      "get": {
+        "operationId": "file.inspect",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "directory",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "path",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "summary": "Inspect file",
+        "description": "Bounded, project-scoped classification of a project file. Reads only the frozen head/tail byte windows (never the full file), resolves .gz/.bgz by decompressing the inspected window, and returns detection plus a fixed-cap text preview (binary files are metadata-only).",
+        "responses": {
+          "200": {
+            "description": "Science file inspection",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScienceFileInspect"
+                }
+              }
+            }
+          }
+        },
+        "x-codeSamples": [
+          {
+            "lang": "js",
+            "source": "import { createOpenScienceClient } from \"@synsci/sdk\"\n\nconst client = createOpenScienceClient()\nawait client.file.inspect({\n  ...\n})"
+          }
+        ]
+      }
+    },
+    "/file/preview": {
+      "get": {
+        "operationId": "file.preview",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "directory",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "path",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "summary": "Preview file",
+        "description": "Bounded text preview of a project file with fixed byte/line caps and totalBytes/truncated. Binary files return metadata only. Reads at most a PREVIEW_BYTES window, never the full file.",
+        "responses": {
+          "200": {
+            "description": "Science file preview",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScienceFilePreview"
+                }
+              }
+            }
+          }
+        },
+        "x-codeSamples": [
+          {
+            "lang": "js",
+            "source": "import { createOpenScienceClient } from \"@synsci/sdk\"\n\nconst client = createOpenScienceClient()\nawait client.file.preview({\n  ...\n})"
+          }
+        ]
+      }
+    },
+    "/file/raw": {
+      "get": {
+        "operationId": "file.raw",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "directory",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "path",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "summary": "Download file",
+        "description": "Same-origin, path-safe byte stream of a project file. Streams from disk (never base64/JSON/data-URL) and supports HTTP Range for partial downloads. Each request re-resolves the path against the project boundary.",
+        "responses": {
+          "200": {
+            "description": "Raw file stream",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "206": {
+            "description": "Partial content (Range)",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "x-codeSamples": [
+          {
+            "lang": "js",
+            "source": "import { createOpenScienceClient } from \"@synsci/sdk\"\n\nconst client = createOpenScienceClient()\nawait client.file.raw({\n  ...\n})"
           }
         ]
       }
@@ -11377,6 +11742,340 @@
           "properties"
         ]
       },
+      "Event.session.context": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "session.context"
+          },
+          "properties": {
+            "type": "object",
+            "properties": {
+              "sessionID": {
+                "type": "string"
+              },
+              "tokens": {
+                "type": "object",
+                "properties": {
+                  "system": {
+                    "type": "number"
+                  },
+                  "text": {
+                    "type": "number"
+                  },
+                  "reasoning": {
+                    "type": "number"
+                  },
+                  "tool": {
+                    "type": "number"
+                  },
+                  "skills": {
+                    "type": "number"
+                  },
+                  "image": {
+                    "type": "number"
+                  },
+                  "toolArgs": {
+                    "type": "number"
+                  },
+                  "toolResults": {
+                    "type": "number"
+                  },
+                  "user": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "system",
+                  "text",
+                  "reasoning",
+                  "tool",
+                  "skills",
+                  "image",
+                  "toolArgs",
+                  "toolResults",
+                  "user"
+                ]
+              },
+              "images": {
+                "type": "number"
+              },
+              "total": {
+                "type": "number"
+              },
+              "tools": {
+                "type": "object",
+                "properties": {
+                  "native": {
+                    "type": "object",
+                    "properties": {
+                      "count": {
+                        "type": "number"
+                      },
+                      "bytes": {
+                        "type": "number"
+                      },
+                      "tokens": {
+                        "type": "number"
+                      },
+                      "ids": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "required": [
+                      "count",
+                      "bytes",
+                      "tokens",
+                      "ids"
+                    ]
+                  },
+                  "plugin": {
+                    "type": "object",
+                    "properties": {
+                      "count": {
+                        "type": "number"
+                      },
+                      "bytes": {
+                        "type": "number"
+                      },
+                      "tokens": {
+                        "type": "number"
+                      },
+                      "ids": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "required": [
+                      "count",
+                      "bytes",
+                      "tokens",
+                      "ids"
+                    ]
+                  },
+                  "mcp": {
+                    "type": "object",
+                    "properties": {
+                      "count": {
+                        "type": "number"
+                      },
+                      "bytes": {
+                        "type": "number"
+                      },
+                      "tokens": {
+                        "type": "number"
+                      },
+                      "ids": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "servers": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "count": {
+                              "type": "number"
+                            },
+                            "bytes": {
+                              "type": "number"
+                            },
+                            "tokens": {
+                              "type": "number"
+                            },
+                            "ids": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
+                            "server": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "count",
+                            "bytes",
+                            "tokens",
+                            "ids",
+                            "server"
+                          ]
+                        }
+                      }
+                    },
+                    "required": [
+                      "count",
+                      "bytes",
+                      "tokens",
+                      "ids",
+                      "servers"
+                    ]
+                  },
+                  "total": {
+                    "type": "object",
+                    "properties": {
+                      "count": {
+                        "type": "number"
+                      },
+                      "bytes": {
+                        "type": "number"
+                      },
+                      "tokens": {
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "count",
+                      "bytes",
+                      "tokens"
+                    ]
+                  }
+                },
+                "required": [
+                  "native",
+                  "plugin",
+                  "mcp",
+                  "total"
+                ]
+              },
+              "estimate": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "sessionID",
+              "tokens",
+              "images",
+              "total",
+              "tools",
+              "estimate"
+            ]
+          }
+        },
+        "required": [
+          "type",
+          "properties"
+        ]
+      },
+      "Event.session.usage": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "session.usage"
+          },
+          "properties": {
+            "type": "object",
+            "properties": {
+              "sessionID": {
+                "type": "string"
+              },
+              "tokens": {
+                "type": "object",
+                "properties": {
+                  "input": {
+                    "type": "number"
+                  },
+                  "output": {
+                    "type": "number"
+                  },
+                  "reasoning": {
+                    "type": "number"
+                  },
+                  "cache": {
+                    "type": "object",
+                    "properties": {
+                      "read": {
+                        "type": "number"
+                      },
+                      "write": {
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "read",
+                      "write"
+                    ]
+                  }
+                },
+                "required": [
+                  "input",
+                  "output",
+                  "reasoning",
+                  "cache"
+                ]
+              }
+            },
+            "required": [
+              "sessionID",
+              "tokens"
+            ]
+          }
+        },
+        "required": [
+          "type",
+          "properties"
+        ]
+      },
+      "Event.session.compaction": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "session.compaction"
+          },
+          "properties": {
+            "type": "object",
+            "properties": {
+              "sessionID": {
+                "type": "string"
+              },
+              "trigger": {
+                "type": "string",
+                "enum": [
+                  "proactive",
+                  "overflow",
+                  "manual"
+                ]
+              },
+              "mechanism": {
+                "type": "string",
+                "enum": [
+                  "prune",
+                  "summary"
+                ]
+              },
+              "before": {
+                "type": "number"
+              },
+              "after": {
+                "type": "number"
+              },
+              "reclaimed": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "sessionID",
+              "trigger",
+              "mechanism",
+              "reclaimed"
+            ]
+          }
+        },
+        "required": [
+          "type",
+          "properties"
+        ]
+      },
       "SessionStatus": {
         "anyOf": [
           {
@@ -11660,121 +12359,6 @@
             "required": [
               "sessionID",
               "requestID"
-            ]
-          }
-        },
-        "required": [
-          "type",
-          "properties"
-        ]
-      },
-      "Event.session.context": {
-        "type": "object",
-        "properties": {
-          "type": {
-            "type": "string",
-            "const": "session.context"
-          },
-          "properties": {
-            "type": "object",
-            "properties": {
-              "sessionID": {
-                "type": "string"
-              },
-              "tokens": {
-                "type": "object",
-                "properties": {
-                  "system": {
-                    "type": "number"
-                  },
-                  "text": {
-                    "type": "number"
-                  },
-                  "reasoning": {
-                    "type": "number"
-                  },
-                  "tool": {
-                    "type": "number"
-                  },
-                  "skills": {
-                    "type": "number"
-                  },
-                  "image": {
-                    "type": "number"
-                  }
-                },
-                "required": [
-                  "system",
-                  "text",
-                  "reasoning",
-                  "tool",
-                  "skills",
-                  "image"
-                ]
-              },
-              "images": {
-                "type": "number"
-              },
-              "total": {
-                "type": "number"
-              }
-            },
-            "required": [
-              "sessionID",
-              "tokens",
-              "images",
-              "total"
-            ]
-          }
-        },
-        "required": [
-          "type",
-          "properties"
-        ]
-      },
-      "Event.session.compaction": {
-        "type": "object",
-        "properties": {
-          "type": {
-            "type": "string",
-            "const": "session.compaction"
-          },
-          "properties": {
-            "type": "object",
-            "properties": {
-              "sessionID": {
-                "type": "string"
-              },
-              "trigger": {
-                "type": "string",
-                "enum": [
-                  "proactive",
-                  "overflow",
-                  "manual"
-                ]
-              },
-              "mechanism": {
-                "type": "string",
-                "enum": [
-                  "prune",
-                  "summary"
-                ]
-              },
-              "before": {
-                "type": "number"
-              },
-              "after": {
-                "type": "number"
-              },
-              "reclaimed": {
-                "type": "number"
-              }
-            },
-            "required": [
-              "sessionID",
-              "trigger",
-              "mechanism",
-              "reclaimed"
             ]
           }
         },
@@ -12614,6 +13198,15 @@
             "$ref": "#/components/schemas/Event.permission.replied"
           },
           {
+            "$ref": "#/components/schemas/Event.session.context"
+          },
+          {
+            "$ref": "#/components/schemas/Event.session.usage"
+          },
+          {
+            "$ref": "#/components/schemas/Event.session.compaction"
+          },
+          {
             "$ref": "#/components/schemas/Event.session.status"
           },
           {
@@ -12627,12 +13220,6 @@
           },
           {
             "$ref": "#/components/schemas/Event.question.rejected"
-          },
-          {
-            "$ref": "#/components/schemas/Event.session.context"
-          },
-          {
-            "$ref": "#/components/schemas/Event.session.compaction"
           },
           {
             "$ref": "#/components/schemas/Event.session.compacted"
@@ -13382,6 +13969,13 @@
             "exclusiveMinimum": 0,
             "maximum": 9007199254740991
           },
+          "toolset": {
+            "description": "Tool availability patterns (exact IDs and wildcards). Absent = all tools.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
           "permission": {
             "$ref": "#/components/schemas/PermissionConfig"
           }
@@ -14068,7 +14662,7 @@
             "type": "string"
           },
           "small_model": {
-            "description": "Small model to use for tasks like title generation in the format of provider/model",
+            "description": "Small model for title/summary tasks as provider/model, or \"inherit\" to always use the session main model",
             "type": "string"
           },
           "default_agent": {
@@ -14470,6 +15064,24 @@
               },
               "plan_mode": {
                 "description": "Replace TodoWrite with PlanWrite and show plan panel in sidebar",
+                "type": "boolean"
+              },
+              "tool_profiles": {
+                "description": "Apply native agent toolset profiles (plan 13). Set false to expose all tools for every agent.",
+                "type": "boolean"
+              },
+              "mcp_manifest_cache": {
+                "description": "Cache MCP listTools manifests with TTL and last-good retention (plan 13 task 4).",
+                "type": "boolean"
+              },
+              "mcp_manifest_cache_ttl_ms": {
+                "description": "TTL for MCP manifest cache in milliseconds (default 300000).",
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              },
+              "tool_result_bound": {
+                "description": "Apply conservative deterministic tool-result bounding with keep-lists and artifact spill (plan 13 task 6).",
                 "type": "boolean"
               },
               "mcp_timeout": {
@@ -15303,6 +15915,133 @@
           "restored"
         ]
       },
+      "SessionArtifactItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "size": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "downloadPath": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "summary",
+          "size",
+          "createdAt",
+          "downloadPath"
+        ]
+      },
+      "SessionArtifactList": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SessionArtifactItem"
+            }
+          },
+          "nextCursor": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "SessionArtifactsError": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "code",
+              "message"
+            ]
+          }
+        },
+        "required": [
+          "error"
+        ]
+      },
+      "SessionArtifactMeta": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "size": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "createdAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "summary",
+          "size",
+          "createdAt"
+        ]
+      },
+      "SessionArtifactPreview": {
+        "type": "object",
+        "properties": {
+          "metadata": {
+            "$ref": "#/components/schemas/SessionArtifactMeta"
+          },
+          "content": {
+            "type": "string"
+          },
+          "totalBytes": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "truncated": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "metadata",
+          "content",
+          "totalBytes",
+          "truncated"
+        ]
+      },
       "ProviderAuthMethod": {
         "type": "object",
         "properties": {
@@ -15508,6 +16247,300 @@
         "required": [
           "type",
           "content"
+        ]
+      },
+      "ScienceFileFamily": {
+        "type": "string",
+        "enum": [
+          "table",
+          "sequence",
+          "genome",
+          "structure",
+          "document",
+          "binary",
+          "unknown"
+        ]
+      },
+      "ScienceFileFormat": {
+        "type": "string",
+        "enum": [
+          "csv",
+          "tsv",
+          "fasta",
+          "fastq",
+          "bed",
+          "gff",
+          "gtf",
+          "vcf",
+          "pdb",
+          "mmcif",
+          "xyz",
+          "mol",
+          "sdf",
+          "latex",
+          "pdf",
+          "hdf5",
+          "h5ad",
+          "loom",
+          "parquet",
+          "arrow",
+          "bam",
+          "cram",
+          "unknown"
+        ]
+      },
+      "ScienceFileCapability": {
+        "type": "string",
+        "enum": [
+          "table",
+          "sequence",
+          "genome",
+          "structure",
+          "document",
+          "pdf",
+          "binary",
+          "text",
+          "unknown"
+        ]
+      },
+      "ScienceFileReadPolicy": {
+        "type": "string",
+        "enum": [
+          "editable-full",
+          "bounded-preview",
+          "metadata-only",
+          "streamed-media"
+        ]
+      },
+      "ScienceFileEvidence": {
+        "type": "string",
+        "enum": [
+          "magic",
+          "extension",
+          "none"
+        ]
+      },
+      "ScienceFileInspect": {
+        "description": "Bounded science file inspect response",
+        "anyOf": [
+          {
+            "type": "object",
+            "properties": {
+              "name": {
+                "description": "original file name",
+                "type": "string"
+              },
+              "size": {
+                "description": "file size in bytes",
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "family": {
+                "$ref": "#/components/schemas/ScienceFileFamily"
+              },
+              "format": {
+                "$ref": "#/components/schemas/ScienceFileFormat"
+              },
+              "capability": {
+                "$ref": "#/components/schemas/ScienceFileCapability"
+              },
+              "readPolicy": {
+                "$ref": "#/components/schemas/ScienceFileReadPolicy"
+              },
+              "evidence": {
+                "$ref": "#/components/schemas/ScienceFileEvidence"
+              },
+              "magic": {
+                "description": "a magic/header byte signature matched",
+                "type": "boolean"
+              },
+              "warnings": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "mode": {
+                "type": "string",
+                "const": "text"
+              },
+              "preview": {
+                "description": "truncated text preview (bounded-preview only)",
+                "type": "string"
+              },
+              "contentBytes": {
+                "description": "preview content bytes",
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "totalBytes": {
+                "description": "total file bytes",
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "truncated": {
+                "description": "preview was truncated to a fixed budget",
+                "type": "boolean"
+              },
+              "lines": {
+                "description": "preview line count",
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": [
+              "name",
+              "size",
+              "family",
+              "format",
+              "capability",
+              "readPolicy",
+              "evidence",
+              "magic",
+              "warnings",
+              "mode"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "name": {
+                "description": "original file name",
+                "type": "string"
+              },
+              "size": {
+                "description": "file size in bytes",
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "family": {
+                "$ref": "#/components/schemas/ScienceFileFamily"
+              },
+              "format": {
+                "$ref": "#/components/schemas/ScienceFileFormat"
+              },
+              "capability": {
+                "$ref": "#/components/schemas/ScienceFileCapability"
+              },
+              "readPolicy": {
+                "$ref": "#/components/schemas/ScienceFileReadPolicy"
+              },
+              "evidence": {
+                "$ref": "#/components/schemas/ScienceFileEvidence"
+              },
+              "magic": {
+                "description": "a magic/header byte signature matched",
+                "type": "boolean"
+              },
+              "warnings": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "mode": {
+                "type": "string",
+                "const": "binary"
+              }
+            },
+            "required": [
+              "name",
+              "size",
+              "family",
+              "format",
+              "capability",
+              "readPolicy",
+              "evidence",
+              "magic",
+              "warnings",
+              "mode"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      },
+      "ScienceFilePreview": {
+        "description": "Bounded science file text preview or binary metadata",
+        "anyOf": [
+          {
+            "type": "object",
+            "properties": {
+              "name": {
+                "description": "original file name",
+                "type": "string"
+              },
+              "mode": {
+                "type": "string",
+                "const": "text"
+              },
+              "format": {
+                "$ref": "#/components/schemas/ScienceFileFormat"
+              },
+              "readPolicy": {
+                "$ref": "#/components/schemas/ScienceFileReadPolicy"
+              },
+              "preview": {
+                "description": "truncated text preview (bounded-preview only)",
+                "type": "string"
+              },
+              "contentBytes": {
+                "description": "preview content bytes",
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "totalBytes": {
+                "description": "total file bytes",
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "truncated": {
+                "description": "preview was truncated to a fixed budget",
+                "type": "boolean"
+              },
+              "lines": {
+                "description": "preview line count",
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": [
+              "name",
+              "mode",
+              "format",
+              "readPolicy",
+              "preview",
+              "contentBytes",
+              "totalBytes",
+              "truncated",
+              "lines"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "name": {
+                "description": "original file name",
+                "type": "string"
+              },
+              "mode": {
+                "type": "string",
+                "const": "binary"
+              }
+            },
+            "required": [
+              "name",
+              "mode"
+            ],
+            "additionalProperties": false
+          }
         ]
       },
       "File": {
@@ -15748,6 +16781,12 @@
           },
           "permission": {
             "$ref": "#/components/schemas/PermissionRuleset"
+          },
+          "toolset": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           },
           "model": {
             "type": "object",

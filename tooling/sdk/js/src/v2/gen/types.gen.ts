@@ -559,6 +559,87 @@ export type EventPermissionReplied = {
   }
 }
 
+export type EventSessionContext = {
+  type: "session.context"
+  properties: {
+    sessionID: string
+    tokens: {
+      system: number
+      text: number
+      reasoning: number
+      tool: number
+      skills: number
+      image: number
+      toolArgs: number
+      toolResults: number
+      user: number
+    }
+    images: number
+    total: number
+    tools: {
+      native: {
+        count: number
+        bytes: number
+        tokens: number
+        ids: Array<string>
+      }
+      plugin: {
+        count: number
+        bytes: number
+        tokens: number
+        ids: Array<string>
+      }
+      mcp: {
+        count: number
+        bytes: number
+        tokens: number
+        ids: Array<string>
+        servers: Array<{
+          count: number
+          bytes: number
+          tokens: number
+          ids: Array<string>
+          server: string
+        }>
+      }
+      total: {
+        count: number
+        bytes: number
+        tokens: number
+      }
+    }
+    estimate: number
+  }
+}
+
+export type EventSessionUsage = {
+  type: "session.usage"
+  properties: {
+    sessionID: string
+    tokens: {
+      input: number
+      output: number
+      reasoning: number
+      cache: {
+        read: number
+        write: number
+      }
+    }
+  }
+}
+
+export type EventSessionCompaction = {
+  type: "session.compaction"
+  properties: {
+    sessionID: string
+    trigger: "proactive" | "overflow" | "manual"
+    mechanism: "prune" | "summary"
+    before?: number
+    after?: number
+    reclaimed: number
+  }
+}
+
 export type SessionStatus =
   | {
       type: "idle"
@@ -659,35 +740,6 @@ export type EventQuestionRejected = {
   properties: {
     sessionID: string
     requestID: string
-  }
-}
-
-export type EventSessionContext = {
-  type: "session.context"
-  properties: {
-    sessionID: string
-    tokens: {
-      system: number
-      text: number
-      reasoning: number
-      tool: number
-      skills: number
-      image: number
-    }
-    images: number
-    total: number
-  }
-}
-
-export type EventSessionCompaction = {
-  type: "session.compaction"
-  properties: {
-    sessionID: string
-    trigger: "proactive" | "overflow" | "manual"
-    mechanism: "prune" | "summary"
-    before?: number
-    after?: number
-    reclaimed: number
   }
 }
 
@@ -934,13 +986,14 @@ export type Event =
   | EventMessagePartRemoved
   | EventPermissionAsked
   | EventPermissionReplied
+  | EventSessionContext
+  | EventSessionUsage
+  | EventSessionCompaction
   | EventSessionStatus
   | EventSessionIdle
   | EventQuestionAsked
   | EventQuestionReplied
   | EventQuestionRejected
-  | EventSessionContext
-  | EventSessionCompaction
   | EventSessionCompacted
   | EventTodoUpdated
   | EventSessionStageUpdated
@@ -1438,6 +1491,10 @@ export type AgentConfig = {
    * @deprecated Use 'steps' field instead.
    */
   maxSteps?: number
+  /**
+   * Tool availability patterns (exact IDs and wildcards). Absent = all tools.
+   */
+  toolset?: Array<string>
   permission?: PermissionConfig
   [key: string]:
     | unknown
@@ -1455,6 +1512,7 @@ export type AgentConfig = {
       }
     | string
     | number
+    | Array<string>
     | PermissionConfig
     | undefined
 }
@@ -1738,7 +1796,7 @@ export type Config = {
    */
   model?: string
   /**
-   * Small model to use for tasks like title generation in the format of provider/model
+   * Small model for title/summary tasks as provider/model, or "inherit" to always use the session main model
    */
   small_model?: string
   /**
@@ -1914,6 +1972,22 @@ export type Config = {
      * Replace TodoWrite with PlanWrite and show plan panel in sidebar
      */
     plan_mode?: boolean
+    /**
+     * Apply native agent toolset profiles (plan 13). Set false to expose all tools for every agent.
+     */
+    tool_profiles?: boolean
+    /**
+     * Cache MCP listTools manifests with TTL and last-good retention (plan 13 task 4).
+     */
+    mcp_manifest_cache?: boolean
+    /**
+     * TTL for MCP manifest cache in milliseconds (default 300000).
+     */
+    mcp_manifest_cache_ttl_ms?: number
+    /**
+     * Apply conservative deterministic tool-result bounding with keep-lists and artifact spill (plan 13 task 6).
+     */
+    tool_result_bound?: boolean
     /**
      * Timeout in milliseconds for model context protocol (MCP) requests
      */
@@ -2165,6 +2239,42 @@ export type StageJumpResult = {
   restored: boolean
 }
 
+export type SessionArtifactItem = {
+  id: string
+  type: string
+  summary: string
+  size: number
+  createdAt: string
+  downloadPath: string
+}
+
+export type SessionArtifactList = {
+  items: Array<SessionArtifactItem>
+  nextCursor?: string
+}
+
+export type SessionArtifactsError = {
+  error: {
+    code: string
+    message: string
+  }
+}
+
+export type SessionArtifactMeta = {
+  id: string
+  type: string
+  summary: string
+  size: number
+  createdAt: string
+}
+
+export type SessionArtifactPreview = {
+  metadata: SessionArtifactMeta
+  content: string
+  totalBytes: number
+  truncated: boolean
+}
+
 export type ProviderAuthMethod = {
   type: "oauth" | "api"
   label: string
@@ -2217,6 +2327,156 @@ export type FileContent = {
   encoding?: "base64"
   mimeType?: string
 }
+
+export type ScienceFileFamily = "table" | "sequence" | "genome" | "structure" | "document" | "binary" | "unknown"
+
+export type ScienceFileFormat =
+  | "csv"
+  | "tsv"
+  | "fasta"
+  | "fastq"
+  | "bed"
+  | "gff"
+  | "gtf"
+  | "vcf"
+  | "pdb"
+  | "mmcif"
+  | "xyz"
+  | "mol"
+  | "sdf"
+  | "latex"
+  | "pdf"
+  | "hdf5"
+  | "h5ad"
+  | "loom"
+  | "parquet"
+  | "arrow"
+  | "bam"
+  | "cram"
+  | "unknown"
+
+export type ScienceFileCapability =
+  | "table"
+  | "sequence"
+  | "genome"
+  | "structure"
+  | "document"
+  | "pdf"
+  | "binary"
+  | "text"
+  | "unknown"
+
+export type ScienceFileReadPolicy = "editable-full" | "bounded-preview" | "metadata-only" | "streamed-media"
+
+export type ScienceFileEvidence = "magic" | "extension" | "none"
+
+/**
+ * Bounded science file inspect response
+ */
+export type ScienceFileInspect =
+  | {
+      /**
+       * original file name
+       */
+      name: string
+      /**
+       * file size in bytes
+       */
+      size: number
+      family: ScienceFileFamily
+      format: ScienceFileFormat
+      capability: ScienceFileCapability
+      readPolicy: ScienceFileReadPolicy
+      evidence: ScienceFileEvidence
+      /**
+       * a magic/header byte signature matched
+       */
+      magic: boolean
+      warnings: Array<string>
+      mode: "text"
+      /**
+       * truncated text preview (bounded-preview only)
+       */
+      preview?: string
+      /**
+       * preview content bytes
+       */
+      contentBytes?: number
+      /**
+       * total file bytes
+       */
+      totalBytes?: number
+      /**
+       * preview was truncated to a fixed budget
+       */
+      truncated?: boolean
+      /**
+       * preview line count
+       */
+      lines?: number
+    }
+  | {
+      /**
+       * original file name
+       */
+      name: string
+      /**
+       * file size in bytes
+       */
+      size: number
+      family: ScienceFileFamily
+      format: ScienceFileFormat
+      capability: ScienceFileCapability
+      readPolicy: ScienceFileReadPolicy
+      evidence: ScienceFileEvidence
+      /**
+       * a magic/header byte signature matched
+       */
+      magic: boolean
+      warnings: Array<string>
+      mode: "binary"
+    }
+
+/**
+ * Bounded science file text preview or binary metadata
+ */
+export type ScienceFilePreview =
+  | {
+      /**
+       * original file name
+       */
+      name: string
+      mode: "text"
+      format: ScienceFileFormat
+      readPolicy: ScienceFileReadPolicy
+      /**
+       * truncated text preview (bounded-preview only)
+       */
+      preview: string
+      /**
+       * preview content bytes
+       */
+      contentBytes: number
+      /**
+       * total file bytes
+       */
+      totalBytes: number
+      /**
+       * preview was truncated to a fixed budget
+       */
+      truncated: boolean
+      /**
+       * preview line count
+       */
+      lines: number
+    }
+  | {
+      /**
+       * original file name
+       */
+      name: string
+      mode: "binary"
+    }
 
 export type File = {
   path: string
@@ -2288,6 +2548,7 @@ export type Agent = {
   temperature?: number
   color?: string
   permission: PermissionRuleset
+  toolset?: Array<string>
   model?: {
     modelID: string
     providerID: string
@@ -5021,6 +5282,126 @@ export type PermissionRespondResponses = {
 
 export type PermissionRespondResponse = PermissionRespondResponses[keyof PermissionRespondResponses]
 
+export type SessionArtifactsListData = {
+  body?: never
+  path: {
+    /**
+     * Session ID
+     */
+    sessionID: string
+  }
+  query?: {
+    directory?: string
+    /**
+     * Maximum items to return (default 50, max 200)
+     */
+    limit?: number
+    /**
+     * Opaque pagination cursor from a previous page
+     */
+    cursor?: string
+  }
+  url: "/session/{sessionID}/artifacts"
+}
+
+export type SessionArtifactsListErrors = {
+  /**
+   * Invalid limit or cursor
+   */
+  400: SessionArtifactsError
+}
+
+export type SessionArtifactsListError = SessionArtifactsListErrors[keyof SessionArtifactsListErrors]
+
+export type SessionArtifactsListResponses = {
+  /**
+   * List of artifacts
+   */
+  200: SessionArtifactList
+}
+
+export type SessionArtifactsListResponse = SessionArtifactsListResponses[keyof SessionArtifactsListResponses]
+
+export type SessionArtifactPreviewData = {
+  body?: never
+  path: {
+    /**
+     * Session ID
+     */
+    sessionID: string
+    /**
+     * Artifact ID
+     */
+    artifactID: string
+  }
+  query?: {
+    directory?: string
+  }
+  url: "/session/{sessionID}/artifacts/{artifactID}/preview"
+}
+
+export type SessionArtifactPreviewErrors = {
+  /**
+   * Invalid artifact id
+   */
+  400: SessionArtifactsError
+  /**
+   * Session or artifact not found
+   */
+  404: SessionArtifactsError
+}
+
+export type SessionArtifactPreviewError = SessionArtifactPreviewErrors[keyof SessionArtifactPreviewErrors]
+
+export type SessionArtifactPreviewResponses = {
+  /**
+   * Bounded preview
+   */
+  200: SessionArtifactPreview
+}
+
+export type SessionArtifactPreviewResponse = SessionArtifactPreviewResponses[keyof SessionArtifactPreviewResponses]
+
+export type SessionArtifactContentData = {
+  body?: never
+  path: {
+    /**
+     * Session ID
+     */
+    sessionID: string
+    /**
+     * Artifact ID
+     */
+    artifactID: string
+  }
+  query?: {
+    directory?: string
+  }
+  url: "/session/{sessionID}/artifacts/{artifactID}/content"
+}
+
+export type SessionArtifactContentErrors = {
+  /**
+   * Invalid artifact id
+   */
+  400: SessionArtifactsError
+  /**
+   * Session or artifact not found
+   */
+  404: SessionArtifactsError
+}
+
+export type SessionArtifactContentError = SessionArtifactContentErrors[keyof SessionArtifactContentErrors]
+
+export type SessionArtifactContentResponses = {
+  /**
+   * Raw artifact payload
+   */
+  200: Blob | File
+}
+
+export type SessionArtifactContentResponse = SessionArtifactContentResponses[keyof SessionArtifactContentResponses]
+
 export type PermissionReplyData = {
   body?: {
     reply: "once" | "always" | "reject"
@@ -5420,6 +5801,67 @@ export type FileWriteResponses = {
 }
 
 export type FileWriteResponse = FileWriteResponses[keyof FileWriteResponses]
+
+export type FileInspectData = {
+  body?: never
+  path?: never
+  query: {
+    directory?: string
+    path: string
+  }
+  url: "/file/inspect"
+}
+
+export type FileInspectResponses = {
+  /**
+   * Science file inspection
+   */
+  200: ScienceFileInspect
+}
+
+export type FileInspectResponse = FileInspectResponses[keyof FileInspectResponses]
+
+export type FilePreviewData = {
+  body?: never
+  path?: never
+  query: {
+    directory?: string
+    path: string
+  }
+  url: "/file/preview"
+}
+
+export type FilePreviewResponses = {
+  /**
+   * Science file preview
+   */
+  200: ScienceFilePreview
+}
+
+export type FilePreviewResponse = FilePreviewResponses[keyof FilePreviewResponses]
+
+export type FileRawData = {
+  body?: never
+  path?: never
+  query: {
+    directory?: string
+    path: string
+  }
+  url: "/file/raw"
+}
+
+export type FileRawResponses = {
+  /**
+   * Raw file stream
+   */
+  200: Blob | File
+  /**
+   * Partial content (Range)
+   */
+  206: Blob | File
+}
+
+export type FileRawResponse = FileRawResponses[keyof FileRawResponses]
 
 export type FileStatusData = {
   body?: never
