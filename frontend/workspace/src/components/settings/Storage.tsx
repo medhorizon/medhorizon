@@ -3,6 +3,8 @@
 // Backed by /settings/storage (routes/settings/storage.ts).
 import { type Component, type JSX, For, Show, createMemo, createSignal, onMount } from "solid-js"
 import { Button } from "@synsci/ui/button"
+import { useDialog } from "@synsci/ui/context/dialog"
+import { promptDialog } from "@/atlas/dialogs"
 import { useGlobalSDK } from "@/context/global-sdk"
 import { usePlatform } from "@/context/platform"
 import { FONT_CODE, FONT_SANS } from "@/styles/tokens"
@@ -36,6 +38,7 @@ export const Storage: Component = () => {
   const sdk = useGlobalSDK()
   const platform = usePlatform()
   const navigate = useSettingsNav()
+  const dialog = useDialog()
 
   const base = () => sdk.url
   const fetchFn = () => platform.fetch ?? fetch
@@ -44,6 +47,7 @@ export const Storage: Component = () => {
   const [error, setError] = createSignal<string>()
   const [status, setStatus] = createSignal<string>()
   const [busy, setBusy] = createSignal(false)
+  let changeRef: HTMLButtonElement | undefined
 
   const load = async () => {
     setError(undefined)
@@ -55,33 +59,52 @@ export const Storage: Component = () => {
   }
   onMount(() => void load())
 
+  const moveTo = async (path: string) => {
+    const res = await settingsApi<{ ok: boolean; target: string; restart_required: boolean }>(
+      base(),
+      fetchFn(),
+      "/settings/storage/location",
+      { method: "POST", body: JSON.stringify({ path }) },
+    )
+    setStatus(`Data copied to ${res.target}. Restart MedHorizon to use the new location.`)
+    await load()
+  }
+
   const relocate = async () => {
     if (busy()) return
     setError(undefined)
     setStatus(undefined)
-    let target: string | undefined
     if (platform.openDirectoryPickerDialog) {
       const picked = await platform.openDirectoryPickerDialog({ title: "Choose a new data location" }).catch(() => null)
-      target = Array.isArray(picked) ? picked[0] : (picked ?? undefined)
-    } else {
-      target = window.prompt("New absolute path for the data directory:") ?? undefined
+      const target = Array.isArray(picked) ? picked[0] : (picked ?? undefined)
+      if (!target?.trim()) return
+      setBusy(true)
+      try {
+        await moveTo(target.trim())
+      } catch (err) {
+        setError(err instanceof Error ? err.message : String(err))
+      } finally {
+        setBusy(false)
+      }
+      return
     }
-    if (!target?.trim()) return
-    setBusy(true)
-    try {
-      const res = await settingsApi<{ ok: boolean; target: string; restart_required: boolean }>(
-        base(),
-        fetchFn(),
-        "/settings/storage/location",
-        { method: "POST", body: JSON.stringify({ path: target.trim() }) },
-      )
-      setStatus(`Data copied to ${res.target}. Restart MedHorizon to use the new location.`)
-      await load()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err))
-    } finally {
-      setBusy(false)
-    }
+    await promptDialog(dialog, {
+      title: "Change data location",
+      message: "New absolute path for the data directory:",
+      placeholder: "/absolute/path/to/data",
+      confirmLabel: "move",
+      busyLabel: "moving…",
+      validate: (value) => {
+        const path = value.trim()
+        if (!path) return "Enter a path for the data directory."
+        if (!isAbsolutePath(path)) return "Enter an absolute path (leading / or a Windows drive letter)."
+        return undefined
+      },
+      submit: async (value) => {
+        await moveTo(value.trim())
+      },
+      returnFocus: changeRef,
+    })
   }
 
   const resetLocation = async () => {
@@ -146,7 +169,13 @@ export const Storage: Component = () => {
                     reset
                   </Button>
                 </Show>
-                <Button size="small" variant="secondary" disabled={busy()} onClick={() => void relocate()}>
+                <Button
+                  size="small"
+                  variant="secondary"
+                  disabled={busy()}
+                  ref={changeRef}
+                  onClick={() => void relocate()}
+                >
                   {busy() ? "working…" : "change location"}
                 </Button>
               </div>
@@ -230,6 +259,12 @@ export const Storage: Component = () => {
 }
 
 export default Storage
+
+function isAbsolutePath(path: string): boolean {
+  if (path.startsWith("/")) return true
+  if (path.startsWith("\\\\")) return true
+  return /^[A-Za-z]:[\\/]/.test(path)
+}
 
 function bannerStyle(color: string, border: string): JSX.CSSProperties {
   return {

@@ -3,7 +3,9 @@
 // secret is write-only: values are never returned after saving.
 import { type Component, type JSX, For, Show, createMemo, createSignal, onMount } from "solid-js"
 import { Button } from "@synsci/ui/button"
+import { useDialog } from "@synsci/ui/context/dialog"
 import type { Provider } from "@synsci/sdk/v2/client"
+import { confirmDialog } from "@/atlas/dialogs"
 import { useGlobalSDK } from "@/context/global-sdk"
 import { usePlatform } from "@/context/platform"
 import { useProviders } from "@/hooks/use-providers"
@@ -77,6 +79,7 @@ export const Credentials: Component = () => {
   const sdk = useGlobalSDK()
   const platform = usePlatform()
   const providers = useProviders()
+  const dialog = useDialog()
 
   const base = () => sdk.url
   const fetchFn = () => platform.fetch ?? fetch
@@ -129,22 +132,24 @@ export const Credentials: Component = () => {
   }
 
   const disconnect = async (id: string) => {
-    if (!window.confirm(`Remove stored credentials for ${id}? This deletes the encrypted secrets from this machine.`))
-      return
     setError(undefined)
-    try {
-      const res = await settingsApi<{ services: Service[] }>(
-        base(),
-        fetchFn(),
-        `/settings/credentials/${encodeURIComponent(id)}`,
-        {
-          method: "DELETE",
-        },
-      )
-      setServices(res.services)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err))
-    }
+    await confirmDialog(dialog, {
+      title: "Remove stored credentials?",
+      message: `Remove stored credentials for ${id}? This deletes the encrypted secrets from this machine.`,
+      confirmLabel: "remove",
+      danger: true,
+      submit: async () => {
+        const res = await settingsApi<{ services: Service[] }>(
+          base(),
+          fetchFn(),
+          `/settings/credentials/${encodeURIComponent(id)}`,
+          {
+            method: "DELETE",
+          },
+        )
+        setServices(res.services)
+      },
+    })
   }
 
   const filtered = createMemo(() => {
@@ -202,14 +207,17 @@ export const Credentials: Component = () => {
     }
   }
   const removeKey = async (providerID: string) => {
-    if (!window.confirm(`Remove the ${PROVIDER_LABEL[providerID] ?? providerID} key from this machine?`)) return
     setError(undefined)
-    try {
-      await sdk.client.auth.remove({ providerID })
-      await sdk.client.global.dispose()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err))
-    }
+    await confirmDialog(dialog, {
+      title: "Remove provider key?",
+      message: `Remove the ${PROVIDER_LABEL[providerID] ?? providerID} key from this machine?`,
+      confirmLabel: "remove",
+      danger: true,
+      submit: async () => {
+        await sdk.client.auth.remove({ providerID })
+        await sdk.client.global.dispose()
+      },
+    })
   }
 
   // ── Sign in with ChatGPT (Codex OAuth) — use an OpenAI plan's credits, no key ──
