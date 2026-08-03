@@ -70,7 +70,11 @@ const extraArgs = forwardedPlaywrightArgs(process.argv.slice(2))
 const [serverPort, webPort, modelPort] = await Promise.all([freePort(), freePort(), freePort()])
 const fakeModelServer = startFakeModelServer(modelPort)
 
-const sandbox = await fs.mkdtemp(path.join(os.tmpdir(), "openscience-e2e-"))
+// Route the sandbox off the C: system drive on machines with a data drive.
+const sandboxRoot =
+  process.platform === "win32" && (await fs.stat("D:\\").catch(() => null)) ? "D:\\temp\\openscience-test" : os.tmpdir()
+await fs.mkdir(sandboxRoot, { recursive: true })
+const sandbox = await fs.mkdtemp(path.join(sandboxRoot, "openscience-e2e-"))
 
 // Pin Basic-Auth creds so the in-process server + the Playwright-hosted
 // frontend (via VITE_OPENSCIENCE_SERVER_PASSWORD) agree. Without this, flag.ts

@@ -6,10 +6,23 @@ import fs from "fs/promises"
 import fsSync from "fs"
 import { afterAll } from "bun:test"
 
+// Route the throwaway test sandbox to a data drive when present; leaked test
+// dirs otherwise fill a small C: system partition.
+if (process.platform === "win32" && fsSync.existsSync("D:\\")) {
+  const tmpRoot = "D:\\temp\\openscience-test"
+  fsSync.mkdirSync(tmpRoot, { recursive: true })
+  process.env.TMPDIR = tmpRoot
+  process.env.TMP = tmpRoot
+  process.env.TEMP = tmpRoot
+}
+
 const dir = path.join(os.tmpdir(), "openscience-test-data-" + process.pid)
 await fs.mkdir(dir, { recursive: true })
 afterAll(() => {
-  fsSync.rmSync(dir, { recursive: true, force: true })
+  // A dangling child process may hold the sandbox on Windows; ignore the EBUSY.
+  try {
+    fsSync.rmSync(dir, { recursive: true, force: true })
+  } catch {}
 })
 // Set test home directory to isolate tests from user's actual home directory
 // This prevents tests from picking up real user configs/skills from ~/.claude/skills

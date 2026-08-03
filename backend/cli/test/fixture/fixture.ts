@@ -39,7 +39,8 @@ export async function tmpdir<T>(options?: TmpDirOptions<T>) {
   const result = {
     [Symbol.asyncDispose]: async () => {
       await options?.dispose?.(dirpath)
-      // await fs.rm(dirpath, { recursive: true, force: true })
+      // Best-effort; a locked file on Windows must not fail a passing test.
+      await fs.rm(dirpath, { recursive: true, force: true }).catch(() => {})
     },
     path: realpath,
     extra: extra as T,
