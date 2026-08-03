@@ -17,7 +17,7 @@ export const ServeCommand = cmd({
       process.once("SIGINT", stop)
       process.once("SIGTERM", stop)
     })
-    stopResearchGraphSidecar()
+    await stopResearchGraphSidecar()
     await server.stop()
   },
 })

@@ -4,10 +4,10 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends
 
-from backend.config import Settings, get_settings
+from backend.config import HEALTH_PROTOCOL_VERSION, SERVICE_NAME, SERVICE_VERSION, Settings, get_settings
 from backend.db.sqlite import Store, get_store, now, uid
 from backend.models.schemas import GraphCreate, GraphOut, GraphPatch, HealthOut, WriteMeta
-from backend.services.auth import User, current_user
+from backend.services.auth import User, current_user, managed_capability
 from backend.services.provenance import not_found, record_event, with_idempotency
 
 router = APIRouter()
@@ -18,9 +18,15 @@ def store_dep(settings: Settings = Depends(get_settings)) -> Store:
 
 
 @router.get("/health", response_model=HealthOut)
-def health(settings: Settings = Depends(get_settings)) -> HealthOut:
+def health(
+    settings: Settings = Depends(get_settings),
+    _capability: None = Depends(managed_capability),
+) -> HealthOut:
     return HealthOut(
         status="ok",
+        service=SERVICE_NAME,
+        version=SERVICE_VERSION,
+        protocol=HEALTH_PROTOCOL_VERSION,
         mode=settings.research_graph_mode,
         store="supabase" if settings.use_supabase else "sqlite",
         openai=settings.openai_ready,
