@@ -6,6 +6,7 @@
  */
 import { createSignal, createMemo, onMount, onCleanup, For, Show, type JSX } from "solid-js"
 import { Dialog } from "@synsci/ui/dialog"
+import { AsyncState, type AsyncStateProps } from "@synsci/ui/async-state"
 import { useDialog } from "@synsci/ui/context/dialog"
 import { useSync } from "@/context/sync"
 import { FONT_MONO, FONT_SANS } from "@/styles/tokens"
@@ -24,6 +25,109 @@ function originOf(location: string): string {
   if (location.includes("installed-skills")) return "installed"
   if (location.includes("learned-skills")) return "learned"
   return "core"
+}
+
+// Filter the full library by the query, then group into category shelves sorted
+// by label. Shared by the library dialog; the inline composer popover keeps its
+// own copy (zero consumers, left untouched).
+function groupSkills(input: SkillRow[], query: string) {
+  const all = input.filter((s) => s.entry !== false)
+  const q = query.trim().toLowerCase()
+  const filtered = q
+    ? all.filter(
+        (s) =>
+          s.name.toLowerCase().includes(q) ||
+          (s.description ?? "").toLowerCase().includes(q) ||
+          (s.tags ?? []).some((t) => t.toLowerCase().includes(q)),
+      )
+    : all
+  const map = new Map<string, SkillRow[]>()
+  for (const s of filtered) {
+    const label = s.category || originOf(s.location)
+    const arr = map.get(label) ?? []
+    arr.push(s)
+    map.set(label, arr)
+  }
+  return Array.from(map.entries())
+    .map(([label, items]) => ({ label, items: items.sort((a, b) => a.name.localeCompare(b.name)) }))
+    .sort((a, b) => a.label.localeCompare(b.label))
+}
+
+function SkillRowButton(props: { skill: SkillRow; onPick: (name: string) => void }): JSX.Element {
+  return (
+    <button
+      type="button"
+      onClick={() => props.onPick(props.skill.name)}
+      class="atlas-skill-row"
+      style={{
+        all: "unset",
+        cursor: "pointer",
+        display: "flex",
+        "flex-direction": "column",
+        gap: "3px",
+        padding: "8px 10px",
+        "border-radius": "4px",
+        border: "1px solid transparent",
+        width: "100%",
+        "box-sizing": "border-box",
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.background = "var(--color-accent-subtle)"
+        e.currentTarget.style.borderColor = "var(--color-border)"
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.background = "transparent"
+        e.currentTarget.style.borderColor = "transparent"
+      }}
+    >
+      <span
+        style={{
+          "font-family": FONT_MONO,
+          "font-size": "14px",
+          "font-weight": 500,
+          color: "var(--color-text)",
+        }}
+      >
+        /{props.skill.name}
+      </span>
+      <Show when={props.skill.description}>
+        <span
+          style={{
+            "font-family": FONT_SANS,
+            "font-size": "13px",
+            color: "var(--color-text-muted)",
+            "line-height": 1.5,
+            display: "-webkit-box",
+            "-webkit-line-clamp": "2",
+            "-webkit-box-orient": "vertical",
+            overflow: "hidden",
+          }}
+        >
+          {props.skill.description}
+        </span>
+      </Show>
+      <Show when={(props.skill.tags ?? []).length > 0}>
+        <div style={{ display: "flex", "flex-wrap": "wrap", gap: "4px", "margin-top": "2px" }}>
+          <For each={(props.skill.tags ?? []).slice(0, 6)}>
+            {(tag) => (
+              <span
+                style={{
+                  "font-family": FONT_MONO,
+                  "font-size": "11px",
+                  color: "var(--color-text-faint)",
+                  background: "var(--color-accent-subtle)",
+                  padding: "1px 6px",
+                  "border-radius": "4px",
+                }}
+              >
+                {tag}
+              </span>
+            )}
+          </For>
+        </div>
+      </Show>
+    </button>
+  )
 }
 
 export function SkillsBrowser(props: { onPick: (name: string) => void; onClose: () => void }): JSX.Element {
@@ -272,35 +376,91 @@ export function SkillLibraryDialog(props: { onPick: (name: string) => void }): J
   const dialog = useDialog()
   const [query, setQuery] = createSignal("")
 
-  const groups = createMemo(() => {
-    const all = ((sync.data.skill ?? []) as SkillRow[]).filter((s) => s.entry !== false)
-    const q = query().trim().toLowerCase()
-    const filtered = q
-      ? all.filter(
-          (s) =>
-            s.name.toLowerCase().includes(q) ||
-            (s.description ?? "").toLowerCase().includes(q) ||
-            (s.tags ?? []).some((t) => t.toLowerCase().includes(q)),
-        )
-      : all
-    const map = new Map<string, SkillRow[]>()
-    for (const s of filtered) {
-      const label = s.category || originOf(s.location)
-      const arr = map.get(label) ?? []
-      arr.push(s)
-      map.set(label, arr)
-    }
-    return Array.from(map.entries())
-      .map(([label, items]) => ({ label, items: items.sort((a, b) => a.name.localeCompare(b.name)) }))
-      .sort((a, b) => a.label.localeCompare(b.label))
-  })
-
+  const groups = createMemo(() => groupSkills((sync.data.skill ?? []) as SkillRow[], query()))
   const total = createMemo(() => groups().reduce((n, g) => n + g.items.length, 0))
-
   const pick = (name: string) => {
     props.onPick(name)
     dialog.close()
   }
+
+  // The query-filtered shelf list. `total() === 0` here is a query no-match —
+  // the library itself is non-empty in every state that renders this body, so it
+  // stays a distinct second layer from the resource-level `empty` state.
+  const rows = (
+    <div style={{ display: "flex", "flex-direction": "column", gap: "14px" }}>
+      <Show
+        when={total() > 0}
+        fallback={
+          <div
+            style={{
+              padding: "40px 10px",
+              "text-align": "center",
+              "font-family": FONT_MONO,
+              "font-size": "12px",
+              color: "var(--color-text-faint)",
+            }}
+          >
+            no matching skills
+          </div>
+        }
+      >
+        <For each={groups()}>
+          {(group) => (
+            <div style={{ display: "flex", "flex-direction": "column", gap: "1px" }}>
+              <div
+                style={{
+                  display: "flex",
+                  "align-items": "center",
+                  gap: "8px",
+                  padding: "0 4px 6px",
+                  "border-bottom": "1px solid var(--color-border)",
+                  "margin-bottom": "4px",
+                  "font-family": FONT_MONO,
+                  "font-size": "11px",
+                  "letter-spacing": "0.08em",
+                  "text-transform": "uppercase",
+                  color: "var(--color-text-faint)",
+                }}
+              >
+                <span style={{ flex: 1 }}>{group.label}</span>
+                <span>{group.items.length}</span>
+              </div>
+              <For each={group.items}>
+                {(skill) => <SkillRowButton skill={skill} onPick={pick} />}
+              </For>
+            </div>
+          )}
+        </For>
+      </Show>
+    </div>
+  )
+
+  // skill_status is the source of truth for the library (the overall sync
+  // status can reach `complete` even when the skill fetch failed). partial maps
+  // naturally: stale skills -> refreshing, no skills yet -> loading.
+  const state = createMemo<AsyncStateProps>(() => {
+    const status = sync.data.skill_status
+    const count = (sync.data.skill ?? []).length
+    if (status === "error") {
+      return {
+        state: "error",
+        label: "skills",
+        title: "couldn't load skills",
+        detail: sync.data.skill_error,
+        retry: () => void sync.skill.refetch(),
+        retryLabel: "retry",
+        children: count > 0 ? rows : undefined,
+      }
+    }
+    if (status === "loading") {
+      return count > 0
+        ? { state: "refreshing", label: "skills", message: "updating skills…", children: rows }
+        : { state: "loading", label: "skills", message: "loading skills…" }
+    }
+    return count > 0
+      ? { state: "ready", label: "skills", children: rows, loadedMessage: "skills loaded" }
+      : { state: "empty", label: "skills", message: "no skills available" }
+  })
 
   return (
     <Dialog title="Skill Library" size="large" transition>
@@ -358,129 +518,10 @@ export function SkillLibraryDialog(props: { onPick: (name: string) => void }): J
             flex: 1,
             "min-height": 0,
             "overflow-y": "auto",
-            display: "flex",
-            "flex-direction": "column",
-            gap: "14px",
             "padding-right": "2px",
           }}
         >
-          <Show
-            when={total() > 0}
-            fallback={
-              <div
-                style={{
-                  padding: "40px 10px",
-                  "text-align": "center",
-                  "font-family": FONT_MONO,
-                  "font-size": "12px",
-                  color: "var(--color-text-faint)",
-                }}
-              >
-                no matching skills
-              </div>
-            }
-          >
-            <For each={groups()}>
-              {(group) => (
-                <div style={{ display: "flex", "flex-direction": "column", gap: "1px" }}>
-                  <div
-                    style={{
-                      display: "flex",
-                      "align-items": "center",
-                      gap: "8px",
-                      padding: "0 4px 6px",
-                      "border-bottom": "1px solid var(--color-border)",
-                      "margin-bottom": "4px",
-                      "font-family": FONT_MONO,
-                      "font-size": "11px",
-                      "letter-spacing": "0.08em",
-                      "text-transform": "uppercase",
-                      color: "var(--color-text-faint)",
-                    }}
-                  >
-                    <span style={{ flex: 1 }}>{group.label}</span>
-                    <span>{group.items.length}</span>
-                  </div>
-                  <For each={group.items}>
-                    {(skill) => (
-                      <button
-                        type="button"
-                        onClick={() => pick(skill.name)}
-                        class="atlas-skill-row"
-                        style={{
-                          all: "unset",
-                          cursor: "pointer",
-                          display: "flex",
-                          "flex-direction": "column",
-                          gap: "3px",
-                          padding: "8px 10px",
-                          "border-radius": "4px",
-                          border: "1px solid transparent",
-                          width: "100%",
-                          "box-sizing": "border-box",
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.background = "var(--color-accent-subtle)"
-                          e.currentTarget.style.borderColor = "var(--color-border)"
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.background = "transparent"
-                          e.currentTarget.style.borderColor = "transparent"
-                        }}
-                      >
-                        <span
-                          style={{
-                            "font-family": FONT_MONO,
-                            "font-size": "14px",
-                            "font-weight": 500,
-                            color: "var(--color-text)",
-                          }}
-                        >
-                          /{skill.name}
-                        </span>
-                        <Show when={skill.description}>
-                          <span
-                            style={{
-                              "font-family": FONT_SANS,
-                              "font-size": "13px",
-                              color: "var(--color-text-muted)",
-                              "line-height": 1.5,
-                              display: "-webkit-box",
-                              "-webkit-line-clamp": "2",
-                              "-webkit-box-orient": "vertical",
-                              overflow: "hidden",
-                            }}
-                          >
-                            {skill.description}
-                          </span>
-                        </Show>
-                        <Show when={(skill.tags ?? []).length > 0}>
-                          <div style={{ display: "flex", "flex-wrap": "wrap", gap: "4px", "margin-top": "2px" }}>
-                            <For each={(skill.tags ?? []).slice(0, 6)}>
-                              {(tag) => (
-                                <span
-                                  style={{
-                                    "font-family": FONT_MONO,
-                                    "font-size": "11px",
-                                    color: "var(--color-text-faint)",
-                                    background: "var(--color-accent-subtle)",
-                                    padding: "1px 6px",
-                                    "border-radius": "4px",
-                                  }}
-                                >
-                                  {tag}
-                                </span>
-                              )}
-                            </For>
-                          </div>
-                        </Show>
-                      </button>
-                    )}
-                  </For>
-                </div>
-              )}
-            </For>
-          </Show>
+          <AsyncState {...state()} />
         </div>
       </div>
     </Dialog>

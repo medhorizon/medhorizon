@@ -1,7 +1,8 @@
-import { createSignal, createResource, createMemo, onCleanup, type JSX, For, Show } from "solid-js"
+import { createSignal, createResource, createMemo, createEffect, onCleanup, type JSX, For, Show } from "solid-js"
+import { AsyncState, type AsyncStateProps } from "@synsci/ui/async-state"
 import { useSDK } from "@/context/sdk"
 import { useSync } from "@/context/sync"
-import { FONT_MONO, FONT_SANS } from "@/styles/tokens"
+import { FONT_MONO } from "@/styles/tokens"
 import { centerTabs } from "@/atlas/store/centerTabs"
 import {
   IconFolder,
@@ -98,6 +99,13 @@ function sortNodes(nodes: FileNode[]): FileNode[] {
   })
 }
 
+function errorDetail(err: unknown): string {
+  if (typeof err === "string") return err
+  const raw = err as { body?: { message?: unknown }; message?: unknown }
+  const message = raw.body?.message ?? raw.message
+  return typeof message === "string" && message ? message : "couldn't list this folder"
+}
+
 function ListGlyph(props: { size?: number }): JSX.Element {
   const s = props.size ?? 12
   return (
@@ -147,7 +155,6 @@ export function FileExplorer(): JSX.Element {
   const [pathDraft, setPathDraft] = createSignal(cwd())
   const [refreshKey, setRefreshKey] = createSignal(0)
   const [machineMenu, setMachineMenu] = createSignal(false)
-  const [permissionError, setPermissionError] = createSignal<string | null>(null)
 
   // Keep the editable path bar synced to the current directory unless the user
   // is typing (they focus the input → onFocus stops the sync-through).
@@ -174,37 +181,30 @@ export function FileExplorer(): JSX.Element {
   const [entries] = createResource(
     () => [cwd(), refreshKey()] as const,
     async ([dir]) => {
-      setPermissionError(null)
       if (!dir) return [] as FileNode[]
-      try {
-        // Pass the params FLAT — the generated client maps `directory`/`path`
-        // into the query string via buildClientParams; a `{ query: {...} }`
-        // wrapper is silently dropped (no key matches), which sends neither
-        // param and 400s. `directory` re-roots the backend Instance, letting us
-        // browse any host directory (see server middleware + File.list).
-        const res: any = await sdk.client.file.list({ directory: dir, path: "." })
-        const data = res?.data ?? res
-        return Array.isArray(data) ? (data as FileNode[]) : []
-      } catch (err: any) {
-        // throwOnError surfaces the response body (a plain-text HTTPException
-        // message on macOS: "permission denied reading … — grant Full Disk
-        // Access"). Detect that so the SPA can prompt for FDA instead of
-        // silently showing an empty folder.
-        const msg = String(err?.body?.message ?? err?.message ?? (typeof err === "string" ? err : "") ?? "")
-        const status = err?.response?.status ?? err?.status ?? err?.statusCode
-        if (status === 403 || /permission denied|full disk access/i.test(msg)) {
-          setPermissionError(msg || "MedHorizon cannot read this directory")
-        }
-        return [] as FileNode[]
-      }
+      // Pass the params FLAT — the generated client maps `directory`/`path`
+      // into the query string via buildClientParams; a `{ query: {...} }`
+      // wrapper is silently dropped (no key matches), which sends neither
+      // param and 400s. `directory` re-roots the backend Instance, letting us
+      // browse any host directory (see server middleware + File.list).
+      const res = await sdk.client.file.list({ directory: dir, path: "." })
+      const data: unknown = res.data
+      if (!Array.isArray(data)) throw new Error("unexpected response while listing files")
+      return data as FileNode[]
     },
   )
 
-  // Sort once per directory load (stale-while-revalidate: `entries.latest`
-  // keeps the previous folder's rows on screen while the next one fetches, so
-  // navigating never blanks to an empty "loading…" flash). Filtering then runs
-  // over the already-sorted list against the debounced query.
-  const sorted = createMemo(() => sortNodes(entries.latest ?? []))
+  // The resource accessor AND `entries.latest` re-throw once errored, so
+  // snapshot the last good value here; sorted() stays readable for stale rows
+  // under a refresh error, and navigating never blanks to a "loading…" flash.
+  const [known, setKnown] = createSignal<FileNode[] | undefined>(undefined)
+  createEffect(() => {
+    if (!entries.error) setKnown(entries())
+  })
+
+  // Sort once per directory load; filtering then runs over the already-sorted
+  // list against the debounced query.
+  const sorted = createMemo(() => sortNodes(known() ?? []))
   const filtered = createMemo(() => {
     const q = query().toLowerCase().trim()
     const rows = sorted()
@@ -222,6 +222,50 @@ export function FileExplorer(): JSX.Element {
     const segs = home().split("/").filter(Boolean)
     return segs[segs.length - 1] || "This computer"
   }
+
+  // The list is only the stale/ready content; a zero-result query against a
+  // non-empty directory is a second UI layer ("no matching files"), never a
+  // resource empty or error. An empty resource (no rows at all) renders no
+  // stale body while refreshing.
+  const body = (): JSX.Element => {
+    if (sorted().length === 0) return <></>
+    const rows = filtered()
+    if (rows.length === 0) return <div style={emptyMsg()}>no matching files</div>
+    return view() === "list" ? (
+      <ListBody nodes={rows} onClick={onRowClick} />
+    ) : (
+      <GridBody nodes={rows} onClick={onRowClick} />
+    )
+  }
+
+  // Map the resource onto the kit AsyncState union. Error outranks loading;
+  // stale content (the known() snapshot) becomes refreshing/error children so a
+  // background refresh never blanks to a loading flash. 403/FDA surface the
+  // backend's guidance text as the error detail.
+  const asyncState = createMemo<AsyncStateProps>(() => {
+    const error = entries.error
+    const latest = known()
+    if (error) {
+      return {
+        state: "error",
+        label: "Files",
+        title: "can't read this folder",
+        detail: errorDetail(error),
+        retryLabel: "retry",
+        retry: () => setRefreshKey((k) => k + 1),
+        children: latest?.length ? body() : undefined,
+      }
+    }
+    if (entries.loading) {
+      return latest?.length
+        ? { state: "refreshing", label: "Files", message: "updating files…", children: body() }
+        : { state: "loading", label: "Files", message: "loading files…" }
+    }
+    if (sorted().length === 0) {
+      return { state: "empty", label: "Files", message: "no files here" }
+    }
+    return { state: "ready", label: "Files", loadedMessage: "files loaded", children: body() }
+  })
 
   return (
     <div
@@ -386,69 +430,7 @@ export function FileExplorer(): JSX.Element {
 
         {/* body */}
         <div class="atlas-scroll" style={{ flex: 1, "min-height": 0, "overflow-y": "auto", "overflow-x": "hidden" }}>
-          <Show when={!entries.loading || entries.latest} fallback={<div style={emptyMsg()}>loading…</div>}>
-            <Show
-              when={!permissionError()}
-              fallback={
-                <div
-                  style={{
-                    display: "flex",
-                    "flex-direction": "column",
-                    "align-items": "center",
-                    gap: "8px",
-                    padding: "40px 22px",
-                    "text-align": "center",
-                  }}
-                >
-                  <IconFolder size={20} strokeWidth={1.4} />
-                  <div
-                    style={{
-                      "font-family": FONT_SANS,
-                      "font-size": "13px",
-                      "font-weight": 500,
-                      color: "var(--color-text)",
-                    }}
-                  >
-                    Can't read this folder
-                  </div>
-                  <div
-                    style={{
-                      "font-family": FONT_SANS,
-                      "font-size": "12px",
-                      color: "var(--color-text-faint)",
-                      "line-height": 1.5,
-                      "max-width": "320px",
-                    }}
-                  >
-                    {permissionError()}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setRefreshKey((k) => k + 1)}
-                    style={{
-                      all: "unset",
-                      cursor: "pointer",
-                      "margin-top": "2px",
-                      padding: "5px 12px",
-                      "border-radius": "4px",
-                      border: "1px solid var(--color-border)",
-                      "font-family": FONT_MONO,
-                      "font-size": "11px",
-                      color: "var(--color-text)",
-                    }}
-                  >
-                    retry
-                  </button>
-                </div>
-              }
-            >
-              <Show when={filtered().length > 0} fallback={<div style={emptyMsg()}>empty folder</div>}>
-                <Show when={view() === "list"} fallback={<GridBody nodes={filtered()} onClick={onRowClick} />}>
-                  <ListBody nodes={filtered()} onClick={onRowClick} />
-                </Show>
-              </Show>
-            </Show>
-          </Show>
+          <AsyncState {...asyncState()} />
         </div>
     </div>
   )

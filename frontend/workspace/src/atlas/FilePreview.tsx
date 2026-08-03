@@ -12,6 +12,7 @@ import {
 } from "solid-js"
 import { Portal } from "solid-js/web"
 import { Markdown } from "@synsci/ui/markdown"
+import { AsyncState, type AsyncStateProps } from "@synsci/ui/async-state"
 import { useSDK } from "@/context/sdk"
 import { useSync } from "@/context/sync"
 import { usePlatform } from "@/context/platform"
@@ -138,12 +139,22 @@ export function FileView(props: {
       // into the query string; a `{ query: {...} }` wrapper is dropped and
       // sends nothing. `directory` re-roots the backend Instance so any host
       // file is readable by absolute directory + relative path (File.read).
-      const res: any = await sdk.client.file.read({ directory: dir, path })
-      return (res?.data ?? res) as FileData
+      const res = await sdk.client.file.read({ directory: dir, path })
+      const data: unknown = res.data
+      if (data === undefined) throw new Error("unexpected response while reading file")
+      return data as FileData
     },
   )
 
-  const data = () => file()
+  // The resource accessor re-throws its error once resolved, so snapshot the
+  // last good value; data() stays readable for stale content and refresh
+  // errors (the error banner renders above it instead of clearing it).
+  const [known, setKnown] = createSignal<FileData | undefined>(undefined)
+  createEffect(() => {
+    if (!file.error) setKnown(file())
+  })
+
+  const data = () => known()
   const isBinary = () => data()?.encoding === "base64"
   const mime = () => data()?.mimeType ?? ""
   const b64 = () => data()?.content ?? ""
@@ -173,7 +184,7 @@ export function FileView(props: {
   }
 
   createEffect(() => {
-    if (file.loading) return
+    if (file.loading || file.error) return
     const next = text()
     setDraft(next)
     setSavedText(next)
@@ -214,6 +225,111 @@ export function FileView(props: {
   }
 
   const toggleable = () => kind() === "markdown" || kind() === "code"
+
+  // The renderer body — markdown / pdf / image / binary / highlighted source.
+  // binary is a capability state after a successful read, never an error.
+  const body = (): JSX.Element => (
+    <Switch>
+      {/* markdown */}
+      <Match when={kind() === "markdown" && !showSource()}>
+        <div style={{ padding: "22px 26px", "max-width": "820px", margin: "0 auto" }}>
+          <Markdown class="atlas-md" text={draft()} />
+        </div>
+      </Match>
+
+      {/* pdf */}
+      <Match when={kind() === "pdf"}>
+        <div style={{ padding: "14px" }}>
+          <PdfViewer kind="pdf" data={{ base64: b64(), maxPages: 40 }} height={100000} />
+        </div>
+      </Match>
+
+      {/* image */}
+      <Match when={kind() === "image"}>
+        <div style={{ display: "grid", "place-items": "center", padding: "22px", "min-height": "100%" }}>
+          <img
+            src={dataUrl()}
+            alt={name()}
+            style={{
+              "max-width": "100%",
+              "max-height": "100%",
+              "object-fit": "contain",
+              "border-radius": "4px",
+            }}
+          />
+        </div>
+      </Match>
+
+      {/* binary */}
+      <Match when={kind() === "binary"}>
+        <div
+          style={{
+            display: "grid",
+            "place-items": "center",
+            padding: "40px 24px",
+            "min-height": "100%",
+            "text-align": "center",
+          }}
+        >
+          <div
+            style={{
+              "font-family": FONT_SANS,
+              "font-size": "13px",
+              color: "var(--color-text-muted)",
+              "line-height": 1.6,
+            }}
+          >
+            Binary file — no inline preview.
+            <br />
+            Use the download button above to open it.
+          </div>
+        </div>
+      </Match>
+
+      {/* code / text — highlighted read view (the editable textarea renders
+          directly in the body Show below to keep its fill-height layout) */}
+      <Match when={kind() === "code" || (kind() === "markdown" && showSource())}>
+        <div style={{ padding: "14px 16px" }}>
+          <Markdown
+            class="atlas-md"
+            text={fence(
+              showSource() && kind() !== "code" ? langFor(kind(), e()) : (LANG[e()] ?? "text"),
+              draft(),
+            )}
+          />
+        </div>
+      </Match>
+    </Switch>
+  )
+
+  // Map the read resource onto the kit AsyncState union. Error/loading follow
+  // the derivation rules with known() as the stale value; a successful empty
+  // read maps to `empty` (still editable via the header), and binary/unsupported
+  // is a ready capability state, not an error.
+  const asyncState = createMemo<AsyncStateProps>(() => {
+    const error = file.error
+    const stale = data()
+    if (error) {
+      return {
+        state: "error",
+        label: name(),
+        title: "couldn't open this file",
+        detail: errorDetail(error),
+        retryLabel: "retry",
+        retry: () => setRefreshKey((k) => k + 1),
+        children: stale ? body() : undefined,
+      }
+    }
+    if (file.loading) {
+      return stale
+        ? { state: "refreshing", label: name(), message: "updating file…", children: body() }
+        : { state: "loading", label: name(), message: "loading file…" }
+    }
+    if (!isBinary() && text() === "") {
+      return { state: "empty", label: name(), message: "empty file" }
+    }
+    return { state: "ready", label: name(), loadedMessage: "file loaded", children: body() }
+  })
 
   return (
     <div
@@ -330,62 +446,12 @@ export function FileView(props: {
         </Show>
       </div>
 
-      {/* body */}
+      {/* body — the editable source textarea renders directly so its fill-height
+          editor layout is preserved; every other state goes through the shared
+          AsyncState shell. */}
       <Show
-        when={!file.loading}
+        when={kind() === "code" && showSource()}
         fallback={
-          <div
-            style={{ padding: "20px", "font-family": FONT_MONO, "font-size": "12px", color: "var(--color-text-faint)" }}
-          >
-            loading…
-          </div>
-        }
-      >
-        <Show
-          when={!file.error}
-          fallback={
-            <div
-              style={{
-                flex: 1,
-                "min-height": 0,
-                display: "flex",
-                "flex-direction": "column",
-                "align-items": "center",
-                "justify-content": "center",
-                gap: "10px",
-                padding: "40px 24px",
-                "text-align": "center",
-                background: "var(--color-bg-subtle)",
-              }}
-            >
-              <IconFile size={20} strokeWidth={1.4} />
-              <div
-                style={{
-                  "font-family": FONT_SANS,
-                  "font-size": "13px",
-                  "font-weight": 500,
-                  color: "var(--color-text)",
-                }}
-              >
-                couldn't open this file
-              </div>
-              <div
-                style={{
-                  "font-family": FONT_SANS,
-                  "font-size": "12px",
-                  color: "var(--color-text-faint)",
-                  "line-height": 1.5,
-                  "max-width": "340px",
-                }}
-              >
-                {file.error instanceof Error ? file.error.message : String(file.error)}
-              </div>
-              <button type="button" onClick={() => setRefreshKey((k) => k + 1)} style={retryBtn()}>
-                retry
-              </button>
-            </div>
-          }
-        >
           <div
             class="atlas-scroll"
             style={{
@@ -395,100 +461,30 @@ export function FileView(props: {
               background: "var(--color-bg-subtle)",
             }}
           >
-            <Switch>
-              {/* markdown */}
-              <Match when={kind() === "markdown" && !showSource()}>
-                <div style={{ padding: "22px 26px", "max-width": "820px", margin: "0 auto" }}>
-                  <Markdown class="atlas-md" text={draft()} />
-                </div>
-              </Match>
-
-              {/* pdf */}
-              <Match when={kind() === "pdf"}>
-                <div style={{ padding: "14px" }}>
-                  <PdfViewer kind="pdf" data={{ base64: b64(), maxPages: 40 }} height={100000} />
-                </div>
-              </Match>
-
-              {/* image */}
-              <Match when={kind() === "image"}>
-                <div style={{ display: "grid", "place-items": "center", padding: "22px", "min-height": "100%" }}>
-                  <img
-                    src={dataUrl()}
-                    alt={name()}
-                    style={{
-                      "max-width": "100%",
-                      "max-height": "100%",
-                      "object-fit": "contain",
-                      "border-radius": "4px",
-                    }}
-                  />
-                </div>
-              </Match>
-
-              {/* binary */}
-              <Match when={kind() === "binary"}>
-                <div
-                  style={{
-                    display: "grid",
-                    "place-items": "center",
-                    padding: "40px 24px",
-                    "min-height": "100%",
-                    "text-align": "center",
-                  }}
-                >
-                  <div
-                    style={{
-                      "font-family": FONT_SANS,
-                      "font-size": "13px",
-                      color: "var(--color-text-muted)",
-                      "line-height": 1.6,
-                    }}
-                  >
-                    Binary file — no inline preview.
-                    <br />
-                    Use the download button above to open it.
-                  </div>
-                </div>
-              </Match>
-
-              {/* code / text — editable source, or highlighted read view */}
-              <Match when={kind() === "code" && showSource()}>
-                <textarea
-                  value={draft()}
-                  spellcheck={false}
-                  onInput={(ev) => setDraft(ev.currentTarget.value)}
-                  class="atlas-scroll"
-                  style={{
-                    all: "unset",
-                    "box-sizing": "border-box",
-                    display: "block",
-                    width: "100%",
-                    "min-height": "100%",
-                    padding: "16px 18px",
-                    "font-family": FONT_CODE,
-                    "font-size": "12px",
-                    "line-height": 1.65,
-                    color: "var(--color-text)",
-                    "white-space": "pre",
-                    "tab-size": 2,
-                  }}
-                />
-              </Match>
-              <Match when={kind() === "code" || (kind() === "markdown" && showSource())}>
-                <div style={{ padding: "14px 16px" }}>
-                  <Markdown
-                    class="atlas-md"
-                    text={fence(
-                      showSource() && kind() !== "code" ? langFor(kind(), e()) : (LANG[e()] ?? "text"),
-                      draft(),
-                    )}
-                  />
-                </div>
-              </Match>
-            </Switch>
+            <AsyncState {...asyncState()} />
           </div>
-        </Show>
+        }
+      >
+        <textarea
+          value={draft()}
+          spellcheck={false}
+          onInput={(ev) => setDraft(ev.currentTarget.value)}
+          class="atlas-scroll"
+          style={{
+            all: "unset",
+            "box-sizing": "border-box",
+            display: "block",
+            width: "100%",
+            "min-height": "100%",
+            padding: "16px 18px",
+            "font-family": FONT_CODE,
+            "font-size": "12px",
+            "line-height": 1.65,
+            color: "var(--color-text)",
+            "white-space": "pre",
+            "tab-size": 2,
+          }}
+        />
       </Show>
     </div>
   )
@@ -556,6 +552,15 @@ function langFor(k: Kind, x: string): string {
   return LANG[x] ?? "text"
 }
 
+// The SDK throws the parsed JSON error body (e.g. hono's { message }); surface
+// that message as the AsyncState detail, falling back to a stable copy.
+function errorDetail(err: unknown): string {
+  if (typeof err === "string") return err
+  const raw = err as { body?: { message?: unknown }; message?: unknown }
+  const message = raw.body?.message ?? raw.message
+  return typeof message === "string" && message ? message : "couldn't open this file"
+}
+
 // Wrap raw file text in a fenced code block so the shared Markdown renderer
 // (marked + shiki) syntax-highlights it. Guards against content that already
 // contains a triple backtick by widening the fence.
@@ -579,20 +584,6 @@ function iconBtn(active = false): JSX.CSSProperties {
     background: active ? "var(--color-accent-subtle)" : "transparent",
     "flex-shrink": 0,
     transition: "background 120ms ease, color 120ms ease",
-  } as JSX.CSSProperties
-}
-
-function retryBtn(): JSX.CSSProperties {
-  return {
-    all: "unset",
-    cursor: "pointer",
-    "margin-top": "2px",
-    padding: "5px 12px",
-    "border-radius": "4px",
-    border: "1px solid var(--color-border)",
-    "font-family": FONT_MONO,
-    "font-size": "11px",
-    color: "var(--color-text)",
   } as JSX.CSSProperties
 }
 

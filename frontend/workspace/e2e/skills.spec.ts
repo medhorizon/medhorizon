@@ -15,6 +15,11 @@ test("skills can be searched, disabled, and authored from scratch", async ({ pag
   await search.fill(knownSkill)
   await expect(page.getByText(knownSkill, { exact: true }).first()).toBeVisible()
 
+  // Filtering the ready catalog to zero renders the no-match layer — distinct
+  // from the resource-empty state ("no skills available").
+  await search.fill(`no-match-${Date.now()}`)
+  await expect(page.getByText("No matching skills")).toBeVisible()
+
   await search.fill("")
   const toggle = page.locator('[data-action="skill-toggle"]').first()
   await expect(toggle).toBeVisible()
