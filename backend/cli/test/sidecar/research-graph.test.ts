@@ -181,6 +181,28 @@ describe("research-graph supervisor lifecycle (real spawn + fetch)", () => {
     for (const t of texts) expect(t).not.toContain(res.endpoint.token)
   })
 
+  test("current exposes a fresh live endpoint without spawning and clears it after exit", async () => {
+    setMode("modern")
+    const markerDir = await newMarkerDir()
+    const sup = newSup()
+    expect(sup.snapshot().state).toBe("idle")
+    expect(sup.current()).toBeNull()
+    const res = expectOk(await sup.start())
+    const first = sup.current()
+    expect(first?.generation).toBe(1)
+    expect(first?.mode).toBe("managed")
+    expect(first?.endpoint.token).toBe(res.endpoint.token)
+    expect(first?.endpoint.origin).toBe(res.endpoint.origin)
+    expect(first).not.toBe(sup.current())
+    expect(sup.snapshot().endpoint?.token).toBe(REDACTED)
+    await fetch(`${res.endpoint.origin}/__exit`, {
+      headers: { Authorization: `Bearer ${res.endpoint.token}` },
+    })
+    await waitFor(() => sup.snapshot().state === "exited")
+    expect(sup.current()).toBeNull()
+    expect(await fs.readdir(markerDir)).toHaveLength(1)
+  })
+
   test("concurrent start() calls return the same in-flight result and spawn one child", async () => {
     setMode("modern")
     const markerDir = await newMarkerDir()

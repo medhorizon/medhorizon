@@ -95,11 +95,18 @@ export type SupervisorSnapshot = {
   warnings: Diagnostic[]
 }
 
+export type CurrentEndpoint = {
+  generation: number
+  mode: "managed" | "external"
+  endpoint: Readonly<Endpoint>
+}
+
 export type ResearchGraphSupervisor = {
   bind(): void
   start(): Promise<StartResult>
   stop(): Promise<void>
   snapshot(): SupervisorSnapshot
+  current(): CurrentEndpoint | null
 }
 
 type Child = { proc: Subprocess; generation: number }
@@ -376,6 +383,16 @@ class Supervisor implements ResearchGraphSupervisor {
       lastExit: this.#lastExit ? { ...this.#lastExit } : null,
       lastProbe: this.#lastProbe ? { ...this.#lastProbe } : null,
       warnings: [...this.#warnings],
+    }
+  }
+
+  current(): CurrentEndpoint | null {
+    if (this.#state !== "ready" || !this.#endpoint || !this.#mode) return null
+    if (this.#mode === "managed" && this.#child?.proc.exitCode !== null) return null
+    return {
+      generation: this.#generation,
+      mode: this.#mode,
+      endpoint: { ...this.#endpoint },
     }
   }
 
@@ -830,6 +847,11 @@ export function startResearchGraphSidecar(): Promise<StartResult> {
 /** Stop the process-wide Research Graph sidecar supervisor (idempotent). */
 export function stopResearchGraphSidecar(): Promise<void> {
   return singleton.stop()
+}
+
+/** Read the live process-wide endpoint without starting or waiting for a sidecar. */
+export function currentResearchGraphSidecar(): CurrentEndpoint | null {
+  return singleton.current()
 }
 
 // Run at import time so Config/Plugin see RESEARCH_GRAPH_* before first load.
