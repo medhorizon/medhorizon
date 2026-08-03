@@ -24,6 +24,7 @@
   "scripts": {
     "typecheck": "tsgo --noEmit",
     "dev": "vite",
+    "test:dom": "vitest run",
     "generate:tailwind": "bun run script/tailwind.ts"
   },
   "devDependencies": {
@@ -39,7 +40,8 @@
     "typescript": "catalog:",
     "vite": "catalog:",
     "vite-plugin-icons-spritesheet": "3.0.1",
-    "vite-plugin-solid": "catalog:"
+    "vite-plugin-solid": "catalog:",
+    "vitest": "catalog:"
   },
   "dependencies": {
     "@kobalte/core": "catalog:",

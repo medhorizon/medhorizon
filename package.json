@@ -60,6 +60,7 @@
       "tailwindcss": "4.1.11",
       "virtua": "0.42.3",
       "vite": "7.3.6",
+      "vitest": "3.2.4",
       "@solidjs/meta": "0.29.4",
       "@solidjs/router": "0.15.4",
       "@solidjs/start": "2.0.0-alpha.2",
