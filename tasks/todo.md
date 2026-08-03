@@ -16,6 +16,29 @@
 
 Plan 00 是后端/运行时代码的合并门槛；纯 UI 实施可与其并行，但在合入前仍须通过适用的全局检查。
 
+## 分阶段横向计划：Pi Agent Runtime 兼容迁移
+
+### [17 — Pi Agent Runtime 兼容迁移](plans/17-pi-runtime-migration.md)
+
+- [ ] 用真实 Bun、现有 deterministic provider、Zod/TypeBox schema 与 abort/tool flow 得出明确 go/no-go
+- [ ] 在 Plan 13 characterization 下冻结 framework-neutral TurnRuntime port 与零行为变化 legacy adapter
+- [ ] 用 Pi Agent + custom streamFn 实现 provider、message、lifecycle adapter，不复制 credential/provider store
+- [ ] 只包装 selected invoker，复用 Zod、PermissionNext、Plugin hooks、TaskScheduler 与 ProcessSupervisor
+- [ ] 固定 MedHorizon context/compaction/trace 所有权，不启用第二套 SessionManager、retry 或 auto-compaction
+- [ ] 通过无副作用 replay/shadow 建立 legacy/Pi event、terminal、permission、tokens、latency parity gate
+- [ ] 按 text→read-only→native tool→TaskTool→process/MCP 灰度并演练 Pi→legacy next-turn rollback
+- [ ] 量化决定默认值；默认切换与 legacy 删除分两个 release，至少保留一个兼容周期
+- [ ] 通过 Plan 17 Measured release gates 与 Checkpoint
+- [ ] 完成 Plan 17 Definition of done
+
+### Plan 17 checkpoint
+
+- [ ] Pi/Bun compatibility gate 通过，或 no-go 已记录且生产路径仍为纯 legacy
+- [ ] Pi 类型不进入 API/SDK/frontend/session persistence，生产不依赖 `@earendil-works/pi-coding-agent`
+- [ ] Session/MessageV2/Bus、TaskResult、PermissionNext、TaskScheduler、ProcessSupervisor、compaction、billing 与 RSI 仍为唯一事实源
+- [ ] invalid args/denial/throw/cancel/timeout 正确回灌，silent success、double hook、late terminal 和 capability bypass 均为 0
+- [ ] legacy 默认、Pi 显式 canary、in-flight settle 与 next-turn rollback 有真实证据
+
 ## 独立横向计划：工具运行时资源效率
 
 ### [18 — Tool 执行运行时与资源效率优化](plans/18-tool-runtime-optimization.md)
@@ -42,12 +65,14 @@ Plan 00 是后端/运行时代码的合并门槛；纯 UI 实施可与其并行�
 
 ## 本地科学工作台与证据闭环
 
+- [ ] 协调 Plans 07/16/19：07 Task 1 → 16 Task 4，07 Task 3 → 19 Task 4；16 独占 `session.tsx` Explorer 接线，19 默认保持该文件 0 行，SDK generator 与共享 `.env.local` 的 workspace E2E 串行
+
 ### [19 — 科学文件识别、受限检查与文档标签页路由](plans/19-scientific-file-routing.md)
 
-- [ ] 冻结 project-file 分类、扩展名/magic 优先级、renderer capability 与 inspect 预算
-- [ ] 实现 canonical、bounded server-side science inspect API 并生成 SDK
-- [ ] 建立 project-file renderer registry，复用现有 science renderer 且不混 tool/session artifact identity
-- [ ] 在统一 FileView 接入 drawer 与中心文档 tab 自动路由、错误恢复和大文件 fallback
+- [x] 冻结 backend 单一 project-file manifest、扩展名/magic 优先级、read policy、renderer capability 与浏览器/服务端预算
+- [x] 实现共享 canonical resolver、bounded inspect/preview、stream download API 并生成 SDK
+- [x] 建立 project-file renderer registry，复用现有 science renderer 且不混 tool/session artifact identity
+- [ ] 在统一 FileView 落地 inspect-first 路由、AsyncState、生成 SDK write、错误恢复和大文件 fallback
 - [ ] 用真实 CSV/FASTA/VCF/PDB/HDF5/unknown fixtures 锁定全链路与零 Atlas 请求
 - [ ] 通过 Plan 19 Checkpoint A/B
 - [ ] 完成 Plan 19 Definition of done
@@ -55,9 +80,9 @@ Plan 00 是后端/运行时代码的合并门槛；纯 UI 实施可与其并行�
 ### Plan 19 checkpoint
 
 - [ ] 所有 project path canonical containment 与 inspect 输入/输出预算有真实负向测试
-- [ ] drawer/中心 tab 只经过一个 FileView/renderer contract，普通 Markdown/PDF/图片/代码行为不回归
+- [ ] 中心 tab 只经过一个 FileView/renderer contract，legacy drawer 不重新挂载，普通 Markdown/PDF/图片/代码行为不回归
 - [ ] project file、tool artifact 与 session artifact 只共享 renderer capability，不混 identity/transport/ownership
-- [ ] Plan 20/21 可消费同一 classification contract，无第二份扩展名表或 Atlas surface
+- [ ] Plan 20/21 消费 backend `ScienceFile` generated contract，无第二份扩展名/magic 表或 Atlas surface
 
 ### [20 — 交互式 CSV/TSV 数据表工作台](plans/20-interactive-data-table.md)
 
@@ -80,7 +105,7 @@ Plan 00 是后端/运行时代码的合并门槛；纯 UI 实施可与其并行�
 
 - [ ] 冻结 discovery/exclude、stable artifact ID、content version、rename 与 stale/missing contract
 - [ ] 实现 bounded scanner、streaming hash 与 deterministic complete/incomplete manifest
-- [ ] 增加分页 catalog、detail、manifest、Git/local provenance API 并生成 SDK
+- [ ] 增加分页 catalog、detail、manifest、reproducibility audit、Git/local provenance API 并生成 SDK
 - [ ] 实现 project-scoped、versioned annotations 与 recoverable revision/tombstone
 - [ ] 作为独立 `project-artifacts` provider 接入 Plan 16 Explorer core 与上下文 Inspector
 - [ ] 通过真实 discover→inspect→annotate→manifest→provenance E2E
@@ -134,10 +159,11 @@ Plan 00 是后端/运行时代码的合并门槛；纯 UI 实施可与其并行�
 
 ### [03 — Research Graph sidecar supervisor](plans/03-research-graph-supervisor.md)
 
-- [ ] 版本化 health/capability contract
-- [ ] 为 sidecar entry 增加动态 loopback discovery
-- [ ] 实现 single-flight supervisor state machine
-- [ ] 增加黑盒 lifecycle/diagnostics 覆盖
+- [ ] 版本化 health/capability contract，明确 managed `/health` 鉴权与 protocol-major 精确匹配
+- [ ] 为 sidecar entry 增加 stdout framed、动态 loopback discovery
+- [ ] 实现 single-flight supervisor factory/singleton、统一 readiness deadline、分类诊断与 Windows/POSIX 终止
+- [ ] 增加黑盒 lifecycle/diagnostics、plugin auth 回归、全通道 capability 脱敏与跨平台 orphan 覆盖
+- [ ] 登记并指派 `RESEARCH_GRAPH_LEGACY_FIXED_PORT` 移除项（默认目标 v0.5.0；若首发晚于 v0.4.x，则为首发后的下一个 minor）
 - [ ] 通过 Plan 03 Checkpoint
 - [ ] 完成 Plan 03 Definition of done
 
@@ -183,10 +209,11 @@ Plan 00 是后端/运行时代码的合并门槛；纯 UI 实施可与其并行�
 
 ### [16 — 本地 Explorer 与 Session Artifacts](plans/16-local-artifact-explorer.md)
 
-- [ ] 冻结 RLMArtifacts 基线、legacy 行为与 Atlas-independent 模块边界
-- [ ] 增加 session artifact metadata、分页 list、bounded preview、download API 并生成 SDK
-- [ ] 建立 Explorer core shell，以单一 compatibility adapter 插入现有 FileExplorer
+- [x] 冻结 RLMArtifacts 基线、legacy 行为与 Atlas-independent 模块边界
+- [x] 以 `.dat` 最后 visibility commit 原子增加 session artifact metadata、分页 list、bounded preview、download API 并生成 SDK
+- [x] 建立 Explorer core shell，以单一 compatibility adapter 插入现有 FileExplorer
 - [ ] 插入 Session Artifacts 列表、preview/download 模块
+- [ ] keep-mounted 仅保留同一 session 状态；session 切换取消旧请求并清空 artifact page/selection/preview
 - [ ] 通过真实 register→list→preview→download E2E 与零 Atlas 请求断言
 - [ ] 通过 Plan 16 Checkpoint A/B
 - [ ] 完成 Plan 16 Definition of done
@@ -316,10 +343,11 @@ Plan 00 是后端/运行时代码的合并门槛；纯 UI 实施可与其并行�
 - [ ] 默认配置无 Atlas 产品 UI、自动云行为或外部请求，Stage/Research Graph 回归通过
 - [ ] 本地 session artifacts 可在 Explorer 中分页浏览、bounded preview 与下载，且不恢复 Atlas artifact 产品入口
 - [ ] 独立 Python/R 默认走 ephemeral process；persistent kernel、Batch 和外围 I/O 工具满足 Plan 18 的资源与安全门槛
+- [ ] Pi 仅经 TurnRuntime adapter 可选接入，legacy/Pi 共享唯一 session/tool/safety/context 事实源且回退已演练
 - [ ] 科学文件在统一 FileView 自动识别并受限预览，CSV/TSV 小文件精确交互且大文件不完整加载/伪报 sample 结果
-- [ ] Project Artifacts 可发现、inspect、annotation、生成可复现 manifest 并查看 provenance，且与 Session Artifacts 保持独立事实源
+- [ ] Project Artifacts 可发现、inspect、annotation、生成可复现 manifest/reproducibility audit 并查看 provenance，且与 Session Artifacts 保持独立事实源
 - [ ] Evidence 投影幂等进入唯一 Research Graph，stale/missing 可见且无第二套 graph database/API/store/tab
 - [ ] `bun run typecheck` 与 build 通过
-- [ ] `cd backend/cli && bun test` 完整通过并记录耗时
-- [ ] API 变化后已从仓库根运行 `./tooling/repo/generate.ts`
+- [ ] `(cwd: backend/cli) bun test` 完整通过并记录耗时
+- [ ] API 变化后已从仓库根在干净 worktree 串行运行 `bun tooling/repo/generate.ts`
 - [ ] 所有计划 Status、Progress、兼容/回滚证据和必要 ADR 已更新
