@@ -470,5 +470,5 @@ bun test test/session/telemetry.test.ts test/session/llm.test.ts test/tool/selec
 **Remaining gaps:**
 
 - Task 7/8: schema outlier minimization and measured token baselines not done.
-- Full Research Graph e2e with `experimental.tool_result_bound: true` recommended before default-on.
-- MCP cache soak with `experimental.mcp_manifest_cache: true` before default-on.
+- 2026-08-03: `tasks/plans/02-agent-context-closeout.md` completed the real MCP cache soak (3 × 20 turns) and the Research Graph result-bound soak (three sidecar sequences at 0.9x/2x/10x payload ratios); both flags remain default-off pending the independent closeout decision.
+- The provider calibration gate is incomplete (`429 rate_limit_exceeded` yielded no provider-reported usage), so schema outlier edits remain frozen and the fixed-budget claims are not closed.

@@ -4,6 +4,37 @@ MedHorizon follows [semantic versioning](https://semver.org). GitHub Releases
 (`v0.x`) ship native binaries for Linux, macOS (Apple Silicon), and Windows via
 the `Release` workflow. Upstream OpenScience history is retained below.
 
+## MedHorizon v0.3.19 — 2026-08-03
+
+### Added
+
+- **Agent context closeout (plan 02):** deterministic `debug agent --all --context-report`
+  baselines now cover all 14 native profiles, keep legacy `research` baseline-only, and
+  expose measured schema/fixed-overhead evidence without retaining schema bodies.
+- **MCP manifest-cache soak (plan 02):** the real SDK path now has a regression test for
+  3 × 20 discovery turns with restart, TTL, invalidation, refresh-failure, stale-recovery,
+  and concurrent-request events.
+- **Research Graph result-bound soak (plan 02):** real sidecar stage/graph/edge/provenance
+  flows verify IDs, relations, status/error evidence, spill-path retrieval, and compaction
+  pruning across 0.9×/2×/10× payloads.
+
+### Changed
+
+- Structured result bounding retains scientific identity and error/evidence fields while
+  keeping the existing spill-file recovery path. Both experimental flags remain default-off
+  until provider calibration and the full-suite gate are complete; no tool schema was edited.
+- Plan 13 now records the measured soak evidence and the explicit calibration/full-suite
+  blockers instead of claiming a budget or default-on decision.
+
+### Known limitations
+
+- The default provider calibration request returned `429 rate_limit_exceeded`, so the schema
+  edit allowlist remains empty and legacy `research` remains untouched.
+- The full `backend/cli` suite did not finish in the bounded Windows run; an existing plan-agent
+  path assertion is tracked separately and does not intersect the Plan 02 behavior path.
+- A local compaction-shard rerun also timed out in two pre-existing `isOverflow` cases; the
+  remaining 39 cases passed and this keeps the full-suite/closeout gate open.
+
 ## MedHorizon v0.3.18 — 2026-08-03
 
 ### Added

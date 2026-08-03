@@ -1,6 +1,6 @@
 # 02 — Agent tool context optimization closeout
 
-**Status:** Planned
+**Status:** In progress
 
 **Priority:** P0
 
@@ -267,3 +267,12 @@ This fuse may allow Plan 02 to close with a named external blocker, but it never
 - [ ] Research Graph end to end passes with bounding enabled.
 - [ ] Full `bun test` from `backend/cli` and repository typecheck pass, or the only full-suite exception satisfies the environmental-blocker fuse without intersecting Plan 02 behavior.
 - [ ] `docs/plans/13-agent-tool-context-optimization.md` status and evidence are current.
+
+## Progress (2026-08-03)
+
+- **Task 1 — measured baseline:** `openscience debug agent --all --context-report` was run twice with the timestamp removed; the remaining JSON is byte-identical. It reports 14 native profiles and labels `research` as `baseline_only=true`, `editable=false`, `budget_enforced=false`, with owner `tasks/plans/09-orchestrator-mvp.md`. Seven profiles exceed the fixed-overhead budget and the report lists measured schema outliers, but `calibration_status=incomplete` and `edit_allowlist=[]` because no provider-reported usage was available. A default-provider minimal request returned `429 rate_limit_exceeded`, so no token count or correction factor was invented.
+- **Task 2 — schema edits:** deliberately not started. No tool schema was changed, including legacy `research`; the calibration gate and empty allowlist prevent optimization without provider evidence.
+- **Task 3 — MCP cache soak:** passed with the real `@modelcontextprotocol/sdk` server/client and `InMemoryTransport`: 3 runs × 20 discovery turns (60 total), 6 restarts, 6 TTL expiries, 6 `tools/list_changed` invalidations, 3 injected refresh failures, 3 stale-call recoveries, and 5-request concurrent bursts. Every turn retained a non-empty manifest; no duplicate refresh or reconnect loop was observed.
+- **Task 4 — Research Graph bounding soak:** passed against a real Python sidecar. Three independent `stage → graph node create/update → edge → provenance record/query → later retrieval` sequences exercised `0.9x`, `2x`, and `10x` of `Truncate.BOUND_MAX_BYTES`; the test also verified ERROR/FATAL/Traceback retention, graph/stage/edge IDs and relation, structured error fields, readable spill paths after a later `Read`, and a successful compaction-prune reclaim. The result-bound flag remains off until Task 5 makes an independent default decision.
+- **Focused verification:** Plan-02 suites passed (`58 pass / 0 fail`), Research Graph stage tests passed (`5 passed`), and `backend/cli` typecheck passed via `bun run typecheck`. The repository typecheck also passed (`7 successful / 7 total`) when Bun’s installed directory was present on `PATH`; Turbo emitted only the existing `@emnapi/wasi-threads` lockfile warning.
+- **Open closeout blockers:** the broader selection shard still has the pre-existing Windows plan-agent path assertion (`.medhorizon/plans/foo.md` expected allow, received deny; `63 pass / 1 fail`), and a bounded full `backend/cli` run with `--timeout 15000` did not finish. These are not in the Plan-02 behavior path, but the environmental-blocker fuse is not claimed until the baseline/issue evidence required above is recorded. Both experimental flags therefore remain default-off.

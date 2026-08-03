@@ -115,6 +115,25 @@ export namespace SessionTelemetry {
     total: { count: number; bytes: number; tokens: number }
   }
 
+  export type SchemaDefinition = {
+    id: string
+    description?: string
+    schema: unknown
+  }
+
+  export type SchemaMeasurement = {
+    id: string
+    bytes: number
+    tokens: number
+  }
+
+  export type SchemaMeasurements = {
+    count: number
+    bytes: number
+    tokens: number
+    items: SchemaMeasurement[]
+  }
+
   export type ProviderTokens = {
     input: number
     output: number
@@ -154,10 +173,41 @@ export namespace SessionTelemetry {
     return { bytes, tokens: Token.estimate(encoded) }
   }
 
-  export function measureTools(
-    tools: Record<string, Tool>,
-    origins: Record<string, Origin> = {},
-  ): ToolDefinitionStats {
+  /** Measures provider-visible schema payloads without retaining schema bodies. */
+  export function measureSchemas(definitions: readonly SchemaDefinition[]): SchemaMeasurements {
+    const items = definitions
+      .map((definition) => {
+        const encoded = JSON.stringify({
+          name: definition.id,
+          description: definition.description ?? "",
+          parameters: definition.schema,
+        })
+        return {
+          id: definition.id,
+          bytes: Buffer.byteLength(encoded),
+          tokens: Token.estimate(encoded),
+        }
+      })
+      .sort((a, b) => a.id.localeCompare(b.id))
+
+    return {
+      count: items.length,
+      bytes: items.reduce((sum, item) => sum + item.bytes, 0),
+      tokens: items.reduce((sum, item) => sum + item.tokens, 0),
+      items,
+    }
+  }
+
+  /** Applies the plan-02 worst under-estimation correction with ten percent headroom. */
+  export function correctionFactor(samples: readonly { estimate: number; actual: number }[]) {
+    const ratios = samples
+      .filter((sample) => sample.estimate > 0 && Number.isFinite(sample.estimate) && Number.isFinite(sample.actual))
+      .map((sample) => sample.actual / sample.estimate)
+    if (!ratios.length) return 1
+    return Math.max(1, 1.1 * Math.max(...ratios))
+  }
+
+  export function measureTools(tools: Record<string, Tool>, origins: Record<string, Origin> = {}): ToolDefinitionStats {
     const native = emptyGroup()
     const plugin = emptyGroup()
     const mcp = { ...emptyGroup(), servers: [] as Array<ToolGroupStats & { server: string }> }
@@ -206,7 +256,8 @@ export namespace SessionTelemetry {
     return {
       ...composition,
       system: tokens,
-      total: tokens + composition.text + composition.reasoning + composition.tool + composition.skills + composition.image,
+      total:
+        tokens + composition.text + composition.reasoning + composition.tool + composition.skills + composition.image,
     }
   }
 

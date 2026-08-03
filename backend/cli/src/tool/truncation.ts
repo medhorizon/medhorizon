@@ -17,6 +17,42 @@ export namespace Truncate {
   const RETENTION_MS = 7 * 24 * 60 * 60 * 1000 // 7 days
   const HOUR_MS = 60 * 60 * 1000
   const SEVERITY = /\b(ERROR|FATAL|Exception|Traceback)\b/
+  const STRUCTURED_KEYS = new Set([
+    "id",
+    "stage",
+    "source",
+    "target",
+    "from",
+    "to",
+    "graph_id",
+    "experiment_id",
+    "node_id",
+    "edge_id",
+    "relation",
+    "part_id",
+    "kind",
+    "type",
+    "status",
+    "code",
+    "error",
+    "errors",
+    "message",
+    "severity",
+    "name",
+    "title",
+    "label",
+    "lifecycle",
+    "outcome",
+    "gated",
+    "evidence",
+    "claim",
+    "issue",
+    "verdict",
+    "artifact_type",
+    "path",
+    "tool",
+    "revision",
+  ])
 
   export type Result = { content: string; truncated: false } | { content: string; truncated: true; outputPath: string }
 
@@ -134,18 +170,7 @@ export namespace Truncate {
         continue
       }
 
-      const keep =
-        key === "id" ||
-        key === "stage" ||
-        key.endsWith("_id") ||
-        key === "source" ||
-        key === "target" ||
-        key === "from" ||
-        key === "to" ||
-        key === "graph_id" ||
-        key === "experiment_id" ||
-        key === "node_id" ||
-        key === "edge_id"
+      const keep = STRUCTURED_KEYS.has(key) || key.endsWith("_id")
 
       if (!keep) continue
 
@@ -196,12 +221,14 @@ export namespace Truncate {
   }
 
   function searchList(value: unknown): Array<Record<string, unknown>> {
-    if (Array.isArray(value)) return value.filter((item) => item && typeof item === "object") as Array<Record<string, unknown>>
+    if (Array.isArray(value))
+      return value.filter((item) => item && typeof item === "object") as Array<Record<string, unknown>>
     if (!value || typeof value !== "object") return []
     const obj = value as Record<string, unknown>
     for (const key of ["results", "hits", "items", "data"]) {
       const list = obj[key]
-      if (Array.isArray(list)) return list.filter((item) => item && typeof item === "object") as Array<Record<string, unknown>>
+      if (Array.isArray(list))
+        return list.filter((item) => item && typeof item === "object") as Array<Record<string, unknown>>
     }
     return []
   }

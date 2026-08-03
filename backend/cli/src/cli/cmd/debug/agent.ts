@@ -10,18 +10,37 @@ import { ToolSelection } from "../../../tool/selection"
 import { Instance } from "../../../project/instance"
 import { PermissionNext } from "../../../permission/next"
 import { iife } from "../../../util/iife"
+import { Token } from "../../../util/token"
+import { SessionTelemetry } from "../../../session/telemetry"
+import { SystemPrompt } from "../../../session/system"
+import { ProviderTransform } from "../../../provider/transform"
+import { buildProfileReport, type CalibrationInput } from "../../../session/context-report"
 import { bootstrap } from "../../bootstrap"
 import { cmd } from "../cmd"
+import z from "zod"
 
 export const AgentCommand = cmd({
-  command: "agent <name>",
+  command: "agent [name]",
   describe: "show agent configuration details",
   builder: (yargs) =>
     yargs
       .positional("name", {
         type: "string",
-        demandOption: true,
         description: "Agent name",
+      })
+      .option("all", {
+        type: "boolean",
+        default: false,
+        description: "Include every shipped native agent",
+      })
+      .option("context-report", {
+        type: "boolean",
+        default: false,
+        description: "Emit a non-sensitive context and schema report (requires --all)",
+      })
+      .option("calibration", {
+        type: "string",
+        description: "Calibration samples as a JSON array with family, model, source, estimate, and actual",
       })
       .option("tool", {
         type: "string",
@@ -33,7 +52,23 @@ export const AgentCommand = cmd({
       }),
   async handler(args) {
     await bootstrap(process.cwd(), async () => {
-      const agentName = args.name as string
+      const agentName = args.name as string | undefined
+      const all = args.all === true
+      const contextReport = args["context-report"] === true
+      if (all || contextReport) {
+        if (!all || !contextReport) {
+          process.stderr.write("Use --all together with --context-report to emit the aggregate report" + EOL)
+          process.exit(1)
+        }
+        const calibration = parseCalibration(args.calibration as string | undefined)
+        const report = await buildContextReport(calibration)
+        process.stdout.write(JSON.stringify(report, null, 2) + EOL)
+        return
+      }
+      if (!agentName) {
+        process.stderr.write("Agent name is required unless --all --context-report is used" + EOL)
+        process.exit(1)
+      }
       const agent = await Agent.get(agentName)
       if (!agent) {
         process.stderr.write(
@@ -72,6 +107,10 @@ export const AgentCommand = cmd({
 
 async function getAvailableTools(agent: Agent.Info) {
   const model = agent.model ?? (await Provider.defaultModel())
+  return getAvailableToolsForModel(agent, modelRef(model))
+}
+
+async function getAvailableToolsForModel(agent: Agent.Info, model: { providerID: string; modelID: string }) {
   const toolset = await ToolSelection.effectiveToolset(agent)
   const permission = agent.permission
   const selected = ToolSelection.selected({
@@ -80,6 +119,80 @@ async function getAvailableTools(agent: Agent.Info) {
     permission,
   })
   return ToolRegistry.tools(model, agent, selected)
+}
+
+async function buildContextReport(calibration: readonly CalibrationInput[]) {
+  const agents = (await Agent.list())
+    .filter((agent) => agent.native === true)
+    .sort((a, b) => a.name.localeCompare(b.name))
+  const defaultModel = await Provider.defaultModel()
+  const fallbackRef = modelRef(defaultModel)
+  const fallback = await Provider.getModel(fallbackRef.providerID, fallbackRef.modelID)
+  const profiles = await Promise.all(
+    agents.map(async (agent) => {
+      const model = agent.model ? await Provider.getModel(agent.model.providerID, agent.model.modelID) : fallback
+      const tools = await getAvailableToolsForModel(agent, { providerID: model.providerID, modelID: model.id })
+      const definitions = tools.map((tool) => ({
+        id: tool.id,
+        description: tool.description,
+        schema: ProviderTransform.schema(model, z.toJSONSchema(tool.parameters)),
+      }))
+      const schemas = SessionTelemetry.measureSchemas(definitions)
+      const system = [
+        ...(agent.prompt ? [agent.prompt] : SystemPrompt.provider(model)),
+        ...(await SystemPrompt.planModeInstructions()),
+        ...SystemPrompt.slashSkillDirective(),
+      ].join("\n")
+      return buildProfileReport({
+        agent: agent.name,
+        model: { providerID: model.providerID, modelID: model.id },
+        prompt: {
+          bytes: Buffer.byteLength(system),
+          tokens: Token.estimate(system),
+        },
+        schemas,
+        calibration,
+      })
+    }),
+  )
+  const nonLegacyIds = new Set(
+    profiles
+      .filter((profile) => !profile.baseline_only)
+      .flatMap((profile) => profile.schemas.items.map((item) => item.id)),
+  )
+  const editAllowlist = profiles
+    .filter((profile) => !profile.baseline_only)
+    .flatMap((profile) => profile.outlier_ids)
+    .filter((id, index, ids) => nonLegacyIds.has(id) && ids.indexOf(id) === index)
+    .sort()
+  const calibrationComplete =
+    new Set(calibration.map((sample) => sample.family)).size >= 2 &&
+    calibration.some((sample) => sample.source === "provider")
+
+  return {
+    report_version: 1,
+    generated_at: new Date().toISOString(),
+    command: "openscience debug agent --all --context-report",
+    budgets: {
+      fixed_overhead_tokens: 8_000,
+      schema_tokens: 5_000,
+    },
+    estimator: {
+      id: "characters/4",
+      version: "1",
+      correction_factor: SessionTelemetry.correctionFactor(calibration),
+    },
+    calibration,
+    calibration_status: calibrationComplete ? "complete" : "incomplete",
+    profiles,
+    edit_allowlist: calibrationComplete ? editAllowlist : [],
+  }
+}
+
+function modelRef(model: { providerID: string; modelID?: string; id?: string }) {
+  const id = model.modelID ?? model.id
+  if (!id) throw new Error(`Model ${model.providerID} has no id`)
+  return { providerID: model.providerID, modelID: id }
 }
 
 async function resolveTools(agent: Agent.Info, availableTools: Awaited<ReturnType<typeof getAvailableTools>>) {
@@ -117,6 +230,28 @@ function parseToolParams(input?: string) {
     throw new Error("Tool params must be an object.")
   }
   return parsed as Record<string, unknown>
+}
+
+function parseCalibration(input?: string): CalibrationInput[] {
+  if (!input) return []
+  const parsed = iife(() => {
+    try {
+      return JSON.parse(input)
+    } catch (error) {
+      throw new Error(`Failed to parse --calibration JSON: ${error}`)
+    }
+  })
+  return z
+    .array(
+      z.object({
+        family: z.string().min(1),
+        model: z.string().min(1),
+        source: z.enum(["provider", "tokenizer"]),
+        estimate: z.number().positive(),
+        actual: z.number().positive(),
+      }),
+    )
+    .parse(parsed)
 }
 
 async function createToolContext(agent: Agent.Info) {
