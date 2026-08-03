@@ -25,8 +25,9 @@ import { AsciiSpinner } from "@/atlas/shared/AsciiSpinner"
 import { Wordmark } from "@/atlas/Wordmark"
 import { AppHeader, HeaderIconButton, HeaderDivider } from "@/atlas/AppHeader"
 import { RightPane } from "@/atlas/RightPane"
-import { FileExplorer } from "@/atlas/FileExplorer"
 import { FileView } from "@/atlas/FilePreview"
+import { ExplorerShell } from "@/features/explorer/ExplorerShell"
+import { filesModule } from "@/features/explorer/modules/files"
 import SkillsPage from "@/atlas/SkillsPage"
 import { centerTabs } from "@/atlas/store/centerTabs"
 import { FONT_MONO, FONT_SANS } from "@/styles/tokens"
@@ -62,6 +63,12 @@ import { IconTrash } from "@/atlas/shared/Icon"
 import { toast } from "@/atlas/Toast"
 
 type SyncSession = ReturnType<typeof useSync>["data"]["session"][number]
+
+// Explorer module list — kept local to this page (the host injects modules).
+// Plan 16 Task 4 will append a `session-artifacts` module here; the shell
+// then renders the module tablist and keep-mounted panels.
+const EXPLORER_MODULES = [filesModule]
+const EXPLORER_DEFAULT_MODULE = "files"
 
 /**
  * Session page — new visual identity (Synthetic Sciences wordmark + sessions
@@ -774,7 +781,11 @@ export default function Page(): JSX.Element {
                   "flex-direction": "column",
                 }}
               >
-                <FileExplorer />
+                <ExplorerShell
+                  modules={EXPLORER_MODULES}
+                  defaultModule={EXPLORER_DEFAULT_MODULE}
+                  scope={{ sessionID: params.id ?? "" }}
+                />
               </div>
             </Show>
 

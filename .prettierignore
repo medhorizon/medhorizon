@@ -12,6 +12,9 @@ dist/
 *.mdx
 # curated skill content consumed verbatim by agents
 backend/cli/skills/
+
+# Vite symlink-stub (text contains a relative target path, not a manifest)
+frontend/workspace/public/site.webmanifest
 .astro/
 
 # local Playwright output

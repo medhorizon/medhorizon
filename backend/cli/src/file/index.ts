@@ -10,6 +10,7 @@ import fs from "fs"
 import ignore from "ignore"
 import { Log } from "../util/log"
 import { Filesystem } from "../util/filesystem"
+import { ProjectFile } from "./resolve"
 import { Instance } from "../project/instance"
 import { Ripgrep } from "./ripgrep"
 import fuzzysort from "fuzzysort"
@@ -290,14 +291,10 @@ export namespace File {
   export async function read(file: string): Promise<Content> {
     using _ = log.time("read", { file })
     const project = Instance.project
-    const full = Filesystem.resolvePath(Instance.directory, file)
-    const local = path.relative(Instance.directory, full) || "."
-
-    // TODO: Filesystem.contains is lexical only - symlinks inside the project can escape.
-    // TODO: On Windows, cross-drive paths bypass this check. Consider realpath canonicalization.
-    if (!Instance.containsPath(full)) {
-      throw new Error(`Access denied: path escapes project directory`)
-    }
+    // Freshly re-resolve every time — a prior inspect/read is not authorization.
+    const resolved = await ProjectFile.resolve({ path: file, kind: "file-or-new" })
+    const full = resolved.absolute
+    const local = resolved.projectPath || "."
 
     const bunFile = Bun.file(full)
 
@@ -337,10 +334,9 @@ export namespace File {
 
   export async function write(file: string, content: string): Promise<Content> {
     using _ = log.time("write", { file })
-    const full = Filesystem.resolvePath(Instance.directory, file)
-    if (!Instance.containsPath(full)) {
-      throw new Error(`Access denied: path escapes project directory`)
-    }
+    // Freshly re-resolve every time; kind "file-or-new" tolerates a missing target.
+    const resolved = await ProjectFile.resolve({ path: file, kind: "file-or-new" })
+    const full = resolved.absolute
 
     const exists = await Bun.file(full).exists()
     await Bun.write(full, content)
