@@ -10,7 +10,6 @@ const panels = [
   "Permissions",
   "Sandbox",
   "Credentials",
-  "Billing",
   "Storage",
   "General",
 ] as const
