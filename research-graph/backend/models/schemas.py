@@ -209,6 +209,9 @@ class AiSuggestLinksIn(BaseModel):
 
 class HealthOut(BaseModel):
     status: str
+    service: str
+    version: str
+    protocol: int
     mode: str
     store: str
     openai: bool

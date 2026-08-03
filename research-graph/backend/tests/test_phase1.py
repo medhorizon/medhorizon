@@ -30,7 +30,16 @@ def test_production_requires_auth():
         assert err.status_code == 401
 
 
-def test_local_dev_bearer_accepted():
-    user = current_user(authorization="Bearer local-dev", settings=Settings(app_env="production"))
-    assert user.id == Settings().dev_user_id
+def test_local_dev_bearer_requires_bypass():
+    try:
+        current_user(authorization="Bearer local-dev", settings=Settings(app_env="production"))
+        assert False, "expected 401 without dev bypass"
+    except HTTPException as err:
+        assert err.status_code == 401
+
+
+def test_local_dev_bearer_accepted_with_bypass():
+    settings = Settings(app_env="production", research_graph_allow_dev_tokens=True)
+    user = current_user(authorization="Bearer local-dev", settings=settings)
+    assert user.id == settings.dev_user_id
     assert user.email == "dev@localhost"

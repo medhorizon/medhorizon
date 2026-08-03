@@ -11,6 +11,19 @@ from backend.services.medhorizon_openai import OpenAIResolved, clear_medhorizon_
 
 ROOT = Path(__file__).resolve().parents[1]
 
+# ---------------------------------------------------------------------------
+# Service identity — single source of truth for the health/capability contract.
+# ---------------------------------------------------------------------------
+SERVICE_NAME = "research-graph"
+SERVICE_VERSION = "0.3.6"
+
+# Transport-contract major version exposed as /health `protocol`. This is an
+# EXACT-MATCH contract: the parent supervisor refuses a child whose protocol
+# differs. Any change to the handshake shape or semantics MUST bump this integer.
+# Additive fields or implementation-only releases must not weaken mismatch
+# handling — a newer (or older) child protocol is still a mismatch, never a pass.
+HEALTH_PROTOCOL_VERSION = 1
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
@@ -50,6 +63,20 @@ class Settings(BaseSettings):
     openscience_config_dir: str = ""
 
     dev_user_id: str = "00000000-0000-4000-8000-000000000001"
+
+    # Managed-sidecar capability (env: RESEARCH_GRAPH_MANAGED_CAPABILITY). When set,
+    # /health and protected /api/* routes accept ONLY this exact Bearer value via a
+    # timing-safe comparison; JWT and dev identity never satisfy the check. This is
+    # the verifier the managed child accepts — the parent presents the same generated
+    # (>=256-bit) value as its credential. There is intentionally NO sentinel or
+    # default fallback: absence (None) means "not managed" and is never a guessable key.
+    research_graph_managed_capability: str | None = None
+
+    # Explicit standalone-development bypass (env: RESEARCH_GRAPH_ALLOW_DEV_TOKENS).
+    # When True, the fixed dev tokens ("local-dev"/"dev") and unauthenticated
+    # non-production access resolve to dev_user_id. This is an explicit opt-in;
+    # APP_ENV alone never enables dev identity.
+    research_graph_allow_dev_tokens: bool = False
 
     medhorizon_server_url: str = "http://127.0.0.1:4096"
     medhorizon_atlas_bridge: str = "/api/atlas"

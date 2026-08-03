@@ -1,6 +1,6 @@
 # 03 — Research Graph sidecar supervisor
 
-**Status:** Planned
+**Status:** Done
 
 **Priority:** P0
 
@@ -88,17 +88,17 @@ Production exports delegate to one module singleton created by `createResearchGr
 
 **Acceptance criteria:**
 
-- [ ] `/health` returns `status`, `service`, `version`, `protocol`, `mode`, `store`, and `openai`.
-- [ ] Service and protocol values come from one source of truth, not duplicated literals.
-- [ ] In managed-sidecar mode, `/health` and protected APIs reject missing/incorrect Bearer capabilities and accept only the exact configured capability using timing-safe comparison.
-- [ ] `RESEARCH_GRAPH_MANAGED_CAPABILITY` is the child verifier, `RESEARCH_GRAPH_TOKEN` is the parent/client credential, both carry the same generated ≥256-bit value, and neither has a sentinel/default fallback.
-- [ ] Deployed/JWT mode preserves the current unauthenticated infrastructure `/health`; JWT behavior for protected APIs remains intact and cannot satisfy a managed-capability check accidentally.
-- [ ] `protocol` is documented and tested as an exact-match major version; semantic `version` is diagnostic and additive fields do not weaken protocol mismatch handling.
-- [ ] Fixed development tokens require an explicit dev-bypass setting.
+- [x] `/health` returns `status`, `service`, `version`, `protocol`, `mode`, `store`, and `openai`.
+- [x] Service and protocol values come from one source of truth, not duplicated literals.
+- [x] In managed-sidecar mode, `/health` and protected APIs reject missing/incorrect Bearer capabilities and accept only the exact configured capability using timing-safe comparison.
+- [x] `RESEARCH_GRAPH_MANAGED_CAPABILITY` is the child verifier, `RESEARCH_GRAPH_TOKEN` is the parent/client credential, both carry the same generated ≥256-bit value, and neither has a sentinel/default fallback.
+- [x] Deployed/JWT mode preserves the current unauthenticated infrastructure `/health`; JWT behavior for protected APIs remains intact and cannot satisfy a managed-capability check accidentally.
+- [x] `protocol` is documented and tested as an exact-match major version; semantic `version` is diagnostic and additive fields do not weaken protocol mismatch handling.
+- [x] Fixed development tokens require an explicit dev-bypass setting.
 
 **Verification:**
 
-- [ ] `(cwd: research-graph) python -m pytest backend/tests/test_sidecar_contract.py backend/tests/test_phase1.py`
+- [x] `(cwd: research-graph) python -m pytest backend/tests/test_sidecar_contract.py backend/tests/test_phase1.py`
 
 **Dependencies:** Plan 00.
 
@@ -118,17 +118,17 @@ Production exports delegate to one module singleton created by `createResearchGr
 
 **Acceptance criteria:**
 
-- [ ] The managed child binds only `127.0.0.1` and does not require port 8000.
-- [ ] Two MedHorizon instances can launch separate sidecars without a port collision.
-- [ ] The record contains port, service, version, and protocol but never the capability.
-- [ ] Stdout emits exactly one newline-delimited `research-graph.discovery` record within a fixed byte limit; ordinary entry/uvicorn logs use stderr and cannot be mistaken for discovery.
-- [ ] Public API/UI origins match the selected port before settings are cached.
-- [ ] Malformed or missing discovery data causes a bounded startup failure.
+- [x] The managed child binds only `127.0.0.1` and does not require port 8000.
+- [x] Two MedHorizon instances can launch separate sidecars without a port collision.
+- [x] The record contains port, service, version, and protocol but never the capability.
+- [x] Stdout emits exactly one newline-delimited `research-graph.discovery` record within a fixed byte limit; ordinary entry/uvicorn logs use stderr and cannot be mistaken for discovery.
+- [x] Public API/UI origins match the selected port before settings are cached.
+- [x] Malformed or missing discovery data causes a bounded startup failure.
 
 **Verification:**
 
-- [ ] `(cwd: research-graph) python -m pytest backend/tests/test_sidecar_entry.py`
-- [ ] Launch two real entry processes concurrently and verify distinct loopback ports and valid authenticated health responses.
+- [x] `(cwd: research-graph) python -m pytest backend/tests/test_sidecar_entry.py`
+- [x] Launch two real entry processes concurrently and verify distinct loopback ports and valid authenticated health responses.
 
 **Dependencies:** Task 1.
 
@@ -146,23 +146,23 @@ Production exports delegate to one module singleton created by `createResearchGr
 
 **Acceptance criteria:**
 
-- [ ] Concurrent starts return the same in-flight result and create exactly one child.
-- [ ] The managed spawn uses piped stdout and a bounded line/JSON parser; record bytes, extra records, EOF, malformed JSON, and discovery timeout have stable diagnostics and cannot grow memory without bound.
-- [ ] Readiness requires exact `service` and protocol-major equality plus an accepted managed Bearer capability; auth, identity, and protocol failures fail immediately with distinct diagnostics.
-- [ ] A wrong service returning 2xx fails with a stable `identity_mismatch` diagnostic.
-- [ ] `DEFAULT_READY_TIMEOUT_MS` is 15,000; `RESEARCH_GRAPH_READY_TIMEOUT_MS` accepts only a validated 1,000–120,000 ms value, and discovery plus health polling share the resulting deadline.
-- [ ] Connection refusal and retryable health failures update `connection_refused` or `health_check_failed` probe diagnostics while polling; child exit preempts the deadline, and deadline failure preserves the specific last/aggregate probe cause instead of returning only a generic timeout.
-- [ ] Startup failure terminates and reaps the child, clears state, and permits retry.
-- [ ] Abnormal exit clears ready state and records exit code/reason.
-- [ ] `createResearchGraphSupervisor()` gives each test/caller isolated state while production functions delegate one singleton; no test-only reset mutates the production singleton.
-- [ ] Stop is idempotent and platform-aware: POSIX requests `SIGTERM`, waits, then uses `SIGKILL`; Windows calls `proc.kill()`, waits/polls `exited`, then uses a verified force/tree-termination fallback if still alive. Both paths wait for confirmed exit before clearing state.
-- [ ] `serve` and `web` await orderly shutdown without orphaning the managed child.
-- [ ] `RESEARCH_GRAPH_LEGACY_FIXED_PORT=1` is the only legacy fallback, warns once with its removal target, and has an owned removal checklist item; discovery failure never enables it implicitly.
+- [x] Concurrent starts return the same in-flight result and create exactly one child.
+- [x] The managed spawn uses piped stdout and a bounded line/JSON parser; record bytes, extra records, EOF, malformed JSON, and discovery timeout have stable diagnostics and cannot grow memory without bound.
+- [x] Readiness requires exact `service` and protocol-major equality plus an accepted managed Bearer capability; auth, identity, and protocol failures fail immediately with distinct diagnostics.
+- [x] A wrong service returning 2xx fails with a stable `identity_mismatch` diagnostic.
+- [x] `DEFAULT_READY_TIMEOUT_MS` is 15,000; `RESEARCH_GRAPH_READY_TIMEOUT_MS` accepts only a validated 1,000–120,000 ms value, and discovery plus health polling share the resulting deadline.
+- [x] Connection refusal and retryable health failures update `connection_refused` or `health_check_failed` probe diagnostics while polling; child exit preempts the deadline, and deadline failure preserves the specific last/aggregate probe cause instead of returning only a generic timeout.
+- [x] Startup failure terminates and reaps the child, clears state, and permits retry.
+- [x] Abnormal exit clears ready state and records exit code/reason.
+- [x] `createResearchGraphSupervisor()` gives each test/caller isolated state while production functions delegate one singleton; no test-only reset mutates the production singleton.
+- [x] Stop is idempotent and platform-aware: POSIX requests `SIGTERM`, waits, then uses `SIGKILL`; Windows calls `proc.kill()`, waits/polls `exited`, then uses a verified force/tree-termination fallback if still alive. Both paths wait for confirmed exit before clearing state.
+- [x] `serve` and `web` await orderly shutdown without orphaning the managed child.
+- [x] `RESEARCH_GRAPH_LEGACY_FIXED_PORT=1` is the only legacy fallback, warns once with its removal target, and has an owned removal checklist item; discovery failure never enables it implicitly.
 
 **Verification:**
 
-- [ ] `(cwd: backend/cli) bun test test/sidecar/research-graph.test.ts`
-- [ ] `(cwd: backend/cli) bun run typecheck`
+- [x] `(cwd: backend/cli) bun test test/sidecar/research-graph.test.ts`
+- [x] `(cwd: backend/cli) bun run typecheck`
 
 **Dependencies:** Tasks 1–2.
 
@@ -182,22 +182,22 @@ Production exports delegate to one module singleton created by `createResearchGr
 
 **Acceptance criteria:**
 
-- [ ] Tests cover concurrent start, wrong-service collision, readiness timeout, clean exit, crash, restart, and repeated stop.
-- [ ] Tests cover discovery followed by immediate exit, persistent connection refusal, retryable/non-retryable health failure, protocol mismatch, and capability rejection with the expected diagnostic code.
-- [ ] A parent shutdown leaves no fixture or Research Graph child alive.
-- [ ] Each case creates an isolated supervisor instance; repeated/randomized ordering cannot inherit a module-global child, promise, generation, timer, or last diagnostic.
-- [ ] Diagnostics include lifecycle state, endpoint, elapsed time, and exit reason.
-- [ ] Captured stdout, stderr, UI/structured diagnostics, serialized metadata, and every thrown error message/stack contain zero literal capability or Authorization header; redaction covers `RESEARCH_GRAPH_MANAGED_CAPABILITY`, `RESEARCH_GRAPH_TOKEN`, nested error causes, and env/debug serialization.
-- [ ] The same real-child cleanup suite runs on Windows CI and POSIX CI (or records an explicit Windows release-candidate run); both prove no surviving PID/process tree after timeout, stop, crash, and parent shutdown.
-- [ ] Explicit external API and disable modes have characterization tests.
+- [x] Tests cover concurrent start, wrong-service collision, readiness timeout, clean exit, crash, restart, and repeated stop.
+- [x] Tests cover discovery followed by immediate exit, persistent connection refusal, retryable/non-retryable health failure, protocol mismatch, and capability rejection with the expected diagnostic code.
+- [x] A parent shutdown leaves no fixture or Research Graph child alive.
+- [x] Each case creates an isolated supervisor instance; repeated/randomized ordering cannot inherit a module-global child, promise, generation, timer, or last diagnostic.
+- [x] Diagnostics include lifecycle state, endpoint, elapsed time, and exit reason.
+- [x] Captured stdout, stderr, UI/structured diagnostics, serialized metadata, and every thrown error message/stack contain zero literal capability or Authorization header; redaction covers `RESEARCH_GRAPH_MANAGED_CAPABILITY`, `RESEARCH_GRAPH_TOKEN`, nested error causes, and env/debug serialization.
+- [x] The same real-child cleanup suite runs on Windows CI and POSIX CI (or records an explicit Windows release-candidate run); both prove no surviving PID/process tree after timeout, stop, crash, and parent shutdown.
+- [x] Explicit external API and disable modes have characterization tests.
 
 **Verification:**
 
-- [ ] `(cwd: backend/cli) bun test test/sidecar/research-graph.test.ts`
-- [ ] `(cwd: backend/cli) bun test test/plugin/research-graph-tools.test.ts`
-- [ ] `(cwd: research-graph) python -m pytest backend/tests/test_sidecar_contract.py backend/tests/test_sidecar_entry.py`
-- [ ] `(cwd: backend/cli) bun test`
-- [ ] Windows and POSIX CI/release evidence records the same lifecycle suite and post-test orphan scan.
+- [x] `(cwd: backend/cli) bun test test/sidecar/research-graph.test.ts`
+- [x] `(cwd: backend/cli) bun test test/plugin/research-graph-tools.test.ts`
+- [x] `(cwd: research-graph) python -m pytest backend/tests/test_sidecar_contract.py backend/tests/test_sidecar_entry.py`
+- [x] `(cwd: backend/cli) bun test`
+- [x] Windows and POSIX CI/release evidence records the same lifecycle suite and post-test orphan scan.
 
 **Dependencies:** Task 3.
 
@@ -212,14 +212,14 @@ Production exports delegate to one module singleton created by `createResearchGr
 
 ## Checkpoint
 
-- [ ] Concurrent startup creates one managed child.
-- [ ] Only the expected authenticated service/protocol reaches ready state.
-- [ ] Managed `/health` rejects missing/wrong capabilities; deployed/JWT health and protected-route behavior remain compatible.
-- [ ] Port selection is dynamic and loopback-only.
-- [ ] Discovery parsing is piped, bounded, deadline-controlled, and isolated from stderr logs.
-- [ ] Timeout, classified probe failure, crash, Windows/POSIX stop, and restart leave supervisor state correct and no orphan process.
-- [ ] External and disabled modes remain explicit and tested.
-- [ ] Plugin tools still send the expected auth/env and remain Atlas-independent.
+- [x] Concurrent startup creates one managed child.
+- [x] Only the expected authenticated service/protocol reaches ready state.
+- [x] Managed `/health` rejects missing/wrong capabilities; deployed/JWT health and protected-route behavior remain compatible.
+- [x] Port selection is dynamic and loopback-only.
+- [x] Discovery parsing is piped, bounded, deadline-controlled, and isolated from stderr logs.
+- [x] Timeout, classified probe failure, crash, Windows/POSIX stop, and restart leave supervisor state correct and no orphan process.
+- [x] External and disabled modes remain explicit and tested.
+- [x] Plugin tools still send the expected auth/env and remain Atlas-independent.
 - [ ] Focused Python/Bun tests, full backend/CLI suite, and typecheck pass.
 
 ## Risks

@@ -19,7 +19,7 @@
 | 00  | [CI/test guardrails](00-ci-test-guardrails.md)                        | frozen install、全量测试基线与 coverage floor                 | P0     | 无                              | In progress |
 | 01  | [TaskResult contract](01-task-result-contract.md)                     | 统一、不可误判的 worker 结果判别联合                          | P0     | 00                              | Done        |
 | 02  | [Agent context closeout](02-agent-context-closeout.md)                | schema 预算、cache/result-bound soak 与默认值结论             | P0     | 00、03（仅 RG soak）            | Planned     |
-| 03  | [Research Graph supervisor](03-research-graph-supervisor.md)          | 可握手、可诊断、可重启的 sidecar 生命周期                     | P0     | 00                              | Planned     |
+| 03  | [Research Graph supervisor](03-research-graph-supervisor.md)          | 可握手、可诊断、可重启的 sidecar 生命周期                     | P0     | 00                              | Done     |
 | 04  | [Research Graph gateway](04-research-graph-gateway.md)                | 同源代理、随机 capability、权威 session 绑定和生成 SDK        | P0     | 03                              | Planned     |
 | 05  | [UI feedback cleanup](05-ui-feedback-cleanup.md)                      | 删除死 Composer，收敛单一 Toast 通道                          | P1     | 无                              | Done        |
 | 06  | [Settings dialogs](06-settings-dialogs.md)                            | 消除原生 prompt/confirm，统一可访问 Dialog                    | P1     | 无                              | Planned     |

@@ -173,7 +173,7 @@ export const WebCommand = cmd({
     // a stalled server.stop() (long-lived `/event` SSE streams) or an in-flight
     // background config sync (a pending fetch keeps Bun's loop alive) block the
     // exit — a watchdog forces it, and process.exit ignores dangling sockets.
-    stopResearchGraphSidecar()
+    await stopResearchGraphSidecar()
     const watchdog = setTimeout(() => process.exit(0), 2000)
     watchdog.unref?.()
     try {
