@@ -25,14 +25,15 @@ async def lifespan(_app: FastAPI):
 
 
 app = FastAPI(title="Research Graph", version="0.3.6", lifespan=lifespan)
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.cors_list,
-    allow_origin_regex=r"https?://(localhost|127\.0\.0\.1)(:\d+)?",
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+if not settings.research_graph_managed_capability:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.cors_list,
+        allow_origin_regex=r"https?://(localhost|127\.0\.0\.1)(:\d+)?",
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
 app.include_router(graphs.router)
 app.include_router(nodes.router)

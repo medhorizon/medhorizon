@@ -252,6 +252,18 @@ class SessionBindOut(BaseModel):
     updated_at: str
 
 
+class SessionGraphSummary(BaseModel):
+    id: str
+    title: str
+    updated_at: str
+
+
+class SessionResolveOut(BaseModel):
+    status: Literal["bound", "not_bound"]
+    graph: SessionGraphSummary | None = None
+    binding_updated_at: str | None = None
+
+
 class NodeBranchIn(WriteMeta):
     restore_files: bool = True
     directory: str | None = None

@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 
 from backend.config import Settings, get_settings
 from backend.db.sqlite import Store, get_store, now, uid
-from backend.models.schemas import NodeBranchIn, NodeOut, SessionBindIn, SessionBindOut, StageLandIn
+from backend.models.schemas import NodeBranchIn, NodeOut, SessionBindIn, SessionBindOut, SessionResolveOut, StageLandIn
 from backend.services.auth import User, current_user
 from backend.services.medhorizon import medhorizon_branch, navigate_payload, resolve_directory, stage_meta
 from backend.services.provenance import not_found, record_event, with_idempotency
@@ -172,6 +172,28 @@ def get_bind(session_id: str, user: User = Depends(current_user), store: Store =
         "directory": bound.get("directory"),
         "created_at": bound["created_at"],
         "updated_at": bound["updated_at"],
+    }
+
+
+@router.get("/api/sessions/resolve", response_model=SessionResolveOut, response_model_exclude_none=True)
+def resolve_session(session_id: str, user: User = Depends(current_user), store: Store = Depends(store_dep)):
+    bound = _binding(store, user, session_id)
+    if not bound:
+        return {"status": "not_bound"}
+    graph = store.get("graphs", bound["graph_id"], user.id)
+    if not graph:
+        raise HTTPException(
+            status_code=409,
+            detail={"code": "binding_integrity", "message": "bound graph no longer exists"},
+        )
+    return {
+        "status": "bound",
+        "graph": {
+            "id": graph["id"],
+            "title": graph["title"],
+            "updated_at": graph["updated_at"],
+        },
+        "binding_updated_at": bound["updated_at"],
     }
 
 

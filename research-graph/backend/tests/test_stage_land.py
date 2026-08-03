@@ -79,6 +79,46 @@ def test_bind_session_and_land_on_bound_graph(client):
     assert node["kind"] == "conclusion"
 
 
+def test_resolve_session_returns_graph_summary_without_binding_timestamp(client):
+    graph = client.post("/api/graphs", json={"title": "Resolved graph", "reason": "test"}).json()
+    bound = client.post(
+        "/api/sessions/bind",
+        json={"session_id": "sess-resolve", "graph_id": graph["id"], "reason": "test"},
+    )
+    assert bound.status_code == 200
+
+    resolved = client.get("/api/sessions/resolve?session_id=sess-resolve")
+
+    assert resolved.status_code == 200
+    body = resolved.json()
+    assert body["status"] == "bound"
+    assert body["graph"] == {
+        "id": graph["id"],
+        "title": "Resolved graph",
+        "updated_at": graph["updated_at"],
+    }
+    assert body["binding_updated_at"] == bound.json()["updated_at"]
+
+
+def test_resolve_session_reports_not_bound_without_listing_graphs(client):
+    resolved = client.get("/api/sessions/resolve?session_id=sess-empty")
+
+    assert resolved.status_code == 200
+    assert resolved.json() == {"status": "not_bound"}
+
+
+def test_resolve_session_rejects_stale_binding_as_integrity_error(client):
+    graph = client.post("/api/graphs", json={"title": "Deleted graph", "reason": "test"}).json()
+    client.post("/api/sessions/bind", json={"session_id": "sess-stale", "graph_id": graph["id"]})
+    deleted = client.delete(f"/api/graphs/{graph['id']}")
+    assert deleted.status_code == 200
+
+    resolved = client.get("/api/sessions/resolve?session_id=sess-stale")
+
+    assert resolved.status_code == 409
+    assert resolved.json()["detail"]["code"] == "binding_integrity"
+
+
 def test_stage_sequence_edge(client):
     a = client.post(
         "/api/stages/land",
