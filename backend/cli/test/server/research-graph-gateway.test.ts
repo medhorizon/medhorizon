@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, test } from "bun:test"
 import { ResearchGraphControlRoutes, ResearchGraphProxyRoutes } from "../../src/server/routes/research-graph"
 import type { CurrentEndpoint } from "../../src/sidecar/research-graph"
+import { Server } from "../../src/server/server"
 
 const servers: Array<ReturnType<typeof Bun.serve>> = []
 
@@ -31,6 +32,19 @@ describe("research graph gateway proxy", () => {
 
     expect(response.status).toBe(503)
     expect(await response.json()).toEqual({ status: "unavailable" })
+  })
+
+  test("does not add CORS headers on same-origin gateway namespaces", async () => {
+    const server = Server.listen({ port: 0, cors: ["https://workspace.example"] })
+    servers.push(server)
+
+    const response = await fetch(new URL("/research-graph/health", server.url), {
+      headers: { Origin: "https://workspace.example" },
+    })
+
+    expect(response.status).toBe(503)
+    expect(response.headers.get("access-control-allow-origin")).toBeNull()
+    expect(response.headers.get("access-control-allow-credentials")).toBeNull()
   })
 
   test("forwards safe request data, injects the live capability, and rewrites sidecar redirects", async () => {

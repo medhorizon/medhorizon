@@ -64,6 +64,7 @@ async function boundedCleanup(label: string, cleanup: () => void | Promise<void>
 const appDir = process.cwd()
 const repoDir = path.resolve(appDir, "../..")
 const openscienceDir = path.join(repoDir, "backend", "cli")
+const researchGraphFixture = path.join(openscienceDir, "test", "fixture", "rg-sidecar-fixture.ts")
 
 const extraArgs = forwardedPlaywrightArgs(process.argv.slice(2))
 
@@ -88,6 +89,10 @@ const serverEnv = {
   ...process.env,
   OPENSCIENCE_DISABLE_SHARE: "true",
   OPENSCIENCE_DISABLE_LSP_DOWNLOAD: "true",
+  // Keep the isolated browser harness offline and deterministic. The provider
+  // fixture below supplies the only model it needs; refreshing models.dev can
+  // otherwise hold the first project bootstrap until the network timeout.
+  OPENSCIENCE_DISABLE_MODELS_FETCH: "true",
   OPENSCIENCE_DISABLE_DEFAULT_PLUGINS: "true",
   OPENSCIENCE_DISABLE_PROJECT_CONFIG: "true",
   OPENSCIENCE_EXPERIMENTAL_DISABLE_FILEWATCHER: "true",
@@ -112,7 +117,12 @@ const serverEnv = {
   OPENSCIENCE_CLIENT: "app",
   OPENSCIENCE_SERVER_USERNAME: e2eServerUsername,
   OPENSCIENCE_SERVER_PASSWORD: e2eServerPassword,
+  RESEARCH_GRAPH_BIN: researchGraphFixture,
+  FIXTURE_MODE: "e2e",
 } satisfies Record<string, string>
+
+delete serverEnv.RESEARCH_GRAPH_API
+delete serverEnv.RESEARCH_GRAPH_TOKEN
 
 // The isolated browser harness must never inherit real provider credentials
 // from the developer or CI host. Besides leaking state into model lists, an
@@ -153,17 +163,19 @@ for (const key of providerCredentialEnvKeys) {
 
 const runnerEnv = {
   ...serverEnv,
+  BUN_EXEC_PATH: process.execPath,
   [E2E_MODE_ENV]: "isolated",
   PLAYWRIGHT_SERVER_HOST: "127.0.0.1",
   PLAYWRIGHT_SERVER_PORT: String(serverPort),
   VITE_OPENSCIENCE_SERVER_HOST: "127.0.0.1",
-  VITE_OPENSCIENCE_SERVER_PORT: String(serverPort),
+  VITE_OPENSCIENCE_SERVER_PORT: String(webPort),
+  VITE_OPENSCIENCE_PROXY_TARGET: `http://127.0.0.1:${serverPort}`,
   VITE_OPENSCIENCE_SERVER_USERNAME: e2eServerUsername,
   VITE_OPENSCIENCE_SERVER_PASSWORD: e2eServerPassword,
   PLAYWRIGHT_PORT: String(webPort),
 } satisfies Record<string, string>
 
-const seed = Bun.spawn(["bun", "script/seed-e2e.ts"], {
+const seed = Bun.spawn([process.execPath, "script/seed-e2e.ts"], {
   cwd: openscienceDir,
   env: serverEnv,
   stdout: "inherit",
@@ -193,6 +205,7 @@ await log.Log.init({
   level: "WARN",
 })
 
+const sidecar = await import("../../../backend/cli/src/sidecar/research-graph")
 const servermod = await import("../../../backend/cli/src/server/server")
 const inst = await import("../../../backend/cli/src/project/instance")
 const server = servermod.Server.listen({ port: serverPort, hostname: "127.0.0.1" })
@@ -209,7 +222,8 @@ const envLocalBefore = await fs.readFile(envLocalPath).catch((error) => {
 })
 const envLocalBody = [
   `VITE_OPENSCIENCE_SERVER_HOST=127.0.0.1`,
-  `VITE_OPENSCIENCE_SERVER_PORT=${serverPort}`,
+  `VITE_OPENSCIENCE_SERVER_PORT=${webPort}`,
+  `VITE_OPENSCIENCE_PROXY_TARGET=http://127.0.0.1:${serverPort}`,
   `VITE_OPENSCIENCE_SERVER_USERNAME=${e2eServerUsername}`,
   `VITE_OPENSCIENCE_SERVER_PASSWORD=${e2eServerPassword}`,
   "",
@@ -218,6 +232,9 @@ await fs.writeFile(envLocalPath, envLocalBody)
 
 const result = await (async () => {
   try {
+    const started = await sidecar.startResearchGraphSidecar()
+    if (!started.ok) return { error: new Error(`Research Graph fixture failed to start: ${started.diagnostic.code}`) }
+
     const healthAuth = `Basic ${Buffer.from(`${e2eServerUsername}:${e2eServerPassword}`).toString("base64")}`
     await waitForHealth(`http://127.0.0.1:${serverPort}/global/health`, healthAuth)
 
@@ -233,6 +250,7 @@ const result = await (async () => {
     return { error }
   } finally {
     fakeModelServer.stop(true)
+    await boundedCleanup("research graph sidecar", () => sidecar.stopResearchGraphSidecar(), 10_000, true)
     await boundedCleanup("backend server", () => server.stop(true), 5_000)
     await boundedCleanup("project instances", () => inst.Instance.disposeAll())
     await Promise.all([

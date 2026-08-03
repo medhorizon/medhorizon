@@ -103,7 +103,7 @@ function controlFailure(c: Context, code: ControlFailure, status: ContentfulStat
 }
 
 function path(c: Context): string | null {
-  const raw = c.req.path
+  const raw = c.req.path.startsWith(PREFIX) ? c.req.path.slice(PREFIX.length) || "/" : c.req.path
   let decoded: string
   try {
     decoded = decodeURIComponent(raw)

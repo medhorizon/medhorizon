@@ -121,6 +121,10 @@ import type {
   QuestionRejectResponses,
   QuestionReplyErrors,
   QuestionReplyResponses,
+  ResearchGraphSessionBindErrors,
+  ResearchGraphSessionBindResponses,
+  ResearchGraphSessionResolveErrors,
+  ResearchGraphSessionResolveResponses,
   SessionAbortErrors,
   SessionAbortResponses,
   SessionArtifactContentErrors,
@@ -1375,6 +1379,83 @@ export class Auth extends HeyApiClient {
   }
 }
 
+export class Session extends HeyApiClient {
+  /**
+   * Resolve a session's Research Graph binding
+   *
+   * Return the authoritative graph binding for a session without title matching or graph scans.
+   */
+  public resolve<ThrowOnError extends boolean = false>(
+    parameters: {
+      sessionId: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams([parameters], [{ args: [{ in: "query", key: "sessionId" }] }])
+    return (options?.client ?? this.client).get<
+      ResearchGraphSessionResolveResponses,
+      ResearchGraphSessionResolveErrors,
+      ThrowOnError
+    >({
+      url: "/api/research-graph/resolve",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Bind a session to a Research Graph
+   *
+   * Create or update the authoritative session-to-graph binding.
+   */
+  public bind<ThrowOnError extends boolean = false>(
+    parameters?: {
+      sessionId?: string
+      graphId?: string
+      directory?: string | null
+      messageId?: string
+      reason?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "body", key: "sessionId" },
+            { in: "body", key: "graphId" },
+            { in: "body", key: "directory" },
+            { in: "body", key: "messageId" },
+            { in: "body", key: "reason" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<
+      ResearchGraphSessionBindResponses,
+      ResearchGraphSessionBindErrors,
+      ThrowOnError
+    >({
+      url: "/api/research-graph/bind",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+}
+
+export class ResearchGraph extends HeyApiClient {
+  private _session?: Session
+  get session(): Session {
+    return (this._session ??= new Session({ client: this.client }))
+  }
+}
+
 export class Project extends HeyApiClient {
   /**
    * List all projects
@@ -2059,7 +2140,7 @@ export class Artifact extends HeyApiClient {
   }
 }
 
-export class Session extends HeyApiClient {
+export class Session2 extends HeyApiClient {
   /**
    * List sessions
    *
@@ -4407,6 +4488,11 @@ export class OpenScienceClient extends HeyApiClient {
     return (this._auth ??= new Auth({ client: this.client }))
   }
 
+  private _researchGraph?: ResearchGraph
+  get researchGraph(): ResearchGraph {
+    return (this._researchGraph ??= new ResearchGraph({ client: this.client }))
+  }
+
   private _project?: Project
   get project(): Project {
     return (this._project ??= new Project({ client: this.client }))
@@ -4437,9 +4523,9 @@ export class OpenScienceClient extends HeyApiClient {
     return (this._experimental ??= new Experimental({ client: this.client }))
   }
 
-  private _session?: Session
-  get session(): Session {
-    return (this._session ??= new Session({ client: this.client }))
+  private _session?: Session2
+  get session(): Session2 {
+    return (this._session ??= new Session2({ client: this.client }))
   }
 
   private _part?: Part

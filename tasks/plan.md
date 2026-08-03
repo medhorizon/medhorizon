@@ -55,7 +55,7 @@
 | 01  | [TaskResult 契约](plans/01-task-result-contract.md)                              | P0     | 00                              | 02、03、05、06                | Done        |
 | 02  | [Agent context 收尾](plans/02-agent-context-closeout.md)                         | P0     | 00、03（仅 RG soak）            | 01、03、05、06、07            | Planned     |
 | 03  | [Research Graph supervisor](plans/03-research-graph-supervisor.md)               | P0     | 00                              | 01、02、05、06                | Done     |
-| 04  | [Research Graph 同源 gateway](plans/04-research-graph-gateway.md)                | P0     | 03                              | 07                            | Planned     |
+| 04  | [Research Graph 同源 gateway](plans/04-research-graph-gateway.md)                | P0     | 03                              | 07                            | Done        |
 | 05  | [UI 反馈通道清理](plans/05-ui-feedback-cleanup.md)                               | P1     | 无                              | 01、02、03、06、07            | Done        |
 | 06  | [Settings Dialog 迁移](plans/06-settings-dialogs.md)                             | P1     | 无                              | 01、02、03、05、07            | Done     |
 | 07  | [异步资源状态统一](plans/07-async-resource-states.md)                            | P1     | 无                              | 01、02、03、05、06            | In progress     |

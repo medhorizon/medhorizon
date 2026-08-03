@@ -59,6 +59,52 @@ function handler(health: string) {
       if (mode === "health-5xx") return new Response("server error", { status: 500 })
       return new Response(health, { headers: { "content-type": "application/json" } })
     }
+    if (mode === "e2e") {
+      if (url.pathname === "/api/sessions/resolve") {
+        if (url.searchParams.get("session_id") === "unbound") return Response.json({ status: "not_bound" })
+        return Response.json({
+          status: "bound",
+          graph: { id: "e2e-graph", title: "E2E Graph", updated_at: "2026-08-03T00:00:00Z" },
+          binding_updated_at: "2026-08-03T00:00:00Z",
+        })
+      }
+      if (url.pathname === "/api/sessions/bind") {
+        const body = (await req.json()) as Record<string, unknown>
+        return Response.json({
+          session_id: body.session_id ?? "e2e-session",
+          graph_id: body.graph_id ?? "e2e-graph",
+          directory: body.directory ?? null,
+          created_at: "2026-08-03T00:00:00Z",
+          updated_at: "2026-08-03T00:00:00Z",
+        })
+      }
+      if (url.pathname.startsWith("/embed/graph/")) {
+        return new Response(
+          `<!doctype html><html><head><title>E2E Graph</title><link rel="stylesheet" href="/research-graph/assets/e2e.css"></head><body><main data-e2e-graph="ready">E2E Graph</main><script type="module" src="/research-graph/assets/e2e.js"></script></body></html>`,
+          { headers: { "content-type": "text/html; charset=utf-8" } },
+        )
+      }
+      if (url.pathname === "/assets/e2e.css") {
+        return new Response("[data-e2e-graph=ready]{color:green}", { headers: { "content-type": "text/css" } })
+      }
+      if (url.pathname === "/assets/e2e.js") {
+        const script = [
+          'const session = new URL(location.href).searchParams.get("session") || "e2e-bound"',
+          'const response = await fetch("/api/research-graph/resolve?sessionId=" + encodeURIComponent(session), { headers: { Accept: "application/json" } })',
+          "const data = await response.json()",
+          'document.body.dataset.e2eStatus = data.status',
+          'document.body.dataset.e2eGraph = data.graph?.id || ""',
+          'document.querySelector("main").textContent = data.status === "bound" ? "E2E Graph" : "No graph bound"',
+          'await import("/research-graph/assets/e2e-chunk.js")',
+        ].join(";")
+        return new Response(script, { headers: { "content-type": "application/javascript" } })
+      }
+      if (url.pathname === "/assets/e2e-chunk.js") {
+        return new Response("document.body.dataset.e2eChunk = 'loaded'", {
+          headers: { "content-type": "application/javascript" },
+        })
+      }
+    }
     if (url.pathname === "/__exit") {
       setTimeout(() => process.exit(0), 10)
       return Response.json({ ok: true })

@@ -146,6 +146,32 @@ export namespace Server {
             timer.stop()
           }
         })
+        // Research Graph is a same-origin browser surface. The global CORS
+        // middleware is still useful for the legacy API, but must not add
+        // Access-Control-* headers to either gateway namespace. Keep this
+        // middleware before cors() so it can strip headers after cors returns.
+        .use(async (c, next) => {
+          const path = c.req.path
+          const researchGraph =
+            path === "/research-graph" ||
+            path.startsWith("/research-graph/") ||
+            path === "/api/research-graph" ||
+            path.startsWith("/api/research-graph/")
+          await next()
+          const response = c.res
+          if (!researchGraph) return response
+          for (const name of [
+            "access-control-allow-credentials",
+            "access-control-allow-headers",
+            "access-control-allow-methods",
+            "access-control-allow-origin",
+            "access-control-expose-headers",
+            "access-control-max-age",
+          ]) {
+            response.headers.delete(name)
+          }
+          return response
+        })
         .use(
           cors({
             // Reuse the same allow-list the request guard enforces, so CORS

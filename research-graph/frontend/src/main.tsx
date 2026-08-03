@@ -13,7 +13,7 @@ import "./styles/app.css"
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <BrowserRouter>
+    <BrowserRouter basename={import.meta.env.BASE_URL.replace(/\/$/, "") || undefined}>
       <Routes>
         <Route path="embed/card" element={<EmbedCard />} />
         {/* Chromeless graph canvas for MedHorizon right-pane iframe */}

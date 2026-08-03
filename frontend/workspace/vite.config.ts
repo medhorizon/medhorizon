@@ -10,8 +10,14 @@ export function workspaceManualChunks(id: string): string | undefined {
   }
 }
 
-export default defineConfig({
-  plugins: [desktopPlugin] as any,
+export default defineConfig(() => {
+  const backend =
+    process.env.VITE_OPENSCIENCE_PROXY_TARGET?.trim() ||
+    process.env.VITE_OPENSCIENCE_SERVER?.trim() ||
+    `http://${process.env.VITE_OPENSCIENCE_SERVER_HOST ?? "127.0.0.1"}:${process.env.VITE_OPENSCIENCE_SERVER_PORT ?? "4096"}`
+
+  return {
+    plugins: [desktopPlugin] as any,
   // @pierre/diffs and the workspace both depend on Shiki. Resolve them to one
   // runtime so Vite emits each language/theme chunk once instead of twice.
   resolve: {
@@ -24,12 +30,43 @@ export default defineConfig({
   optimizeDeps: {
     include: ["@rdkit/rdkit"],
   },
-  server: {
-    host: "0.0.0.0",
-    allowedHosts: true,
-    port: 3000,
-  },
-  build: {
+    server: {
+      host: "0.0.0.0",
+      allowedHosts: true,
+      port: 3000,
+      // The production workspace is served by Hono, so relative Research
+      // Graph paths are already same-origin. During Vite development proxy
+      // those paths to the in-process backend explicitly.
+      proxy: {
+        "/research-graph": { target: backend, changeOrigin: true },
+        "/api/research-graph": { target: backend, changeOrigin: true },
+        "/global": { target: backend, changeOrigin: true },
+        "/account": { target: backend, changeOrigin: true },
+        "/auth": { target: backend, changeOrigin: true },
+        "/settings": { target: backend, changeOrigin: true },
+        "/api": { target: backend, changeOrigin: true },
+        "/project": { target: backend, changeOrigin: true },
+        "/session": { target: backend, changeOrigin: true },
+        "/pty": { target: backend, changeOrigin: true },
+        "/config": { target: backend, changeOrigin: true },
+        "/experimental": { target: backend, changeOrigin: true },
+        "/provider": { target: backend, changeOrigin: true },
+        "/agent": { target: backend, changeOrigin: true },
+        "/command": { target: backend, changeOrigin: true },
+        "/skill": { target: backend, changeOrigin: true },
+        "/lsp": { target: backend, changeOrigin: true },
+        "/formatter": { target: backend, changeOrigin: true },
+        "/vcs": { target: backend, changeOrigin: true },
+        "/log": { target: backend, changeOrigin: true },
+        "/instance": { target: backend, changeOrigin: true },
+        "/permission": { target: backend, changeOrigin: true },
+        "/question": { target: backend, changeOrigin: true },
+        "/mcp": { target: backend, changeOrigin: true },
+        "/path": { target: backend, changeOrigin: true },
+        "/event": { target: backend, changeOrigin: true },
+      },
+    },
+    build: {
     target: "esnext",
     rollupOptions: {
       output: {
@@ -52,5 +89,6 @@ export default defineConfig({
       if (/\.(aac|mp3|wav|ogg|m4a)$/.test(filePath)) return false
       return undefined
     },
-  },
+    },
+  }
 })

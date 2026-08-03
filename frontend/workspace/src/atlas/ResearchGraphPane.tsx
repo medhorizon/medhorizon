@@ -2,241 +2,90 @@ import { createEffect, createSignal, onCleanup, Show, type JSX } from "solid-js"
 import { useParams } from "@solidjs/router"
 import { FONT_MONO, FONT_SANS } from "@/styles/tokens"
 import { IconNetwork } from "@/atlas/shared/Icon"
-import { useSync } from "@/context/sync"
+import { useSDK } from "@/context/sdk"
 
-const API_DEFAULT = "http://127.0.0.1:8000"
-const UI_CANDIDATES = ["http://127.0.0.1:5173", "http://127.0.0.1:8000"] as const
-const TOKEN = "local-dev"
+type State = "loading" | "ready" | "not_bound" | "unavailable" | "error"
 
-function origin(env?: string, fallback = API_DEFAULT) {
-  const raw = (env || "").trim().replace(/\/+$/, "")
-  return raw || fallback
-}
-
-function apiBase() {
-  return origin(import.meta.env.VITE_RESEARCH_GRAPH_API, API_DEFAULT)
-}
-
-/** True when the URL serves the SPA (HTML), not a bare FastAPI JSON 404. */
-async function isSpaOrigin(base: string) {
-  const ctrl = new AbortController()
-  const timer = setTimeout(() => ctrl.abort(), 2500)
-  try {
-    const res = await fetch(`${base}/embed/graph/_probe`, {
-      method: "GET",
-      signal: ctrl.signal,
-      headers: { Accept: "text/html" },
-    })
-    const type = res.headers.get("content-type") || ""
-    if (type.includes("text/html")) return true
-    const text = await res.text()
-    if (text.trimStart().startsWith("<!") || text.includes("<html")) return true
-    // API-only :8000 returns {"detail":"Not Found"} with application/json
-    if (text.includes('"detail"') && text.includes("Not Found")) return false
-    return false
-  } catch {
-    return false
-  } finally {
-    clearTimeout(timer)
+function errorValue(error: unknown): { status?: string; code?: string; message?: string } {
+  if (typeof error !== "object" || error === null) return {}
+  const value = error as { status?: unknown; code?: unknown; message?: unknown }
+  return {
+    status: typeof value.status === "string" ? value.status : undefined,
+    code: typeof value.code === "string" ? value.code : undefined,
+    message: typeof value.message === "string" ? value.message : undefined,
   }
 }
 
-async function resolveUiBase() {
-  const forced = import.meta.env.VITE_RESEARCH_GRAPH_UI?.trim()
-  if (forced) {
-    const base = origin(forced)
-    if (await isSpaOrigin(base)) return base
-    throw new Error(
-      `VITE_RESEARCH_GRAPH_UI=${base} is not serving the Research Graph SPA. ` +
-        `Start Vite on :5173 or rebuild the sidecar UI.`,
-    )
-  }
-  for (const candidate of UI_CANDIDATES) {
-    if (await isSpaOrigin(candidate)) return candidate
-  }
-  throw new Error(
-    "Research Graph UI not found. Start Vite: cd research-graph/frontend && bun run dev -- --port 5173 " +
-      "(API alone on :8000 has no /embed/graph page).",
-  )
-}
-
-async function rgFetch<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${apiBase()}${path}`, {
-    ...init,
-    headers: {
-      Accept: "application/json",
-      Authorization: `Bearer ${TOKEN}`,
-      ...(init?.body ? { "Content-Type": "application/json" } : {}),
-      ...(init?.headers ?? {}),
-    },
-  })
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({ detail: res.statusText }))
-    const detail =
-      typeof body?.detail === "string" ? body.detail : JSON.stringify(body?.detail ?? body)
-    throw new Error(`${res.status} ${detail}`)
-  }
-  return res.json() as Promise<T>
-}
-
-type GraphRow = { id: string; title?: string; archived?: boolean; updated_at?: string }
-type StageRow = { graph_id: string }
-
-function normalizeTitle(value: string) {
+function embed(value: unknown): string | undefined {
+  if (typeof value !== "string" || !value.startsWith("/research-graph/embed/")) return
+  if (value.includes("\\") || value.includes("://") || value.includes("\u0000")) return
   return value
-    .toLowerCase()
-    .replace(/[_-]+/g, " ")
-    .replace(/[^\p{L}\p{N}\s]+/gu, " ")
-    .replace(/\s+/g, " ")
-    .trim()
 }
 
-/** Match session title → graph title (e.g. "HCC overview…" → HCC_Research). */
-function matchGraphByTitle(graphs: GraphRow[], sessionTitle: string) {
-  const session = normalizeTitle(sessionTitle)
-  if (!session) return
-
-  const ranked = graphs
-    .map((graph) => {
-      const title = normalizeTitle(graph.title ?? "")
-      if (!title) return { graph, score: 0 }
-      const base = title.replace(/\bresearch\b/g, " ").replace(/\s+/g, " ").trim()
-      if (session.includes(title) || title.includes(session)) return { graph, score: 100 }
-      if (base && (session.includes(base) || base.split(" ").every((t) => t.length < 3 || session.includes(t)))) {
-        return { graph, score: 80 }
-      }
-      const tokens = title
-        .split(" ")
-        .filter((t) => t.length >= 3 && t !== "research" && t !== "new" && t !== "graph")
-      const hits = tokens.filter((t) => session.includes(t)).length
-      return { graph, score: hits * 25 }
-    })
-    .filter((row) => row.score > 0)
-    .sort((a, b) => b.score - a.score || String(b.graph.updated_at ?? "").localeCompare(String(a.graph.updated_at ?? "")))
-
-  return ranked[0]?.graph
-}
-
-async function pinBind(sessionID: string, graphId: string) {
-  try {
-    await rgFetch("/api/sessions/bind", {
-      method: "POST",
-      body: JSON.stringify({
-        session_id: sessionID,
-        graph_id: graphId,
-        reason: "sidebar-resolve",
-      }),
-    })
-  } catch {
-    // best-effort; iframe can still load the resolved id
+function failure(error: unknown): { state: Exclude<State, "loading" | "ready" | "not_bound">; message: string } {
+  const value = errorValue(error)
+  const unavailable = value.status === "unavailable" || value.status === "timeout" || value.code === "research_graph_unavailable"
+  if (unavailable) {
+    return { state: "unavailable", message: "Research Graph is unavailable. Retry when the sidecar is ready." }
   }
-}
-
-async function resolveGraphId(sessionID: string | undefined, sessionTitle?: string): Promise<string | undefined> {
-  if (sessionID) {
-    try {
-      const bound = await rgFetch<{ graph_id: string }>(
-        `/api/sessions/bind?session_id=${encodeURIComponent(sessionID)}`,
-      )
-      if (bound.graph_id) return bound.graph_id
-    } catch {
-      // no binding — try stage landings / title / latest
-    }
-
-    try {
-      const stages = await rgFetch<StageRow[]>(
-        `/api/stages/by-session?session_id=${encodeURIComponent(sessionID)}`,
-      )
-      const fromStage = stages.find((row) => row.graph_id)?.graph_id
-      if (fromStage) {
-        void pinBind(sessionID, fromStage)
-        return fromStage
-      }
-    } catch {
-      // no stage landings for this session
-    }
+  if (value.status === "rejected" || value.status === "incompatible" || value.status === "integrity") {
+    return { state: "error", message: `Research Graph ${value.status}.` }
   }
-
-  const graphs = await rgFetch<GraphRow[]>("/api/graphs")
-  const active = graphs.filter((g) => !g.archived)
-  const list = active.length ? active : graphs
-
-  if (sessionTitle) {
-    const hit = matchGraphByTitle(list, sessionTitle)
-    if (hit?.id) {
-      if (sessionID) void pinBind(sessionID, hit.id)
-      return hit.id
-    }
-  }
-
-  // Latest first; skip empty stubs only when a newer empty graph shadows an older board with nodes.
-  list.sort((a, b) => String(b.updated_at ?? "").localeCompare(String(a.updated_at ?? "")))
-  const scored = await Promise.all(
-    list.map(async (graph) => {
-      try {
-        const tree = await rgFetch<{ nodes: unknown[] }>(`/api/graphs/${encodeURIComponent(graph.id)}/tree`)
-        return { graph, nodes: tree.nodes?.length ?? 0 }
-      } catch {
-        return { graph, nodes: 0 }
-      }
-    }),
-  )
-  const newest = scored[0]
-  const populated = scored.find((row) => row.nodes > 0)
-  const pick = newest?.nodes ? newest.graph : (populated?.graph ?? newest?.graph)
-  if (pick?.id && sessionID && populated && pick.id === populated.graph.id) void pinBind(sessionID, pick.id)
-  return pick?.id
+  return { state: "error", message: value.message || "Could not resolve this session's Research Graph." }
 }
 
 export function ResearchGraphPane(): JSX.Element {
   const params = useParams()
-  const sync = useSync()
-  const [status, setStatus] = createSignal<"loading" | "ready" | "empty" | "down">("loading")
+  const sdk = useSDK()
+  const [status, setStatus] = createSignal<State>("loading")
   const [message, setMessage] = createSignal("")
-  const [graphId, setGraphId] = createSignal<string>()
-  const [ui, setUi] = createSignal(API_DEFAULT)
+  const [path, setPath] = createSignal<string>()
   const [tick, setTick] = createSignal(0)
 
-  const reload = () => setTick((n) => n + 1)
+  const reload = () => setTick((value) => value + 1)
 
   createEffect(() => {
     const sessionID = params.id
-    const sessionTitle = sessionID ? sync.session.get(sessionID)?.title : undefined
     tick()
-    let cancelled = false
+    const lifecycle = { cancelled: false }
     setStatus("loading")
     setMessage("")
-    setGraphId(undefined)
+    setPath(undefined)
+
+    if (!sessionID || sessionID === "new") {
+      setStatus("not_bound")
+      setMessage("Select a session to resolve its Research Graph binding.")
+      return
+    }
 
     void (async () => {
       try {
-        await rgFetch<{ status: string }>("/health")
-        if (cancelled) return
-        const spa = await resolveUiBase()
-        if (cancelled) return
-        setUi(spa)
-        const id = await resolveGraphId(sessionID, sessionTitle)
-        if (cancelled) return
-        if (!id) {
-          setStatus("empty")
-          setMessage("No Research Graph yet. Create one in Research Graph UI or bind this session via atlas_stage.")
+        const result = await sdk.client.researchGraph.session.resolve({ sessionId: sessionID })
+        if (lifecycle.cancelled) return
+        const data = result.data
+        if (!data || data.status === "not_bound") {
+          setStatus("not_bound")
+          setMessage("This session is not bound to a Research Graph.")
           return
         }
-        setGraphId(id)
+        const next = embed(data.embedPath)
+        if (!next) {
+          setStatus("error")
+          setMessage("Research Graph returned an invalid embed path.")
+          return
+        }
+        setPath(next)
         setStatus("ready")
-      } catch (err) {
-        if (cancelled) return
-        setStatus("down")
-        setMessage(
-          err instanceof Error
-            ? err.message
-            : "Research Graph unavailable. Start API :8000 and Vite UI :5173.",
-        )
+      } catch (error) {
+        if (lifecycle.cancelled) return
+        const result = failure(error)
+        setStatus(result.state)
+        setMessage(result.message)
       }
     })()
 
     onCleanup(() => {
-      cancelled = true
+      lifecycle.cancelled = true
     })
   })
 
@@ -251,11 +100,11 @@ export function ResearchGraphPane(): JSX.Element {
         background: "var(--color-bg)",
       }}
     >
-      <Show when={status() === "ready" && graphId()} keyed>
-        {(id) => (
+      <Show when={status() === "ready" && path()} keyed>
+        {(src) => (
           <iframe
             title="Research Graph"
-            src={`${ui()}/embed/graph/${encodeURIComponent(id)}`}
+            src={src}
             style={{
               flex: 1,
               width: "100%",
@@ -272,6 +121,7 @@ export function ResearchGraphPane(): JSX.Element {
 
       <Show when={status() !== "ready"}>
         <div
+          aria-live="polite"
           style={{
             flex: 1,
             display: "grid",
@@ -284,8 +134,9 @@ export function ResearchGraphPane(): JSX.Element {
           <IconNetwork size={28} strokeWidth={1.25} />
           <div style={{ "font-family": FONT_SANS, "font-size": "13px", color: "var(--color-text)" }}>
             {status() === "loading" && "Connecting to Research Graph…"}
-            {status() === "down" && "research graph is unavailable"}
-            {status() === "empty" && "no graph"}
+            {status() === "unavailable" && "research graph is unavailable"}
+            {status() === "error" && "could not open research graph"}
+            {status() === "not_bound" && "no graph bound"}
           </div>
           <Show when={message()}>
             <p
@@ -301,7 +152,7 @@ export function ResearchGraphPane(): JSX.Element {
               {message()}
             </p>
           </Show>
-          <Show when={status() === "down" || status() === "empty"}>
+          <Show when={status() !== "loading"}>
             <button type="button" onClick={reload} style={retryBtn()}>
               retry
             </button>

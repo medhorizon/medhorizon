@@ -1,12 +1,12 @@
-const BASE = import.meta.env.VITE_API_URL ?? ""
-const TOKEN = localStorage.getItem("rg_token") || "local-dev"
+const BASE = (import.meta.env.VITE_RESEARCH_GRAPH_API ?? import.meta.env.BASE_URL.replace(/\/$/, "")).replace(/\/$/, "")
+const TOKEN = import.meta.env.VITE_RESEARCH_GRAPH_TOKEN?.trim()
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
     ...init,
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${TOKEN}`,
+      ...(TOKEN ? { Authorization: `Bearer ${TOKEN}` } : {}),
       ...(init?.headers ?? {}),
     },
   })

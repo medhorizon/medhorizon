@@ -3792,6 +3792,149 @@ export type AuthSetResponses = {
 
 export type AuthSetResponse = AuthSetResponses[keyof AuthSetResponses]
 
+export type ResearchGraphSessionResolveData = {
+  body?: never
+  path?: never
+  query: {
+    sessionId: string
+  }
+  url: "/api/research-graph/resolve"
+}
+
+export type ResearchGraphSessionResolveErrors = {
+  /**
+   * Invalid session id
+   */
+  400: {
+    status: string
+    code?: string
+    message?: string
+  }
+  /**
+   * Binding integrity failure
+   */
+  409: {
+    status: string
+    code?: string
+    message?: string
+  }
+  /**
+   * Research Graph rejected or failed
+   */
+  502: {
+    status: string
+    code?: string
+    message?: string
+  }
+  /**
+   * Research Graph unavailable
+   */
+  503: {
+    status: string
+    code?: string
+    message?: string
+  }
+  /**
+   * Research Graph timed out
+   */
+  504: {
+    status: string
+    code?: string
+    message?: string
+  }
+}
+
+export type ResearchGraphSessionResolveError =
+  ResearchGraphSessionResolveErrors[keyof ResearchGraphSessionResolveErrors]
+
+export type ResearchGraphSessionResolveResponses = {
+  /**
+   * Resolved binding
+   */
+  200:
+    | {
+        status: "bound"
+        graph: {
+          id: string
+          title: string
+          updatedAt: string
+        }
+        embedPath: string
+      }
+    | {
+        status: "not_bound"
+      }
+}
+
+export type ResearchGraphSessionResolveResponse =
+  ResearchGraphSessionResolveResponses[keyof ResearchGraphSessionResolveResponses]
+
+export type ResearchGraphSessionBindData = {
+  body?: {
+    sessionId: string
+    graphId: string
+    directory?: string | null
+    messageId?: string
+    reason?: string
+  }
+  path?: never
+  query?: never
+  url: "/api/research-graph/bind"
+}
+
+export type ResearchGraphSessionBindErrors = {
+  /**
+   * Invalid binding
+   */
+  400: {
+    status: string
+    code?: string
+    message?: string
+  }
+  /**
+   * Research Graph rejected or failed
+   */
+  502: {
+    status: string
+    code?: string
+    message?: string
+  }
+  /**
+   * Research Graph unavailable
+   */
+  503: {
+    status: string
+    code?: string
+    message?: string
+  }
+  /**
+   * Research Graph timed out
+   */
+  504: {
+    status: string
+    code?: string
+    message?: string
+  }
+}
+
+export type ResearchGraphSessionBindError = ResearchGraphSessionBindErrors[keyof ResearchGraphSessionBindErrors]
+
+export type ResearchGraphSessionBindResponses = {
+  /**
+   * Binding saved
+   */
+  200: {
+    sessionId: string
+    graphId: string
+    directory: string | null
+    createdAt: string
+    updatedAt: string
+  }
+}
+
+export type ResearchGraphSessionBindResponse =
+  ResearchGraphSessionBindResponses[keyof ResearchGraphSessionBindResponses]
+
 export type ProjectListData = {
   body?: never
   path?: never
