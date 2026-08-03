@@ -3,9 +3,10 @@
 // it reads as a first-class surface. Data + enable/disable + add flows are the
 // same real endpoints the old settings panel used (app.skills / app.skill.write
 // / permission.skill), presented as a browsable, category-shelved library.
-import { For, Show, createMemo, createResource, createSignal, type JSX } from "solid-js"
+import { For, Show, createEffect, createMemo, createResource, createSignal, type JSX } from "solid-js"
 import { Switch } from "@synsci/ui/switch"
 import { Icon } from "@synsci/ui/icon"
+import { AsyncState, type AsyncStateProps } from "@synsci/ui/async-state"
 import { showToast } from "@synsci/ui/toast"
 import { currentDirectory } from "@/utils/base64"
 import { useGlobalSDK } from "@/context/global-sdk"
@@ -60,8 +61,17 @@ export default function SkillsPage(): JSX.Element {
 
   const [skills, skillsCtl] = createResource(async () => {
     const res = await sdk.client.app.skills()
+    if (res.error) throw new Error(message(res.error))
     return (res.data ?? []) as Skill[]
   })
+
+  // The resource accessor re-throws its error once resolved, so snapshot the
+  // last good value here; rows() stays readable for stale content and counts.
+  const [known, setKnown] = createSignal<Skill[] | undefined>(undefined)
+  createEffect(() => {
+    if (!skills.error) setKnown(skills())
+  })
+  const rows = () => known() ?? []
 
   const [search, setSearch] = createSignal("")
   const [category, setCategory] = createSignal("all")
@@ -93,17 +103,16 @@ export default function SkillsPage(): JSX.Element {
     }
   }
 
-  const all = () => skills() ?? []
-  const enabledCount = createMemo(() => all().filter((s) => enabled(s.name)).length)
+  const enabledCount = createMemo(() => rows().filter((s) => enabled(s.name)).length)
 
   const categories = createMemo(() => {
     const counts = new Map<string, number>()
-    for (const s of all()) {
+    for (const s of rows()) {
       const cat = s.category ?? "uncategorized"
       counts.set(cat, (counts.get(cat) ?? 0) + 1)
     }
     return [
-      { id: "all", label: "All", count: all().length },
+      { id: "all", label: "All", count: rows().length },
       ...[...counts.entries()]
         .sort((a, b) => a[0].localeCompare(b[0]))
         .map(([id, count]) => ({ id, label: id, count })),
@@ -113,7 +122,7 @@ export default function SkillsPage(): JSX.Element {
   const filtered = createMemo(() => {
     const q = search().trim().toLowerCase()
     const cat = category()
-    return all()
+    return rows()
       .filter((s) => cat === "all" || (s.category ?? "uncategorized") === cat)
       .filter((s) => !q || s.name.toLowerCase().includes(q) || (s.description ?? "").toLowerCase().includes(q))
       .sort((a, b) => a.name.localeCompare(b.name))
@@ -128,6 +137,35 @@ export default function SkillsPage(): JSX.Element {
       by.get(cat)!.push(s)
     }
     return [...by.entries()].sort((a, b) => a[0].localeCompare(b[0]))
+  })
+
+  // Map the resource onto the kit AsyncState shell. error/loading precedence
+  // follows the derivation rules; rows() keeps stale data visible on refresh
+  // errors, and search/category filtering is a second layer inside ready.
+  const bodyState = createMemo<AsyncStateProps>(() => {
+    const hasData = rows().length > 0
+    const retry = () => void skillsCtl.refetch()
+    const content = <SkillsContent shelves={shelves} enabled={enabled} onToggle={toggle} />
+    if (skills.error) {
+      const errorProps = {
+        state: "error" as const,
+        label: "skills",
+        title: "couldn't load skills",
+        detail: message(skills.error),
+        retryLabel: "retry",
+        retry,
+      }
+      return hasData ? { ...errorProps, children: content } : errorProps
+    }
+    if (skills.loading) {
+      return hasData
+        ? { state: "refreshing" as const, label: "skills", message: "updating skills…", children: content }
+        : { state: "loading" as const, label: "skills", message: "loading skills…" }
+    }
+    if (!hasData) {
+      return { state: "empty" as const, label: "skills", message: "no skills available" }
+    }
+    return { state: "ready" as const, label: "skills", loadedMessage: "skills loaded", children: content }
   })
 
   return (
@@ -198,7 +236,7 @@ export default function SkillsPage(): JSX.Element {
                 <span style={{ color: "var(--color-text)" }}>{enabledCount()}</span> enabled
               </span>
               <span>
-                <span style={{ color: "var(--color-text)" }}>{all().length}</span> total
+                <span style={{ color: "var(--color-text)" }}>{rows().length}</span> total
               </span>
               <span>
                 <span style={{ color: "var(--color-text)" }}>{Math.max(0, categories().length - 1)}</span> categories
@@ -303,54 +341,7 @@ export default function SkillsPage(): JSX.Element {
           </Show>
 
           <Show when={view() === "list"}>
-            <Show when={!skills.loading} fallback={<div style={loadingStyle()}>Loading skills…</div>}>
-              <Show
-                when={filtered().length > 0}
-                fallback={
-                  <div style={{ "padding-top": "36px" }}>
-                    <EmptyState
-                      icon="brain"
-                      title={search() || category() !== "all" ? "No matching skills" : "No skills yet"}
-                      hint="Write one from scratch, upload a SKILL.md, or import from a public GitHub repo."
-                    />
-                  </div>
-                }
-              >
-                <div style={{ display: "flex", "flex-direction": "column", gap: "26px" }}>
-                  <For each={shelves()}>
-                    {([cat, items]) => (
-                      <section style={{ display: "flex", "flex-direction": "column", gap: "11px" }}>
-                        <div style={{ display: "flex", "align-items": "baseline", gap: "8px" }}>
-                          <span class="atlas-section-label">{cat}</span>
-                          <span
-                            style={{ "font-family": FONT_MONO, "font-size": "10px", color: "var(--color-text-faint)" }}
-                          >
-                            {items.length}
-                          </span>
-                        </div>
-                        <div
-                          style={{
-                            display: "grid",
-                            "grid-template-columns": "repeat(auto-fill, minmax(280px, 1fr))",
-                            gap: "10px",
-                          }}
-                        >
-                          <For each={items}>
-                            {(skill) => (
-                              <SkillCard
-                                skill={skill}
-                                on={enabled(skill.name)}
-                                onToggle={(v) => void toggle(skill.name, v)}
-                              />
-                            )}
-                          </For>
-                        </div>
-                      </section>
-                    )}
-                  </For>
-                </div>
-              </Show>
-            </Show>
+            <AsyncState {...bodyState()} />
           </Show>
         </div>
       </div>
@@ -374,6 +365,55 @@ export default function SkillsPage(): JSX.Element {
       setBusy(false)
     }
   }
+}
+
+function SkillsContent(props: {
+  shelves: () => [string, Skill[]][]
+  enabled: (name: string) => boolean
+  onToggle: (name: string, next: boolean) => void
+}): JSX.Element {
+  return (
+    <Show
+      when={props.shelves().length > 0}
+      fallback={
+        <div style={{ "padding-top": "36px" }}>
+          <EmptyState
+            icon="brain"
+            title="No matching skills"
+            hint="Try adjusting your search or category filter."
+          />
+        </div>
+      }
+    >
+      <div style={{ display: "flex", "flex-direction": "column", gap: "26px" }}>
+        <For each={props.shelves()}>
+          {([cat, items]) => (
+            <section style={{ display: "flex", "flex-direction": "column", gap: "11px" }}>
+              <div style={{ display: "flex", "align-items": "baseline", gap: "8px" }}>
+                <span class="atlas-section-label">{cat}</span>
+                <span style={{ "font-family": FONT_MONO, "font-size": "10px", color: "var(--color-text-faint)" }}>
+                  {items.length}
+                </span>
+              </div>
+              <div
+                style={{
+                  display: "grid",
+                  "grid-template-columns": "repeat(auto-fill, minmax(280px, 1fr))",
+                  gap: "10px",
+                }}
+              >
+                <For each={items}>
+                  {(skill) => (
+                    <SkillCard skill={skill} on={props.enabled(skill.name)} onToggle={(v) => props.onToggle(skill.name, v)} />
+                  )}
+                </For>
+              </div>
+            </section>
+          )}
+        </For>
+      </div>
+    </Show>
+  )
 }
 
 function SkillCard(props: { skill: Skill; on: boolean; onToggle: (v: boolean) => void }): JSX.Element {
@@ -542,16 +582,6 @@ function GithubForm(props: { busy: boolean; onCancel: () => void; onInstall: (ur
   )
 }
 
-function loadingStyle(): JSX.CSSProperties {
-  return {
-    padding: "48px 0",
-    "text-align": "center",
-    "font-family": FONT_SANS,
-    "font-size": "13px",
-    color: "var(--color-text-muted)",
-  }
-}
-
 function frontmatterName(content: string): string | undefined {
   const match = content.match(/^---\s*[\r\n]([\s\S]*?)[\r\n]---/)
   if (!match) return undefined
@@ -584,5 +614,12 @@ async function installFromGit(
 }
 
 function message(err: unknown) {
-  return err instanceof Error ? err.message : String(err)
+  if (err instanceof Error) return err.message
+  if (typeof err === "string") return err
+  if (err && typeof err === "object") {
+    const e = err as Record<string, unknown>
+    if (typeof e.message === "string") return e.message
+    if (typeof e.error === "string") return e.error
+  }
+  return String(err)
 }

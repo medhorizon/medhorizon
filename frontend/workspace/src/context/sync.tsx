@@ -104,6 +104,9 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
         if (match.found) return globalSync.data.project[match.index]
         return undefined
       },
+      skill: {
+        refetch: () => globalSync.skill.refetch(sdk.directory),
+      },
       session: {
         get: getSession,
         addOptimisticMessage(input: {

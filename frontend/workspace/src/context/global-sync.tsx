@@ -24,6 +24,7 @@ import { createStore, produce, reconcile, type SetStoreFunction, type Store } fr
 import { Binary } from "@synsci/util/binary"
 import { retry } from "@synsci/util/retry"
 import { useGlobalSDK } from "./global-sdk"
+import { runSkillLoad } from "./skill-load"
 // InitError used to live in pages/error.tsx (now deleted with the legacy
 // openscience shell). Inline the shape so the openscience context layer keeps
 // compiling — it's dead code under the new AtlasApp entry but is still
@@ -73,6 +74,8 @@ type State = {
   agent: Agent[]
   command: Command[]
   skill: Skill[]
+  skill_status: "loading" | "ready" | "error"
+  skill_error?: string
   project: string
   projectMeta: ProjectMeta | undefined
   icon: string | undefined
@@ -325,6 +328,7 @@ function createGlobalSync() {
   const booting = new Map<string, Promise<void>>()
   const sessionLoads = new Map<string, Promise<void>>()
   const sessionMeta = new Map<string, { limit: number }>()
+  const skillLoads = new Map<string, Promise<void>>()
 
   const sessionRecentWindow = 4 * 60 * 60 * 1000
   const sessionRecentLimit = 50
@@ -429,6 +433,8 @@ function createGlobalSync() {
           agent: [],
           command: [],
           skill: [],
+          skill_status: "loading" as const,
+          skill_error: undefined,
           session: [],
           sessionTotal: 0,
           session_status: {},
@@ -531,6 +537,37 @@ function createGlobalSync() {
     return promise
   }
 
+  // The one skill fetch shared by bootstrap, `skill.updated` events and UI
+  // retry. runSkillLoad applies the loading/ready/error patches; the setter
+  // below just maps each patch onto the per-directory store.
+  async function loadSkills(directory: string) {
+    const pending = skillLoads.get(directory)
+    if (pending) return pending
+    const promise = runSkillLoad<Skill>({
+      set: (patch) => {
+        const [, setStore] = ensureChild(directory)
+        if (patch.skill_status === "loading") {
+          setStore("skill_status", "loading")
+          return
+        }
+        if (patch.skill_status === "error") {
+          setStore("skill_error", patch.skill_error)
+          setStore("skill_status", "error")
+          return
+        }
+        setStore("skill", patch.skill)
+        setStore("skill_error", undefined)
+        setStore("skill_status", "ready")
+      },
+      fetch: () => sdkFor(directory).app.skills(),
+    })
+    skillLoads.set(directory, promise)
+    promise.finally(() => {
+      skillLoads.delete(directory)
+    })
+    return promise
+  }
+
   async function bootstrapInstance(directory: string) {
     if (!directory) return
     const pending = booting.get(directory)
@@ -572,10 +609,7 @@ function createGlobalSync() {
       Promise.all([
         sdk.path.get().then((x) => setStore("path", x.data!)),
         sdk.command.list().then((x) => setStore("command", x.data ?? [])),
-        sdk.app
-          .skills()
-          .then((x) => setStore("skill", x.data ?? []))
-          .catch(() => {}),
+        loadSkills(directory),
         sdk.session.status().then((x) => setStore("session_status", x.data!)),
         loadSessions(directory),
         sdk.mcp.status().then((x) => setStore("mcp", x.data!)),
@@ -975,10 +1009,7 @@ function createGlobalSync() {
         break
       }
       case "skill.updated": {
-        sdkFor(directory)
-          .app.skills()
-          .then((x) => setStore("skill", x.data ?? []))
-          .catch(() => {})
+        void loadSkills(directory)
         break
       }
     }
@@ -1111,6 +1142,9 @@ function createGlobalSync() {
       loadSessions,
       meta: projectMeta,
       icon: projectIcon,
+    },
+    skill: {
+      refetch: (directory: string) => loadSkills(directory),
     },
   }
 }
