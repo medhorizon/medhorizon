@@ -11,6 +11,7 @@ import { isAllowedHost, isAllowedOrigin, isCrossOrigin } from "./host-guard"
 import { timingSafeEqual } from "../util/timing-safe"
 import { FolderResolveRoutes } from "./routes/folder-resolve"
 import { AtlasBridgeRoutes } from "./routes/atlas-bridge"
+import { ResearchGraphProxyRoutes } from "./routes/research-graph"
 import { AtlasDisabled, atlasCloudEnabled } from "../openscience"
 import { RepoRoutes } from "./routes/repo"
 import z from "zod"
@@ -247,6 +248,7 @@ export namespace Server {
           return next()
         })
         .route("/api/atlas", AtlasBridgeRoutes())
+        .route("/research-graph", ResearchGraphProxyRoutes())
         // Repository tab (status/commit/push/remote) — shells out to git.
         .route("/api/repo", RepoRoutes())
         .use(async (c, next) => {
