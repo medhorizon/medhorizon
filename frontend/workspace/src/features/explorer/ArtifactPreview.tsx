@@ -136,7 +136,9 @@ export function ArtifactPreview(props: ArtifactPreviewProps): JSX.Element {
         >
           {props.artifact.summary}
         </span>
-        <Show when={preview()?.truncated}>
+        {/* preview() re-throws when the resource errored (e.g. the artifact is
+            gone after a session switch); guard so a 404 never crashes the app. */}
+        <Show when={!preview.error && preview()?.truncated}>
           <span style={{ "font-family": FONT_MONO, "font-size": "10px", color: "var(--color-text-faint)" }}>
             truncated
           </span>
