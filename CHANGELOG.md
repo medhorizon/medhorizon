@@ -35,6 +35,37 @@ the `Release` workflow. Upstream OpenScience history is retained below.
 - Managed-sidecar readiness no longer accepts "any 2xx on port 8000": identity, protocol,
   and capability mismatches fail closed with distinct diagnostics.
 
+## MedHorizon v0.3.17 — 2026-08-03
+
+### Added
+
+- **Session artifact catalog (plan 16):** RLMArtifacts register/resolve/list baseline frozen;
+  session artifact metadata commits atomically with the `.dat` write as the single visibility
+  commit, backed by paginated list, bounded preview, and download endpoints in the generated SDK.
+- **Local Explorer core shell (plan 16):** a contract-driven `features/explorer` shell with a
+  single Files adapter mounted in `session.tsx`; the host `FileExplorer` tree is unchanged and
+  still browses host files through host endpoints only (zero `/api/atlas`).
+- **Scientific file routing (plan 19):** a single backend `ScienceFile` detector
+  (`family`/`format`/`mode`/`capability`/`readPolicy`) with frozen budgets, a shared canonical
+  path resolver (rejects `..`, symlinks, cross-drive, and directory targets), and bounded
+  inspect/preview/raw endpoints surfaced as `file.inspect`/`file.preview`/`file.raw` in the
+  generated SDK.
+- **Project-file renderer registry (plan 19):** maps `capability × readPolicy` to the existing
+  science renderers through a thin project wrapper that clips bounded content; GenomeTrack is
+  not registered in v1, and empty/invalid input can never mount sample content.
+- **Hardened Dialog context (plan 06):** rebuilt Promise-based dialog helpers on a tightened
+  context contract.
+
+### Changed
+
+- SDK regenerated with the session-artifact catalog and science inspect routes; the generator is
+  now Windows-portable (explicit `bun` invocation, `.prettierignore` excludes the Vite symlink stub).
+
+### Fixed
+
+- The file-explorer E2E request capture no longer aborts page navigation when it hits an
+  unparseable lifecycle URL.
+
 ## MedHorizon v0.3.15 — 2026-08-01
 
 ### Added

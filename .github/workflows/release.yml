@@ -204,24 +204,23 @@ jobs:
         with:
           name: "MedHorizon ${{ github.ref_name }}"
           body: |
-            ## MedHorizon v0.3.16 — 2026-08-03
+            ## MedHorizon v0.3.17 — 2026-08-03
 
             ### Added
 
-            - **Research Graph sidecar supervisor (plan 03):** one supervised child per process with an explicit `idle → starting → ready → stopped` lifecycle, single-flight startup, and restartable state.
-            - **Versioned health/capability contract:** `/health` reports `service` / `version` / `protocol`; managed sidecars require a per-process random (≥256-bit) capability via timing-safe Bearer authentication on `/health` and `/api/*`.
-            - **Dynamic loopback discovery:** the sidecar binds an OS-selected loopback port and emits a single machine-readable discovery record on stdout; fixed `:8000` collisions are gone.
-            - **Classified diagnostics with redaction:** discovery/identity/protocol/auth/health failures map to stable diagnostic codes; the capability is redacted from every log, error, and snapshot.
-            - **Explicit compatibility switches:** `RESEARCH_GRAPH_DISABLE=1`, external `RESEARCH_GRAPH_API` adoption (same strict handshake), and the time-limited `RESEARCH_GRAPH_LEGACY_FIXED_PORT=1` fallback (removal target v0.5.0).
+            - **Session artifact catalog (plan 16):** RLMArtifacts register/resolve/list baseline frozen; session artifact metadata commits atomically with the `.dat` write as the single visibility commit, backed by paginated list, bounded preview, and download endpoints in the generated SDK.
+            - **Local Explorer core shell (plan 16):** contract-driven `features/explorer` shell with a single Files adapter mounted in `session.tsx`; the host `FileExplorer` tree is unchanged and still browses host files through host endpoints only (zero `/api/atlas`).
+            - **Scientific file routing (plan 19):** single backend `ScienceFile` detector (`family`/`format`/`mode`/`capability`/`readPolicy`) with frozen budgets, a shared canonical path resolver (rejects `..`, symlinks, cross-drive, and directory targets), and bounded inspect/preview/raw endpoints surfaced as `file.inspect`/`file.preview`/`file.raw` in the generated SDK.
+            - **Project-file renderer registry (plan 19):** maps `capability × readPolicy` to the existing science renderers through a thin project wrapper that clips bounded content; GenomeTrack is not registered in v1, and empty/invalid input can never mount sample content.
+            - **Hardened Dialog context (plan 06):** rebuilt Promise-based dialog helpers on a tightened context contract.
 
             ### Changed
 
-            - Fixed dev tokens (`local-dev`/`dev`) now require the explicit `RESEARCH_GRAPH_ALLOW_DEV_TOKENS=1` bypass; `APP_ENV` alone no longer grants dev identity.
-            - `serve` / `web` await orderly sidecar shutdown on Windows and POSIX (no orphaned children).
+            - SDK regenerated with the session-artifact catalog and science inspect routes; the generator is now Windows-portable (explicit `bun` invocation, `.prettierignore` excludes the Vite symlink stub).
 
             ### Fixed
 
-            - Managed-sidecar readiness no longer accepts "any 2xx on port 8000": identity, protocol, and capability mismatches fail closed with distinct diagnostics.
+            - The file-explorer E2E request capture no longer aborts page navigation when it hits an unparseable lifecycle URL.
 
             ## 一键安装
 
@@ -245,7 +244,7 @@ jobs:
             设置环境变量 `RESEARCH_GRAPH_DISABLE=1` 可跳过 sidecar 与内置插件。
 
             ---
-            完整说明见 [README](https://github.com/medhorizon/medhorizon#readme) · [CHANGELOG](https://github.com/medhorizon/medhorizon/blob/release/v0.3.16/CHANGELOG.md)
+            完整说明见 [README](https://github.com/medhorizon/medhorizon#readme) · [CHANGELOG](https://github.com/medhorizon/medhorizon/blob/release/v0.3.17/CHANGELOG.md)
           files: |
             artifacts/*
           draft: false
