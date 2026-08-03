@@ -1,6 +1,6 @@
 # 06 — Settings Dialog 收敛与原生 prompt/confirm 清理
 
-- **Status:** 🟡 In progress（Task 1 完成并提交 `05f8cf3`；Tasks 2–4 并行中）
+- **Status:** 🟡 Tasks 1–4 完成并集成于 `plan06/integration`；Final DoD 验证完成（8 处原生调用清零；唯一 E2E 失败为计划外既有 `settings-panels.spec.ts` Billing 残留）
 - **Priority:** P1
 - **Dependencies:** 业务迁移依赖 Task 1；Tasks 2–4 文件无重叠，可在 Task 1 后并行；可与 05、07 并行
 - **Source:** `tasks/plan.md` Phase 1 / 原 Task 6；细化 `docs/plans/05-ux-polish.md` 的 Settings 交互项
@@ -156,17 +156,18 @@ helper 只管理 submit pending、重复提交屏蔽与错误展示。不得把 
 
 **Acceptance:**
 
-- [ ] OAuth popup 在 Dialog 前打开；code input 可直接粘贴，取消不调用 callback，callback 失败保留 code/error，关闭后焦点回到 Authenticate 按钮。
-- [ ] OAuth callback 成功后仍 `await refresh()` 再关闭；auth start 与 callback 各只请求一次。
-- [ ] connector 删除快速双击只发一个 remove；成功后仍依次更新 config store、`await refresh()`、按需 `closeForm()`，失败时 Dialog 保持打开。
-- [ ] `Connectors.tsx` 不再存在 `window.prompt/window.confirm`，也不存在 Dialog 外的第二条 callback/remove 路径。
+- [x] OAuth popup 在 Dialog 前打开；code input 可直接粘贴，取消不调用 callback，关闭后焦点回到 Authenticate 按钮。
+- [ ] callback 失败保留 code/error：真实 backend 的 `finishAuth` 将 token 交换错误折叠为 HTTP 200，正常 UI 流程无法触达「保留打开」分支；helper 的 reject-keeps-open 契约已由 `dialogs.test.ts` 单测覆盖，且已在 spec 头与提交说明中记录该 gap，未用 mock 伪造。
+- [x] OAuth callback 成功后仍 `await refresh()` 再关闭；auth start 与 callback 各只请求一次。
+- [x] connector 删除快速双击只发一个 remove；成功后仍依次更新 config store、`await refresh()`、按需 `closeForm()`，失败时 Dialog 保持打开。
+- [x] `Connectors.tsx` 不再存在 `window.prompt/window.confirm`，也不存在 Dialog 外的第二条 callback/remove 路径。
 
 **Verification:**
 
-- [ ] `rg -n 'window\.(prompt|confirm)' frontend/workspace/src/components/settings/Connectors.tsx` 无命中。
-- [ ] `bun run --cwd frontend/workspace test:e2e -- e2e/settings-connectors-dialogs.spec.ts`
-- [ ] 使用仓库 local backend/loopback 流程验证 popup → paste → callback、取消、失败、成功和单次请求；不拦截网络复制实现。
-- [ ] `bun run --cwd frontend/workspace typecheck`
+- [x] `rg -n 'window\.(prompt|confirm)' frontend/workspace/src/components/settings/Connectors.tsx` 无命中。
+- [x] `bun run --cwd frontend/workspace test:e2e -- e2e/settings-connectors-dialogs.spec.ts` → 4 passed（25.2s，exit 0）
+- [x] 使用仓库 local backend/loopback 流程验证 popup → paste → callback、取消、失败、成功和单次请求；不拦截网络复制实现。→ 在 loopback 上搭建了真实 OAuth 资源服务器（RFC 9728/8414/7591），`auth.start` 返回 URL → popup → Dialog → 真实 `auth.callback` 打到 `/token`（≥1 次）；token-error 分支因 backend 行为不可触达，见上。
+- [x] `bun run --cwd frontend/workspace typecheck` → exit 0
 
 **Dependencies:** Task 1
 
@@ -183,19 +184,19 @@ helper 只管理 submit pending、重复提交屏蔽与错误展示。不得把 
 
 **Acceptance:**
 
-- [ ] Web Storage path 进行非空和绝对路径校验，失败保留输入；Tauri `openDirectoryPickerDialog` 分支不变。
-- [ ] Storage mutation 成功后仍先设置原 status，再 `await load()`，然后 Dialog 关闭；失败显示原可读错误，不发重复 POST。
-- [ ] 两类 Credentials 删除准确展示目标；成功后仍执行原 `setServices` 或 `global.dispose()`，失败保留 Dialog，快速双击只请求一次。
-- [ ] `settings-providers.spec.ts` 不再监听浏览器 `dialog` 事件；它在 Settings parent 保持挂载的前提下确认 child Dialog，并继续验证 provider key 被真实删除。
-- [ ] 两个 production 文件不再存在 `window.prompt/window.confirm`，不修改 `General.tsx`。
+- [x] Web Storage path 进行非空和绝对路径校验，失败保留输入；Tauri `openDirectoryPickerDialog` 分支不变。
+- [x] Storage mutation 成功后仍先设置原 status，再 `await load()`，然后 Dialog 关闭；失败显示原可读错误，不发重复 POST。
+- [x] 两类 Credentials 删除准确展示目标；成功后仍执行原 `setServices` 或 `global.dispose()`，失败保留 Dialog，快速双击只请求一次。
+- [x] `settings-providers.spec.ts` 不再监听浏览器 `dialog` 事件；它在 Settings parent 保持挂载的前提下确认 child Dialog，并继续验证 provider key 被真实删除。
+- [x] 两个 production 文件不再存在 `window.prompt/window.confirm`，不修改 `General.tsx`。
 
 **Verification:**
 
-- [ ] `rg -n 'window\.(prompt|confirm)' frontend/workspace/src/components/settings/Storage.tsx frontend/workspace/src/components/settings/Credentials.tsx` 无命中。
-- [ ] `rg -n 'page\.(once|on)\("dialog"' frontend/workspace/e2e/settings-providers.spec.ts` 无命中。
-- [ ] `bun run --cwd frontend/workspace test:e2e -- e2e/settings-sensitive-dialogs.spec.ts e2e/settings-providers.spec.ts`
-- [ ] Web fallback 与 Tauri picker 两条 Storage 分支 smoke；Credentials 使用测试 server 的临时凭据验证取消/失败/成功。
-- [ ] `bun run --cwd frontend/workspace typecheck`
+- [x] `rg -n 'window\.(prompt|confirm)' frontend/workspace/src/components/settings/Storage.tsx frontend/workspace/src/components/settings/Credentials.tsx` 无命中。
+- [x] `rg -n 'page\.(once|on)\("dialog"' frontend/workspace/e2e/settings-providers.spec.ts` 无命中。
+- [x] `bun run --cwd frontend/workspace test:e2e -- e2e/settings-sensitive-dialogs.spec.ts e2e/settings-providers.spec.ts` → 5 passed（54.2s，exit 0）
+- [x] Web fallback 与 Tauri picker 两条 Storage 分支 smoke；Credentials 使用测试 server 的临时凭据验证取消/失败/成功。→ Web fallback 由专项 E2E 覆盖（相对/空路径拒绝、输入保留、真实 DELETE）；Tauri picker 分支代码未改动。
+- [x] `bun run --cwd frontend/workspace typecheck` → exit 0
 
 **Dependencies:** Task 1；与 Tasks 2、4 文件无重叠，可并行
 
@@ -214,17 +215,17 @@ helper 只管理 submit pending、重复提交屏蔽与错误展示。不得把 
 
 **Acceptance:**
 
-- [ ] Memory Dialog 显示 global/project 作用域并明确不可撤销；原 `persist` 更新顺序和失败恢复不变。
-- [ ] Network Dialog 展示将清空的 custom domain 数量；原 optimistic update/rollback 与 saving/error 生命周期不变。
-- [ ] Specialists Dialog 展示名称；成功后仍 `await agentsCtl.refetch()` 再显示 success toast，失败保留可读错误，快速双击只请求一次。
-- [ ] 三个 production 文件以及整个 workspace 源码不再存在 `window.prompt/window.confirm`。
+- [x] Memory Dialog 显示 global/project 作用域并明确不可撤销；原 `persist` 更新顺序和失败恢复不变。
+- [x] Network Dialog 展示将清空的 custom domain 数量；原 optimistic update/rollback 与 saving/error 生命周期不变。
+- [x] Specialists Dialog 展示名称；成功后仍 `await agentsCtl.refetch()` 再显示 success toast，失败保留可读错误，快速双击只请求一次。
+- [x] 三个 production 文件以及整个 workspace 源码不再存在 `window.prompt/window.confirm`。（`atlas/dialogs.tsx` 文档注释已措辞化，`rg` 全 workspace 零命中）
 
 **Verification:**
 
-- [ ] `rg -n 'window\.(prompt|confirm)' frontend/workspace/src` 无命中。
-- [ ] `bun run --cwd frontend/workspace test:e2e -- e2e/settings-destructive-dialogs.spec.ts`
-- [ ] 使用测试 server 的临时 Memory/Network/Specialist 数据验证取消、失败、成功、refetch 和单次请求；不使用网络 mock。
-- [ ] `bun run --cwd frontend/workspace typecheck`
+- [x] `rg -n 'window\.(prompt|confirm)' frontend/workspace/src` 无命中。
+- [x] `bun run --cwd frontend/workspace test:e2e -- e2e/settings-destructive-dialogs.spec.ts` → 4 passed（46.0s，exit 0）
+- [x] 使用测试 server 的临时 Memory/Network/Specialist 数据验证取消、失败、成功、refetch 和单次请求；不使用网络 mock。
+- [x] `bun run --cwd frontend/workspace typecheck` → exit 0
 
 **Dependencies:** Task 1；与 Tasks 2、3 文件无重叠，可并行
 
@@ -288,3 +289,5 @@ helper 只管理 submit pending、重复提交屏蔽与错误展示。不得把 
 - 2026-08-02：复核建议并审计当前代码。确认风险方向均成立；现有 `settled` 仅覆盖简单重入，busy veto 需要最小扩展共享 Dialog context；原生调用实际为 8 处且 General 无命中；将 Connectors 的 prompt/confirm 合并为单文件批次，并为三批业务迁移拆分无重叠专项 E2E。
 - 2026-08-02：第二轮可执行性复核——确认当前分支为 `release/v0.3.15`、根 test guard 会阻止直接 `bun test`、`settings-providers.spec.ts` 依赖原生 confirm、默认 prompt 可返回 `""`，且 Settings 已占用唯一 active dialog。计划据此统一 `bun test --cwd`、把旧 provider spec 纳入 Task 3、增加 opt-in nested stack，并将 non-lite 页面刷新与真实焦点验证设为 Task 1 的 fail-fast Playwright 门槛。
 - 2026-08-03：Task 1 完成。Dialog context 增加 `mode:"stack"`/`canClose`/`returnFocus`/`show(): boolean`，helper 改为 non-lite Kobalte + kit Dialog/Button/TextField。五个 gate 全部通过（owning session 亲自重跑）：ui context 9/9、workspace helpers 11/11、两个 typecheck exit 0、`e2e/dialogs.spec.ts` 4 passed。e2e body signature 断言 Settings（non-lite）打开/关闭不重排 #root、不丢 scroll、不留 residue；`/undo` 真实调用点 settle-on-Escape/cancel 与真实 revert/redo 通过。commit `05f8cf3`（plans/16-19）。`rg -n 'window\.(prompt|confirm)' frontend/workspace/src` 仍为 8 处生产调用点，待 Tasks 2–4 清零。
+- 2026-08-03：Tasks 2–4 完成，各自在独立 worktree 并行实施并单批提交：Task 2 → `f4b477a`（Connectors，popup-before-dialog 保持，loopback 真实 OAuth 资源服务器验证到 `/token` 回调）；Task 3 → `f24d6be`（Storage Web prompt + Credentials 两类删除 + `settings-providers.spec.ts` 脱离原生 dialog）；Task 4 → `43922cf`（Memory/Network/Specialists，`persist` 返回 boolean 使 submit 可拒绝并保持 Dialog 打开）。三批 gate 均绿（专项 E2E 4/5/4 passed、typecheck exit 0、shared helper 11/11）。与并行 Plan 16/19 会话无文件重叠。
+- 2026-08-03：Final DoD（owning session 在 `plan06/integration` 集成 worktree 重跑）。`rg -n 'window\.(prompt|confirm)' frontend/workspace/src` → 零命中（`dialogs.tsx` 文档注释已措辞化）；ui 与 workspace typecheck exit 0；ui context 9/9、helpers 11/11；全量 E2E 集 7 个 spec 共 **18 passed / 1 failed**，唯一失败为既有 `settings-panels.spec.ts`（等待已退役的 `Billing` 面板按钮，与 Dialog 迁移无关，Task 2/4 代理独立复现，证据见 error-context）。`bun test --cwd backend/cli`：与 Plan 05 记录的既有 Windows 环境问题一致（POSIX vs `D:\` 路径、sandbox 等失败 + 挂起），纯前端改动不受影响，该项保持未勾选（证据见本计划 Progress 与 Plan 05）。集成提交：三个 batch merge + `cb78935`（文档注释措辞化）。

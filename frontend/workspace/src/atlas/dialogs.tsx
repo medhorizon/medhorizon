@@ -15,7 +15,7 @@ const TextField = lazy(() => import("@synsci/ui/text-field").then((m) => ({ defa
 type DialogHandle = ReturnType<typeof useDialog>
 
 /**
- * Promise-based replacements for window.confirm / window.prompt / window.alert
+ * Promise-based replacements for the browser's native blocking dialogs
  * that render inside the app's dialog portal so they match the atlas UI and
  * don't reflow or steal focus the way native dialogs do.
  *

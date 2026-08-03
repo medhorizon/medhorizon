@@ -1,9 +1,11 @@
 import { For, Show, createMemo, createResource, createSignal } from "solid-js"
 import { IconButton } from "@synsci/ui/icon-button"
 import { showToast } from "@synsci/ui/toast"
+import { useDialog } from "@synsci/ui/context/dialog"
 import { useGlobalSDK } from "@/context/global-sdk"
 import { useGlobalSync } from "@/context/global-sync"
 import type { Agent, Config } from "@synsci/sdk/v2/client"
+import { confirmDialog } from "@/atlas/dialogs"
 import {
   PanelScroll,
   PanelHeader,
@@ -30,6 +32,7 @@ export default function Specialists() {
   const sdk = useGlobalSDK()
   const globalSDK = useGlobalSDK()
   const sync = useGlobalSync()
+  const dialog = useDialog()
 
   const [agents, agentsCtl] = createResource(async () => {
     const res = await sdk.client.app.agents()
@@ -89,18 +92,19 @@ export default function Specialists() {
     }
   }
 
-  async function deleteAgent(name: string) {
-    if (!window.confirm(`Delete custom specialist "${name}"? This removes it from your config.`)) return
-    setBusy(true)
-    try {
-      await globalSDK.client.global.configUnset({ path: ["agent", name] })
-      await agentsCtl.refetch()
-      showToast({ variant: "success", title: `Deleted "${name}"` })
-    } catch (err) {
-      showToast({ variant: "error", title: "Delete failed", description: message(err) })
-    } finally {
-      setBusy(false)
-    }
+  async function deleteAgent(name: string, trigger: HTMLElement) {
+    await confirmDialog(dialog, {
+      title: "Delete specialist?",
+      message: `Delete custom specialist "${name}"? This removes it from your config.`,
+      danger: true,
+      confirmLabel: "delete",
+      returnFocus: trigger,
+      submit: async () => {
+        await globalSDK.client.global.configUnset({ path: ["agent", name] })
+        await agentsCtl.refetch()
+        showToast({ variant: "success", title: `Deleted "${name}"` })
+      },
+    })
   }
 
   return (
@@ -155,7 +159,7 @@ export default function Specialists() {
                   <Card>
                     <For each={custom()}>
                       {(agent) => (
-                        <AgentRow agent={agent} onDelete={() => void deleteAgent(agent.name)} busy={busy()} />
+                        <AgentRow agent={agent} onDelete={(trigger) => void deleteAgent(agent.name, trigger)} busy={busy()} />
                       )}
                     </For>
                   </Card>
@@ -178,7 +182,7 @@ export default function Specialists() {
   )
 }
 
-function AgentRow(props: { agent: Agent; onDelete?: () => void; busy: boolean }) {
+function AgentRow(props: { agent: Agent; onDelete?: (trigger: HTMLElement) => void; busy: boolean }) {
   const modeLabel = () =>
     props.agent.mode === "subagent" ? "subagent" : props.agent.mode === "all" ? "primary · subagent" : "primary"
   return (
@@ -194,7 +198,7 @@ function AgentRow(props: { agent: Agent; onDelete?: () => void; busy: boolean })
         </Show>
       </div>
       <Show when={props.onDelete}>
-        <IconButton icon="trash" variant="ghost" disabled={props.busy} aria-label="Delete" onClick={props.onDelete} />
+        <IconButton icon="trash" variant="ghost" disabled={props.busy} aria-label="Delete" onClick={(e) => props.onDelete?.(e.currentTarget)} />
       </Show>
     </Row>
   )

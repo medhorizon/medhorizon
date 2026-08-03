@@ -3,8 +3,10 @@ import { Switch } from "@synsci/ui/switch"
 import { Icon } from "@synsci/ui/icon"
 import { IconButton } from "@synsci/ui/icon-button"
 import { showToast } from "@synsci/ui/toast"
+import { useDialog } from "@synsci/ui/context/dialog"
 import { useGlobalSync } from "@/context/global-sync"
 import { useGlobalSDK } from "@/context/global-sdk"
+import { confirmDialog, promptDialog } from "@/atlas/dialogs"
 import type { Config, McpStatus } from "@synsci/sdk/v2/client"
 import {
   PanelScroll,
@@ -35,6 +37,7 @@ function isConfigured(value: McpConfig | undefined): value is ConfiguredMcp {
 export default function Connectors() {
   const sync = useGlobalSync()
   const sdk = useGlobalSDK()
+  const dialog = useDialog()
 
   const [status, setStatus] = createSignal<Record<string, McpStatus>>({})
   const [search, setSearch] = createSignal("")
@@ -86,35 +89,50 @@ export default function Connectors() {
     }
   }
 
-  async function remove(name: string) {
-    if (!window.confirm(`Remove connector "${name}"? It will be disconnected and deleted from config.`)) return
+  async function remove(name: string, trigger: HTMLButtonElement) {
     setBusy(true)
     try {
-      await sdk.client.mcp.config.remove({ name, scope: "global" })
-      sync.set("config", "mcp", (current = {}) => {
-        const next = { ...current }
-        delete next[name]
-        return next
+      await confirmDialog(dialog, {
+        title: `Remove connector "${name}"?`,
+        message: "It will be disconnected and deleted from config.",
+        danger: true,
+        confirmLabel: "remove",
+        returnFocus: trigger,
+        submit: async () => {
+          await sdk.client.mcp.config.remove({ name, scope: "global" })
+          sync.set("config", "mcp", (current = {}) => {
+            const next = { ...current }
+            delete next[name]
+            return next
+          })
+          await refresh()
+          if (editing() === name) closeForm()
+        },
       })
-      await refresh()
-      if (editing() === name) closeForm()
-    } catch (err) {
-      showToast({ variant: "error", title: "Remove failed", description: message(err) })
     } finally {
       setBusy(false)
     }
   }
 
-  async function authenticate(name: string) {
+  async function authenticate(name: string, trigger: HTMLButtonElement) {
     setBusy(true)
     try {
       const started = await sdk.client.mcp.auth.start({ name })
       const authUrl = started.data?.authorizationUrl
       if (authUrl) window.open(authUrl, "_blank", "noopener,noreferrer")
-      const code = window.prompt("Authorize in the opened tab, then paste the authorization code here.")
+      const code = await promptDialog(dialog, {
+        title: "Authorize connector",
+        message: "Authorize in the opened tab, then paste the authorization code here.",
+        placeholder: "authorization code",
+        confirmLabel: "authorize",
+        validate: (v) => (v.trim() ? undefined : "Authorization code is required"),
+        returnFocus: trigger,
+        submit: async (code) => {
+          await sdk.client.mcp.auth.callback({ name, code })
+          await refresh()
+        },
+      })
       if (!code) return
-      await sdk.client.mcp.auth.callback({ name, code })
-      await refresh()
     } catch (err) {
       showToast({ variant: "error", title: "Authentication failed", description: message(err) })
     } finally {
@@ -251,7 +269,7 @@ export default function Connectors() {
                               variant="ghost"
                               disabled={busy()}
                               aria-label="Authenticate"
-                              onClick={() => void authenticate(name)}
+                              onClick={(e) => void authenticate(name, e.currentTarget)}
                             />
                           </Show>
                           <IconButton
@@ -266,7 +284,7 @@ export default function Connectors() {
                             variant="ghost"
                             disabled={busy()}
                             aria-label="Remove"
-                            onClick={() => void remove(name)}
+                            onClick={(e) => void remove(name, e.currentTarget)}
                           />
                           <Switch
                             checked={s()?.status === "connected"}
