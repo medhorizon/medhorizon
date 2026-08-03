@@ -1,6 +1,6 @@
 # 03 — Research Graph sidecar supervisor
 
-**Status:** Planned
+**Status:** Done
 
 **Priority:** P0
 
@@ -164,16 +164,16 @@ Managed sidecar authentication accepts the exact capability from configuration. 
 
 **Acceptance criteria:**
 
-- [ ] Tests cover concurrent start, wrong-service collision, readiness timeout, clean exit, crash, restart, and repeated stop.
-- [ ] A parent shutdown leaves no fixture or Research Graph child alive.
-- [ ] Diagnostics include lifecycle state, endpoint, elapsed time, and exit reason.
-- [ ] Logs and thrown errors never include the capability token.
-- [ ] Explicit external API and disable modes have characterization tests.
+- [x] Tests cover concurrent start, wrong-service collision, readiness timeout, clean exit, crash, restart, and repeated stop.
+- [x] A parent shutdown leaves no fixture or Research Graph child alive.
+- [x] Diagnostics include lifecycle state, endpoint, elapsed time, and exit reason.
+- [x] Logs and thrown errors never include the capability token.
+- [x] Explicit external API and disable modes have characterization tests.
 
 **Verification:**
 
-- [ ] `(cwd: backend/cli) bun test test/sidecar/research-graph.test.ts`
-- [ ] `(cwd: research-graph) python -m pytest backend/tests/test_sidecar_contract.py backend/tests/test_sidecar_entry.py`
+- [x] `(cwd: backend/cli) bun test test/sidecar/research-graph.test.ts`
+- [x] `(cwd: research-graph) python -m pytest backend/tests/test_sidecar_contract.py backend/tests/test_sidecar_entry.py`
 - [ ] `(cwd: backend/cli) bun test`
 
 **Dependencies:** Task 3.
@@ -189,11 +189,11 @@ Managed sidecar authentication accepts the exact capability from configuration. 
 
 ## Checkpoint
 
-- [ ] Concurrent startup creates one managed child.
-- [ ] Only the expected authenticated service/protocol reaches ready state.
-- [ ] Port selection is dynamic and loopback-only.
-- [ ] Timeout, crash, stop, and restart leave supervisor state correct and no orphan process.
-- [ ] External and disabled modes remain explicit and tested.
+- [x] Concurrent startup creates one managed child.
+- [x] Only the expected authenticated service/protocol reaches ready state.
+- [x] Port selection is dynamic and loopback-only.
+- [x] Timeout, crash, stop, and restart leave supervisor state correct and no orphan process.
+- [x] External and disabled modes remain explicit and tested.
 - [ ] Focused Python/Bun tests, full backend/CLI suite, and typecheck pass.
 
 ## Risks
@@ -208,10 +208,43 @@ Managed sidecar authentication accepts the exact capability from configuration. 
 
 ## Definition of done
 
-- [ ] Supervisor lifecycle is explicit, single-flight, and restartable.
-- [ ] Health identity and auth contracts are versioned and tested.
-- [ ] Managed sidecars use dynamic loopback ports and random capabilities.
-- [ ] Wrong services and incompatible protocols fail closed.
-- [ ] Crash and shutdown leave no stale state or orphan child.
-- [ ] Compatibility and rollback switches are documented and tested.
+- [x] Supervisor lifecycle is explicit, single-flight, and restartable.
+- [x] Health identity and auth contracts are versioned and tested.
+- [x] Managed sidecars use dynamic loopback ports and random capabilities.
+- [x] Wrong services and incompatible protocols fail closed.
+- [x] Crash and shutdown leave no stale state or orphan child.
+- [x] Compatibility and rollback switches are documented and tested.
 - [ ] Full `bun test` from `backend/cli`, Research Graph focused pytest, and typecheck pass.
+  - Focused pytest + typecheck pass. Full `bun test` does not complete on Windows (pre-existing hang + 43 unrelated failures — see Progress; tracked as the Plan 00/05 Windows evidence baseline).
+
+## Progress
+
+**Task 4 (Windows run evidence).** Focused suites are green:
+`bun test test/sidecar/research-graph.test.ts` → 35 pass / 0 fail, `bun test
+test/sidecar/real-sidecar.test.ts` → 1 pass (real `py -3.14` entry.py: discovery
+line + authenticated /health + wrong-cap 401 + clean tree termination), plugin
+suite → 2 pass, `bun run typecheck` → clean, and Research Graph pytest focused →
+26 pass.
+
+Two real bugs were found and fixed by Task 4 black-box coverage:
+`isConnectionRefused` did not recognize Bun's `code: "ConnectionRefused"`
+(supervisor reported `health_check_failed` instead of `connection_refused`), and
+a stopped/crashed managed session left a stale `RESEARCH_GRAPH_API` in the
+process env that a fresh supervisor misread as an operator external API
+(`#clearOwnedEnv` now drops the managed routing env on stop and on crash).
+
+Orphan scan (Windows): `stop()`, readiness timeout, and crash each leave the
+fixture PID dead (`process.kill(pid, 0)` throws) and the endpoint port closed;
+the real Python sidecar is reaped with `taskkill /F /T` (the `py` launcher spawns
+a separate `python.exe`, so terminating only `py` would orphan the server) and a
+`wmic` scan confirms no `python.exe … entry.py` survives.
+
+Full `bun test` from `backend/cli` was run BOUNDED (background, `--timeout 15000`,
+output to a log, killed at ~8 min of wall time). It did not complete: the log
+showed 43 pre-existing Windows failures (sandbox path translation, launcher
+signal handling `EFTYPE` on Windows, macOS-only seatbelt profiles, config/patch
+path assertions — none in the sidecar suites) and then stalled (no further
+growth for ~7 min) before printing a summary — matching the pre-existing
+Windows full-suite hang recorded in Plan 05 / Plan 00. The focused suites above
+are the evidence that proves Task 4; the full-suite hang is not caused by these
+changes and was not fixed here.
