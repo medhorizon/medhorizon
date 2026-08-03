@@ -9,7 +9,14 @@ test("Files listing, search, and open use only host file endpoints", async ({ pa
   const hostFileCalls: string[] = []
   const atlasHits: string[] = []
   page.on("request", (req) => {
-    const pathname = new URL(req.url()).pathname
+    // Defensive: some lifecycle URLs are not parseable absolute URLs; never let
+    // a capture handler throw and abort page script mid-navigation.
+    let pathname: string
+    try {
+      pathname = new URL(req.url()).pathname
+    } catch {
+      return
+    }
     if (pathname.startsWith("/file") || pathname.startsWith("/find/file")) {
       hostFileCalls.push(pathname)
     }
