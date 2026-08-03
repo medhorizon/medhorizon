@@ -7,13 +7,15 @@
 
 ## 目标
 
-在不重写现有运行时的前提下，把下一阶段工作拆成可独立实现、验证和回退的计划，沿五条主线推进：
+在不重写现有运行时的前提下，把下一阶段工作拆成可独立实现、验证和回退的计划，沿七条主线推进：
 
 1. **可靠性与架构边界**：先固定 TaskResult 语义，再收敛 Research Graph 进程、鉴权和同源访问边界。
 2. **UI 一致性与视觉基线**：统一 Toast、Dialog、异步资源状态和设计令牌，并用截图与无障碍测试保护结果。
 3. **Agent 统筹与可维护性**：以薄 Orchestrator 路由命名 worker，补齐调度与评测后，再拆分后端 turn pipeline。
 4. **工具运行时资源效率**：无状态 Python/R 默认走一次性进程，统一 process policy、输出限界、kernel 生命周期和 Batch 并发边界。
 5. **产品面收敛**：Stage 与 Research Graph 接管研究阶段/图谱体验；Atlas UI 隐藏、云功能默认关闭，只按真实调用图保留兼容能力。
+6. **本地科学工作台与证据闭环**：科学文件自动路由到现有文档标签页，CSV/TSV 获得 bounded 交互视图，project artifacts 通过 Explorer/Inspector 接入并投影到唯一 Research Graph。
+7. **Agent runtime 兼容迁移**：先验证 Pi/Bun/provider/schema 的硬兼容性，再以 MedHorizon-owned `TurnRuntime` port 双接 legacy/Pi；只替换内层 loop，不迁移 session、权限、安全和工具事实源。
 
 ## 已确定的架构决策
 
@@ -29,29 +31,49 @@
 - Atlas 云能力默认关闭；短期只允许通过单一 `OPENSCIENCE_ENABLE_ATLAS=1` 恢复非 UI 的后端 bridge、自动生命周期和必要 CLI 兼容路径以做验证，默认启动不得执行 Atlas login、sync、wallet、CLI 安装或外部请求。该 flag 不恢复 Canvas、artifacts、账户或 billing UI；完整 UI 回滚需独立 revert Plan 15 Task 2/3。
 - 独立、无状态的 Python/R 计算默认由 `bash` 启动一次性解释器；`notebook`/`rkernel` 只在跨调用状态或富输出确有收益时显式使用，GPU/大内存/长时任务继续交给 compute worker/remote node。
 - 本地 Bash/sandbox 不等同计算节点；Plan 18 用共享 ProcessSupervisor 统一 deadline、并发、env、redaction、bounded output 和 terminal receipt，但不宣称提供 CPU/RSS 硬隔离。
+- Pi 迁移只采用 `@earendil-works/pi-agent-core` 的 adapter 路径；`MessageV2`、Session、Bus、PermissionNext、TaskResult、TaskScheduler、ProcessSupervisor、provider 和初期 compaction 继续由 MedHorizon 管。Task 1 未通过时不得把 Pi 接入生产路径。
+- `FileView` 是 project file drawer 与中心文档标签页的唯一 renderer 路由入口；project file、tool artifact 与 session artifact 可共享 renderer capability，但 identity、transport 和 ownership 保持分离。
+- 大型科学文件与 CSV/TSV preview/inspect 必须在输入源头 bounded；超出精确处理预算的筛选、排序、统计或导出由服务端执行或明确禁用，不把截断样本伪装成完整结果。
+- Project Artifacts 作为 Plan 16 Explorer core 的独立 provider 接入；不扩大 `RLMArtifacts` session catalog，也不恢复 Atlas Artifacts/RightPane/API。
+- OpenScience 2.0 EvidenceGraph 只作为交互参考；证据投影、过滤、聚焦、详情与来源跳转必须扩展现有 Research Graph graph/node/edge store、API 和 UI，不创建第二套图谱。
+
+## OpenScience 2.0 差距映射
+
+| 2.0 capability                            | MedHorizon 当前基础                                                     | 尚缺能力                                                                                                                | 落地计划          |
+| ----------------------------------------- | ----------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- | ----------------- |
+| 科学文件自动识别与 binary science inspect | 已有统一 `FileView` 和 inline science renderers                         | project-file detector、magic/header inspect、renderer registry、bounded binary metadata 与文档 tab 自动路由             | 19                |
+| 交互式 CSV/TSV DataTable                  | CSV/TSV 仅作为代码文本                                                  | 正确 parser、分页/虚拟化、filter/sort、schema/stats/export 与大文件 stream capability                                   | 20                |
+| Project artifact workspace                | 已有 host Files、session `RLMArtifacts` 与 local provenance             | project discovery、stable ID/version、deterministic manifest、reproducibility audit、Inspector 与 versioned annotations | 21                |
+| EvidenceGraph 交互                        | 已有独立 Research Graph backend/frontend 与 node/edge UI                | artifact/provenance 幂等投影、evidence filters/focus/neighbors、详情与 source deep link                                 | 22（迁入现有 RG） |
+| Inline tool science renderers             | 已有 PDF、LaTeX、sequence、genome、MSA、Chem2D、ProteinStructure、image | 主要缺 project-file adapter，不需要复制 renderer                                                                        | 19 复用           |
 
 ## 计划索引
 
-| #   | 计划                                                                      | 优先级 | 依赖                 | 可并行                        | 状态        |
-| --- | ------------------------------------------------------------------------- | ------ | -------------------- | ----------------------------- | ----------- |
-| 00  | [CI 与测试前置护栏](plans/00-ci-test-guardrails.md)                       | P0     | 无                   | 05、06、07                    | In progress |
-| 01  | [TaskResult 契约](plans/01-task-result-contract.md)                       | P0     | 00                   | 02、03、05、06                | Done        |
-| 02  | [Agent context 收尾](plans/02-agent-context-closeout.md)                  | P0     | 00、03（仅 RG soak） | 01、03、05、06、07            | Planned     |
-| 03  | [Research Graph supervisor](plans/03-research-graph-supervisor.md)        | P0     | 00                   | 01、02、05、06                | Planned     |
-| 04  | [Research Graph 同源 gateway](plans/04-research-graph-gateway.md)         | P0     | 03                   | 07                            | Planned     |
-| 05  | [UI 反馈通道清理](plans/05-ui-feedback-cleanup.md)                        | P1     | 无                   | 01、02、03、06、07            | Done        |
-| 06  | [Settings Dialog 迁移](plans/06-settings-dialogs.md)                      | P1     | 无                   | 01、02、03、05、07            | Planned     |
-| 07  | [异步资源状态统一](plans/07-async-resource-states.md)                     | P1     | 无                   | 01、02、03、05、06            | Planned     |
-| 08  | [视觉系统与回归基线](plans/08-visual-system-and-regression.md)            | P1     | 05、06、07           | 09 的后半                     | Planned     |
-| 09  | [Orchestrator MVP](plans/09-orchestrator-mvp.md)                          | P1     | 01、02、04           | 08                            | Planned     |
-| 10  | [Subagent scheduler](plans/10-subagent-scheduler.md)                      | P1     | 09                   | —                             | Planned     |
-| 11  | [Orchestrator evaluation](plans/11-orchestrator-evaluation.md)            | P1     | 10                   | —                             | Planned     |
-| 12  | [Orchestration UI 与灰度](plans/12-orchestration-ui.md)                   | P2     | 11                   | 13                            | Planned     |
-| 13  | [Session turn pipeline 拆分](plans/13-session-turn-pipeline.md)           | P2     | 11                   | 12                            | Planned     |
-| 14  | [Atlas Canvas 架构拆分（已取代）](plans/14-graph-ui-architecture.md)      | —      | 由 15 取代           | —                             | Superseded  |
-| 15  | [Atlas 产品面退役](plans/15-atlas-surface-retirement.md)                  | P0     | 00（后端任务）       | 01、02、03、05、06、07        | Implemented |
-| 16  | [本地 Explorer 与 Session Artifacts](plans/16-local-artifact-explorer.md) | P1     | 00、15               | 01、02、03、05、06、07        | Planned     |
-| 18  | [Tool 执行运行时与资源效率](plans/18-tool-runtime-optimization.md)        | P1     | 无硬依赖             | 独立横向；协调 02、10、13、16 | Planned     |
+| #   | 计划                                                                             | 优先级 | 依赖                            | 可并行                        | 状态        |
+| --- | -------------------------------------------------------------------------------- | ------ | ------------------------------- | ----------------------------- | ----------- |
+| 00  | [CI 与测试前置护栏](plans/00-ci-test-guardrails.md)                              | P0     | 无                              | 05、06、07                    | In progress |
+| 01  | [TaskResult 契约](plans/01-task-result-contract.md)                              | P0     | 00                              | 02、03、05、06                | Done        |
+| 02  | [Agent context 收尾](plans/02-agent-context-closeout.md)                         | P0     | 00、03（仅 RG soak）            | 01、03、05、06、07            | Planned     |
+| 03  | [Research Graph supervisor](plans/03-research-graph-supervisor.md)               | P0     | 00                              | 01、02、05、06                | Planned     |
+| 04  | [Research Graph 同源 gateway](plans/04-research-graph-gateway.md)                | P0     | 03                              | 07                            | Planned     |
+| 05  | [UI 反馈通道清理](plans/05-ui-feedback-cleanup.md)                               | P1     | 无                              | 01、02、03、06、07            | Done        |
+| 06  | [Settings Dialog 迁移](plans/06-settings-dialogs.md)                             | P1     | 无                              | 01、02、03、05、07            | Planned     |
+| 07  | [异步资源状态统一](plans/07-async-resource-states.md)                            | P1     | 无                              | 01、02、03、05、06            | Planned     |
+| 08  | [视觉系统与回归基线](plans/08-visual-system-and-regression.md)                   | P1     | 05、06、07                      | 09 的后半                     | Planned     |
+| 09  | [Orchestrator MVP](plans/09-orchestrator-mvp.md)                                 | P1     | 01、02、04                      | 08                            | Planned     |
+| 10  | [Subagent scheduler](plans/10-subagent-scheduler.md)                             | P1     | 09                              | —                             | Planned     |
+| 11  | [Orchestrator evaluation](plans/11-orchestrator-evaluation.md)                   | P1     | 10                              | —                             | Planned     |
+| 12  | [Orchestration UI 与灰度](plans/12-orchestration-ui.md)                          | P2     | 11                              | 13                            | Planned     |
+| 13  | [Session turn pipeline 拆分](plans/13-session-turn-pipeline.md)                  | P2     | 11                              | 12                            | Planned     |
+| 14  | [Atlas Canvas 架构拆分（已取代）](plans/14-graph-ui-architecture.md)             | —      | 由 15 取代                      | —                             | Superseded  |
+| 15  | [Atlas 产品面退役](plans/15-atlas-surface-retirement.md)                         | P0     | 00（后端任务）                  | 01、02、03、05、06、07        | Implemented |
+| 16  | [本地 Explorer 与 Session Artifacts](plans/16-local-artifact-explorer.md)        | P1     | 00、15                          | 01、02、03、05、06、07        | Planned     |
+| 17  | [Pi Agent Runtime 兼容迁移](plans/17-pi-runtime-migration.md)                    | P1→P2  | 00、01；切流依赖 02、10、11、13 | Task 1 可先行；接入与 13 串行 | Planned     |
+| 18  | [Tool 执行运行时与资源效率](plans/18-tool-runtime-optimization.md)               | P1     | 无硬依赖                        | 独立横向；协调 02、10、13、16 | Planned     |
+| 19  | [科学文件识别与文档标签页路由](plans/19-scientific-file-routing.md)              | P1     | 00、15                          | 16、18                        | Planned     |
+| 20  | [交互式 CSV/TSV 数据表工作台](plans/20-interactive-data-table.md)                | P1     | 19                              | 21                            | Planned     |
+| 21  | [Project Artifact evidence](plans/21-project-artifact-evidence.md)               | P1     | 19；UI 依赖 16                  | 20                            | Planned     |
+| 22  | [Research Graph evidence 交互](plans/22-research-graph-evidence-interactions.md) | P1     | 03、04、21                      | —                             | Planned     |
 
 ## 依赖图
 
@@ -72,10 +94,24 @@ flowchart TD
   P10 --> P11["11 Orchestrator evaluation"]
   P11 --> P12["12 Orchestration UI"]
   P11 --> P13["13 Turn pipeline"]
+  P00 --> P17A["17A Pi compatibility gate"]
+  P17A --> P17B["17B Runtime adapter/canary"]
+  P02 -.-> P17B
+  P10 -.-> P17B
+  P11 -.-> P17B
+  P13 --> P17B
   P00 --> P15["15 Atlas 产品面退役"]
   P00 --> P16["16 Local artifact explorer"]
   P15 --> P16
   P18["18 Tool runtime（独立横向）"]
+  P00 --> P19["19 Scientific file routing"]
+  P15 --> P19
+  P19 --> P20["20 Interactive data table"]
+  P19 --> P21["21 Project artifact evidence"]
+  P16 --> P21
+  P03 --> P22["22 RG evidence interactions"]
+  P04 --> P22
+  P21 --> P22
 ```
 
 ## 推荐执行波次
@@ -90,6 +126,11 @@ flowchart TD
 | E：上线门槛             | 11                             | 可重复 eval 达到完成率、语义正确率、上下文和安全门槛                                      |
 | F：灰度与重构           | 12、13                         | 可选灰度、可观测、可回退；turn pipeline 外部行为不变                                      |
 | X：工具运行时（横向）   | 18                             | ephemeral/session 路由、进程回收、输出限界、tool catalog 与 Batch 护栏有真实证据          |
+| Y1：Pi 兼容闸门         | 17 Task 1                      | Bun/import/build、现有 provider stream、schema parity、lifecycle/abort 得出明确 go/no-go  |
+| Y2：Pi adapter 与灰度   | 17 Tasks 2–8                   | 复用 02/10/11/13/18 事实源，legacy/Pi parity、canary 和 next-turn rollback 通过           |
+| G1：科学文件契约        | 19                             | 识别/inspect/renderer contract 冻结，FileView bounded routing 可回退                      |
+| G2：数据与产物工作台    | 20、21                         | 表格大文件边界与 project artifact identity/manifest/inspector 通过真实 E2E                |
+| G3：证据图交互          | 22                             | 幂等 evidence projection 进入唯一 Research Graph，无第二套 graph store/API/UI             |
 
 同一波次内只有在不修改同一契约或同一核心文件时才并行。若共享 API，先在依赖计划中冻结契约，再分支实现消费者。
 
@@ -101,7 +142,7 @@ flowchart TD
 - 后端 focused tests 从 `backend/cli` 运行；CI 等价完整命令为 `bun run test:coverage`。
 - workspace 变更至少运行 `bun run --cwd frontend/workspace typecheck`；交互变更运行对应 Playwright spec。
 - 根级类型检查使用 `bun run typecheck`。
-- 服务端 API 契约变化后，从仓库根运行 `./tooling/repo/generate.ts`，并提交生成结果。
+- 服务端 API 契约变化后，从仓库根显式运行 `bun tooling/repo/generate.ts`，并提交生成结果；共享 generator 的计划先合并契约，再在干净 worktree 串行生成。
 - 协议、默认 Agent 或 UI 行为变化必须保留兼容/回退路径，并在对应计划的 checkpoint 验证。
 - 每完成一份计划，先更新该文件 Status，再同步 [plans/README.md](plans/README.md) 和 [todo.md](todo.md)。
 
@@ -119,12 +160,16 @@ Plan 00 是后端测试数量、耗时、覆盖率、阈值和平台差异的唯
 
 ## 完成定义
 
-- 1 个前置护栏与 16 份 active 优化计划的验收标准和 checkpoint 全部完成，并有可复跑证据；已被 15 取代的 Plan 14 不再执行。
+- 1 个前置护栏与 21 份 active 优化计划的验收标准和 checkpoint 全部完成，并有可复跑证据；已被 15 取代的 Plan 14 不再执行。
 - Task failure/cancel/timeout/parse error 不会被标为 success。
 - 浏览器不直连 Research Graph sidecar，且 sidecar 崩溃、重启、错误占端口均可诊断。
 - workspace 只保留一套 Toast/Dialog/AsyncState 原语，核心流程有截图与无障碍回归保护。
 - Atlas 产品 UI 与自动云行为默认关闭，Stage、Research Graph、BYOK/local 能力及 `atlas_*` 兼容工具有真实回归证据。
 - Orchestrator 父工具开销、完成率和失败语义达到计划 11 的发布门槛，legacy `research` 回退已演练。
 - 独立 Python/R 默认走一次性受控进程；persistent kernel 可预测回收，所有本地进程路径无 secret、orphan、无界输出或 Batch capability 绕过。
+- Pi 通过无框架类型泄漏的 TurnRuntime adapter 可选接入；无论 runtime 如何选择，session、权限、安全、tool/result 和 compaction 事实源唯一，legacy 回退已演练。
+- 科学文件在统一 FileView 中自动识别并受限预览；CSV/TSV 小文件可精确交互，大文件不会完整进入 server/browser memory 或伪报 sample 结果。
+- Project Artifacts 可发现、inspect、annotation、生成可复现 manifest/reproducibility audit 并查看 provenance；project/session/tool/RG identity 不混用，stale/missing/incomplete 全链路可见。
+- Evidence 交互使用现有 Research Graph graph/node/edge contract，投影幂等且无第二套 database、route namespace、store 或 tab。
 - 后置架构拆分不改变 API、事件顺序或用户可观察行为。
 - focused tests、workspace e2e、Research Graph tests、根级 typecheck/build 以及完整 `backend/cli` 测试均通过。
