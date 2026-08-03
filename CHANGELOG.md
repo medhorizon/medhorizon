@@ -4,6 +4,37 @@ MedHorizon follows [semantic versioning](https://semver.org). GitHub Releases
 (`v0.x`) ship native binaries for Linux, macOS (Apple Silicon), and Windows via
 the `Release` workflow. Upstream OpenScience history is retained below.
 
+## MedHorizon v0.3.16 — 2026-08-03
+
+### Added
+
+- **Research Graph sidecar supervisor (plan 03):** a supervised child per process with
+  explicit `idle → starting → ready → stopped` lifecycle, single-flight startup, and
+  restartable state.
+- **Versioned health/capability contract:** `/health` reports `service` / `version` /
+  `protocol`; managed sidecars require a per-process random (≥256-bit) capability via
+  timing-safe Bearer authentication on `/health` and `/api/*`.
+- **Dynamic loopback discovery:** the sidecar binds an OS-selected loopback port and
+  emits a single machine-readable discovery record on stdout; fixed `:8000` collisions
+  are gone.
+- **Classified diagnostics with redaction:** discovery/identity/protocol/auth/health
+  failures map to stable diagnostic codes; the capability is redacted from every log,
+  error, and snapshot.
+
+### Changed
+
+- Fixed dev tokens (`local-dev`/`dev`) require the explicit `RESEARCH_GRAPH_ALLOW_DEV_TOKENS=1`
+  bypass; `APP_ENV` alone no longer grants dev identity.
+- `serve` / `web` await orderly sidecar shutdown on Windows and POSIX (no orphaned children).
+- Explicit compatibility switches: `RESEARCH_GRAPH_DISABLE=1`, external `RESEARCH_GRAPH_API`
+  adoption (same strict handshake), time-limited `RESEARCH_GRAPH_LEGACY_FIXED_PORT=1` fallback
+  (removal target v0.5.0).
+
+### Fixed
+
+- Managed-sidecar readiness no longer accepts "any 2xx on port 8000": identity, protocol,
+  and capability mismatches fail closed with distinct diagnostics.
+
 ## MedHorizon v0.3.15 — 2026-08-01
 
 ### Added

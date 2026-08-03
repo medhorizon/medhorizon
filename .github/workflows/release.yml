@@ -204,21 +204,24 @@ jobs:
         with:
           name: "MedHorizon ${{ github.ref_name }}"
           body: |
-            ## MedHorizon v0.3.15 — 2026-08-01
+            ## MedHorizon v0.3.16 — 2026-08-03
 
             ### Added
 
-            - **TaskResult contract:** Zod-backed TaskTool child outcomes (`success` / `partial` / `failure` / `cancelled` / `timeout`); strict-success only.
-            - **CI coverage report:** Test job runs `test:coverage`; installs use `--frozen-lockfile`.
+            - **Research Graph sidecar supervisor (plan 03):** one supervised child per process with an explicit `idle → starting → ready → stopped` lifecycle, single-flight startup, and restartable state.
+            - **Versioned health/capability contract:** `/health` reports `service` / `version` / `protocol`; managed sidecars require a per-process random (≥256-bit) capability via timing-safe Bearer authentication on `/health` and `/api/*`.
+            - **Dynamic loopback discovery:** the sidecar binds an OS-selected loopback port and emits a single machine-readable discovery record on stdout; fixed `:8000` collisions are gone.
+            - **Classified diagnostics with redaction:** discovery/identity/protocol/auth/health failures map to stable diagnostic codes; the capability is redacted from every log, error, and snapshot.
+            - **Explicit compatibility switches:** `RESEARCH_GRAPH_DISABLE=1`, external `RESEARCH_GRAPH_API` adoption (same strict handshake), and the time-limited `RESEARCH_GRAPH_LEGACY_FIXED_PORT=1` fallback (removal target v0.5.0).
 
             ### Changed
 
-            - **Atlas surface retired:** Stage + Research Graph only; Canvas/account/wallet/managed billing UI removed from the live tree. Default right pane: Research Graph.
-            - **`OPENSCIENCE_ENABLE_ATLAS` default-off** (non-UI cloud bridge/sync only; does not restore product UI).
+            - Fixed dev tokens (`local-dev`/`dev`) now require the explicit `RESEARCH_GRAPH_ALLOW_DEV_TOKENS=1` bypass; `APP_ENV` alone no longer grants dev identity.
+            - `serve` / `web` await orderly sidecar shutdown on Windows and POSIX (no orphaned children).
 
             ### Fixed
 
-            - Task/RLM decoding no longer treats empty/unknown status as success.
+            - Managed-sidecar readiness no longer accepts "any 2xx on port 8000": identity, protocol, and capability mismatches fail closed with distinct diagnostics.
 
             ## 一键安装
 
@@ -242,7 +245,7 @@ jobs:
             设置环境变量 `RESEARCH_GRAPH_DISABLE=1` 可跳过 sidecar 与内置插件。
 
             ---
-            完整说明见 [README](https://github.com/medhorizon/medhorizon#readme) · [CHANGELOG](https://github.com/medhorizon/medhorizon/blob/release/v0.3.15/CHANGELOG.md)
+            完整说明见 [README](https://github.com/medhorizon/medhorizon#readme) · [CHANGELOG](https://github.com/medhorizon/medhorizon/blob/release/v0.3.16/CHANGELOG.md)
           files: |
             artifacts/*
           draft: false
