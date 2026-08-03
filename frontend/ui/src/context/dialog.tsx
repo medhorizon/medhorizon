@@ -3,6 +3,7 @@ import {
   createEffect,
   createRoot,
   createSignal,
+  For,
   getOwner,
   onCleanup,
   Show,
@@ -23,6 +24,9 @@ type Active = {
   owner: Owner
   onClose?: () => void
   setClosing: (closing: boolean) => void
+  canClose?: () => boolean
+  returnFocus?: HTMLElement
+  closed: boolean
 }
 
 export interface ShowOptions {
@@ -34,6 +38,26 @@ export interface ShowOptions {
    * own controls — it just doesn't dim/lock the page behind it.
    */
   lite?: boolean
+  /**
+   * `"replace"` (default) disposes the current top dialog when a new one is
+   * shown. `"stack"` keeps the parent dialog mounted while a nested dialog
+   * opens on top of it; the parent stays until it is explicitly closed.
+   */
+  mode?: "replace" | "stack"
+  /**
+   * Consulted only on user-initiated close (Escape, backdrop, header close,
+   * and replacement by a new dialog). Return false to veto the close.
+   * Programmatic `close()` always works.
+   */
+  canClose?: () => boolean
+  /**
+   * Element to restore focus to after this dialog closes, if it was the top
+   * dialog when it closed and no newer dialog replaced it. Defaults to the
+   * element focused at `show()` time — the trigger the user acted on — so
+   * every dialog closes back to where it was opened from, even when the
+   * call site does not (or cannot) pass an explicit element.
+   */
+  returnFocus?: HTMLElement
 }
 
 const Context = createContext<ReturnType<typeof init>>()
@@ -51,43 +75,74 @@ export function useDialogLite(): boolean {
 }
 
 function init() {
-  const [active, setActive] = createSignal<Active | undefined>()
+  const [stack, setStack] = createSignal<Active[]>([])
   const timer = { current: undefined as ReturnType<typeof setTimeout> | undefined }
-  const lock = { value: false }
 
-  onCleanup(() => {
+  const clearTimer = () => {
     if (timer.current === undefined) return
     clearTimeout(timer.current)
     timer.current = undefined
-  })
+  }
 
-  const close = () => {
-    const current = active()
-    if (!current || lock.value) return
-    lock.value = true
+  onCleanup(clearTimer)
+
+  const top = (): Active | undefined => {
+    const s = stack()
+    return s[s.length - 1]
+  }
+
+  const find = (id: string): Active | undefined => stack().find((entry) => entry.id === id)
+
+  const disposeEntry = (entry: Active) => {
+    clearTimer()
+    setStack((prev) => prev.filter((other) => other.id !== entry.id))
+    entry.dispose()
+  }
+
+  const restoreFocus = (entry: Active) => {
+    const target = entry.returnFocus
+    if (!target || !target.isConnected) return
+    target.focus()
+  }
+
+  /** The element the user acted on right before `show()` — the natural restore target. */
+  const captureFocus = (): HTMLElement | undefined => {
+    const el = document.activeElement
+    return el instanceof HTMLElement && el !== document.body ? el : undefined
+  }
+
+  const close = (id?: string) => {
+    const current = id === undefined ? top() : find(id)
+    if (!current || current.closed) return
+    current.closed = true
     current.onClose?.()
     current.setClosing(true)
 
-    const id = current.id
-    if (timer.current !== undefined) {
-      clearTimeout(timer.current)
-      timer.current = undefined
-    }
-
+    const capturedIndex = stack().indexOf(current)
+    clearTimer()
     timer.current = setTimeout(() => {
       timer.current = undefined
-      current.dispose()
-      if (active()?.id === id) setActive(undefined)
-      lock.value = false
+      disposeEntry(current)
+      // Restore focus only when this was still the top dialog at dispose
+      // time — a newer dialog shown meanwhile must keep its own focus.
+      if (stack().length <= capturedIndex) restoreFocus(current)
     }, 100)
   }
 
+  const requestClose = (id?: string) => {
+    const current = id === undefined ? top() : find(id)
+    if (!current) return
+    if (current.canClose && !current.canClose()) return
+    close(current.id)
+  }
+
   createEffect(() => {
-    if (!active()) return
+    const current = top()
+    if (!current) return
 
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return
-      close()
+      requestClose(current.id)
       event.preventDefault()
       event.stopPropagation()
     }
@@ -96,25 +151,30 @@ function init() {
     onCleanup(() => window.removeEventListener("keydown", onKeyDown, true))
   })
 
-  const show = (element: DialogElement, owner: Owner, onClose?: () => void, options?: { lite?: boolean }) => {
-    // Immediately dispose any existing dialog when showing a new one
-    const current = active()
-    if (current) {
-      current.dispose()
-      setActive(undefined)
+  const show = (
+    element: DialogElement,
+    owner: Owner,
+    onClose?: () => void,
+    options?: { lite?: boolean; mode?: "replace" | "stack"; canClose?: () => boolean; returnFocus?: HTMLElement },
+  ): boolean => {
+    const fallbackFocus = options?.returnFocus ?? captureFocus()
+    const replace = options?.mode !== "stack"
+    const old = top()
+    if (replace && old) {
+      if (old.canClose && !old.canClose()) return false
+      clearTimer()
+      if (!old.closed) {
+        old.closed = true
+        old.onClose?.()
+      }
+      old.dispose()
+      setStack((prev) => prev.filter((other) => other.id !== old.id))
     }
-
-    if (timer.current !== undefined) {
-      clearTimeout(timer.current)
-      timer.current = undefined
-    }
-    lock.value = false
 
     const id = Math.random().toString(36).slice(2)
+    const lite = options?.lite === true
     let dispose: (() => void) | undefined
     let setClosing: ((closing: boolean) => void) | undefined
-
-    const lite = options?.lite === true
 
     const node = runWithOwner(owner, () =>
       createRoot((d: () => void) => {
@@ -157,11 +217,11 @@ function init() {
             open={!closing()}
             onOpenChange={(open: boolean) => {
               if (open) return
-              close()
+              requestClose(id)
             }}
           >
             <Kobalte.Portal>
-              <Kobalte.Overlay data-component="dialog-overlay" onClick={close} />
+              <Kobalte.Overlay data-component="dialog-overlay" onClick={() => requestClose(id)} />
               {element()}
             </Kobalte.Portal>
           </Kobalte>
@@ -169,16 +229,30 @@ function init() {
       }),
     )
 
-    if (!dispose || !setClosing) return
+    if (!dispose || !setClosing) return false
 
-    setActive({ id, node, dispose, owner, onClose, setClosing })
+    const entry: Active = {
+      id,
+      node,
+      dispose,
+      owner,
+      onClose,
+      setClosing,
+      canClose: options?.canClose,
+      returnFocus: fallbackFocus,
+      closed: false,
+    }
+    setStack((prev) => [...prev, entry])
+    return true
   }
 
   return {
     get active() {
-      return active()
+      return top()
     },
+    stack,
     close,
+    requestClose,
     show,
   }
 }
@@ -188,7 +262,11 @@ export function DialogProvider(props: ParentProps) {
   return (
     <Context.Provider value={ctx}>
       {props.children}
-      <div data-component="dialog-stack">{ctx.active?.node}</div>
+      <div data-component="dialog-stack">
+        <For each={ctx.stack()}>
+          {(entry) => entry.node}
+        </For>
+      </div>
     </Context.Provider>
   )
 }
@@ -211,16 +289,28 @@ export function useDialog() {
     /**
      * Show a dialog. Pass a function for `optionsOrOnClose` to use just an
      * onClose callback (legacy two-arg form), or an options object to opt
-     * into features like `lite` (no backdrop, no scroll lock).
+     * into features like `lite` (no backdrop, no scroll lock), `mode`
+     * (`"stack"` keeps the current dialog open), `canClose` (veto
+     * user-initiated close) and `returnFocus`.
+     *
+     * Returns false when the request was vetoed by a busy top dialog.
      */
-    show(element: DialogElement, optionsOrOnClose?: (() => void) | ShowOptions) {
+    show(element: DialogElement, optionsOrOnClose?: (() => void) | ShowOptions): boolean {
       const base = ctx.active?.owner ?? owner
       const opts: ShowOptions =
         typeof optionsOrOnClose === "function" ? { onClose: optionsOrOnClose } : (optionsOrOnClose ?? {})
-      ctx.show(element, base, opts.onClose, { lite: opts.lite })
+      return ctx.show(element, base, opts.onClose, {
+        lite: opts.lite,
+        mode: opts.mode,
+        canClose: opts.canClose,
+        returnFocus: opts.returnFocus,
+      })
     },
     close() {
       ctx.close()
+    },
+    requestClose() {
+      ctx.requestClose()
     },
   }
 }
