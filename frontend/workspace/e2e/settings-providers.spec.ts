@@ -38,9 +38,16 @@ test("credentials settings saves and removes a local provider key", async ({ pag
       .toBe(true)
     await expect(dialog.getByText("OpenAI", { exact: true }).last()).toBeVisible()
 
-    page.once("dialog", (prompt) => prompt.accept())
     const row = dialog.getByText("OpenAI", { exact: true }).last().locator("xpath=../..")
     await row.getByRole("button", { name: "remove", exact: true }).click()
+
+    // The provider-key removal is a real app confirm that nests over the
+    // settings dialog (stack mode). Disambiguate it from the settings dialog by
+    // its message text rather than assuming a native browser dialog.
+    const confirm = page.getByRole("dialog").filter({ hasText: "Remove the OpenAI key" })
+    await expect(confirm).toBeVisible()
+    await confirm.getByRole("button", { name: "remove", exact: true }).click()
+
     await expect
       .poll(async () => {
         const response = await sdk.provider.list()
