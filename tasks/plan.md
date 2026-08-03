@@ -57,8 +57,8 @@
 | 03  | [Research Graph supervisor](plans/03-research-graph-supervisor.md)               | P0     | 00                              | 01、02、05、06                | Done     |
 | 04  | [Research Graph 同源 gateway](plans/04-research-graph-gateway.md)                | P0     | 03                              | 07                            | Planned     |
 | 05  | [UI 反馈通道清理](plans/05-ui-feedback-cleanup.md)                               | P1     | 无                              | 01、02、03、06、07            | Done        |
-| 06  | [Settings Dialog 迁移](plans/06-settings-dialogs.md)                             | P1     | 无                              | 01、02、03、05、07            | Planned     |
-| 07  | [异步资源状态统一](plans/07-async-resource-states.md)                            | P1     | 无                              | 01、02、03、05、06            | Planned     |
+| 06  | [Settings Dialog 迁移](plans/06-settings-dialogs.md)                             | P1     | 无                              | 01、02、03、05、07            | Done     |
+| 07  | [异步资源状态统一](plans/07-async-resource-states.md)                            | P1     | 无                              | 01、02、03、05、06            | In progress     |
 | 08  | [视觉系统与回归基线](plans/08-visual-system-and-regression.md)                   | P1     | 05、06、07                      | 09 的后半                     | Planned     |
 | 09  | [Orchestrator MVP](plans/09-orchestrator-mvp.md)                                 | P1     | 01、02、04                      | 08                            | Planned     |
 | 10  | [Subagent scheduler](plans/10-subagent-scheduler.md)                             | P1     | 09                              | —                             | Planned     |
@@ -67,10 +67,10 @@
 | 13  | [Session turn pipeline 拆分](plans/13-session-turn-pipeline.md)                  | P2     | 11                              | 12                            | Planned     |
 | 14  | [Atlas Canvas 架构拆分（已取代）](plans/14-graph-ui-architecture.md)             | —      | 由 15 取代                      | —                             | Superseded  |
 | 15  | [Atlas 产品面退役](plans/15-atlas-surface-retirement.md)                         | P0     | 00（后端任务）                  | 01、02、03、05、06、07        | Implemented |
-| 16  | [本地 Explorer 与 Session Artifacts](plans/16-local-artifact-explorer.md)        | P1     | 00、15                          | 01、02、03、05、06、07        | Planned     |
+| 16  | [本地 Explorer 与 Session Artifacts](plans/16-local-artifact-explorer.md)        | P1     | 00、15                          | 01、02、03、05、06、07        | In progress     |
 | 17  | [Pi Agent Runtime 兼容迁移](plans/17-pi-runtime-migration.md)                    | P1→P2  | 00、01；切流依赖 02、10、11、13 | Task 1 可先行；接入与 13 串行 | Planned     |
 | 18  | [Tool 执行运行时与资源效率](plans/18-tool-runtime-optimization.md)               | P1     | 无硬依赖                        | 独立横向；协调 02、10、13、16 | Planned     |
-| 19  | [科学文件识别与文档标签页路由](plans/19-scientific-file-routing.md)              | P1     | 00、15                          | 16、18                        | Planned     |
+| 19  | [科学文件识别与文档标签页路由](plans/19-scientific-file-routing.md)              | P1     | 00、15                          | 16、18                        | In progress     |
 | 20  | [交互式 CSV/TSV 数据表工作台](plans/20-interactive-data-table.md)                | P1     | 19                              | 21                            | Planned     |
 | 21  | [Project Artifact evidence](plans/21-project-artifact-evidence.md)               | P1     | 19；UI 依赖 16                  | 20                            | Planned     |
 | 22  | [Research Graph evidence 交互](plans/22-research-graph-evidence-interactions.md) | P1     | 03、04、21                      | —                             | Planned     |

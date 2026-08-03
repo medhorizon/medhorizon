@@ -22,7 +22,7 @@
 | 03  | [Research Graph supervisor](03-research-graph-supervisor.md)          | 可握手、可诊断、可重启的 sidecar 生命周期                     | P0     | 00                              | Done     |
 | 04  | [Research Graph gateway](04-research-graph-gateway.md)                | 同源代理、随机 capability、权威 session 绑定和生成 SDK        | P0     | 03                              | Planned     |
 | 05  | [UI feedback cleanup](05-ui-feedback-cleanup.md)                      | 删除死 Composer，收敛单一 Toast 通道                          | P1     | 无                              | Done        |
-| 06  | [Settings dialogs](06-settings-dialogs.md)                            | 消除原生 prompt/confirm，统一可访问 Dialog                    | P1     | 无                              | Planned     |
+| 06  | [Settings dialogs](06-settings-dialogs.md)                            | 消除原生 prompt/confirm，统一可访问 Dialog                    | P1     | 无                              | Done     |
 | 07  | [Async resource states](07-async-resource-states.md)                  | 文件与技能界面的 loading/empty/error/retry 原语               | P1     | 无                              | In progress |
 | 08  | [Visual system and regression](08-visual-system-and-regression.md)    | 视觉令牌、代表页截图矩阵与 a11y smoke                         | P1     | 05、06、07                      | Planned     |
 | 09  | [Orchestrator MVP](09-orchestrator-mvp.md)                            | 薄父 Agent、固定 worker 目录和真实委派                        | P1     | 01、02、04                      | Planned     |
@@ -32,10 +32,10 @@
 | 13  | [Session turn pipeline](13-session-turn-pipeline.md)                  | characterization 保护下的内部 pipeline 拆分                   | P2     | 11                              | Planned     |
 | 14  | [Atlas Canvas architecture](14-graph-ui-architecture.md)              | 历史 Atlas Canvas 重构计划；由 15 取代                        | —      | 由 15 取代                      | Superseded  |
 | 15  | [Atlas surface retirement](15-atlas-surface-retirement.md)            | 隐藏产品 UI、默认关闭云行为并保留 Stage/RG allowlist          | P0     | 00（后端任务）                  | Implemented |
-| 16  | [Local artifact explorer](16-local-artifact-explorer.md)              | 可插拔 Explorer 壳、host files 与本地 session artifacts       | P1     | 00、15；T4←07 T1                | Planned     |
+| 16  | [Local artifact explorer](16-local-artifact-explorer.md)              | 可插拔 Explorer 壳、host files 与本地 session artifacts       | P1     | 00、15；T4←07 T1                | In progress     |
 | 17  | [Pi Agent Runtime migration](17-pi-runtime-migration.md)              | Bun/Pi 闸门、TurnRuntime 双 adapter、parity/canary/rollback   | P1→P2  | 00、01；切流依赖 02、10、11、13 | Planned     |
 | 18  | [Tool runtime optimization](18-tool-runtime-optimization.md)          | ephemeral Python/R、统一进程运行时与有界工具执行              | P1     | 无硬依赖                        | Planned     |
-| 19  | [Scientific file routing](19-scientific-file-routing.md)              | 科学文件识别、bounded inspect 与统一文档 tab renderer         | P1     | 00、15；T4←07 T1/T3             | Planned     |
+| 19  | [Scientific file routing](19-scientific-file-routing.md)              | 科学文件识别、bounded inspect 与统一文档 tab renderer         | P1     | 00、15；T4←07 T1/T3             | In progress     |
 | 20  | [Interactive data table](20-interactive-data-table.md)                | CSV/TSV 分页、筛选、排序、schema 与大文件边界                 | P1     | 19                              | Planned     |
 | 21  | [Project artifact evidence](21-project-artifact-evidence.md)          | discovery、manifest/audit、inspector、annotations、provenance | P1     | 19；UI 依赖 16                  | Planned     |
 | 22  | [Research Graph evidence](22-research-graph-evidence-interactions.md) | 在唯一 RG 中增加 evidence 投影、过滤、聚焦与回源              | P1     | 03、04、21                      | Planned     |
