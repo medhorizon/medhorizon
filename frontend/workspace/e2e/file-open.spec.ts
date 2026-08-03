@@ -55,3 +55,34 @@ test("can edit, reset, save, and close a text file", async ({ page, gotoSession 
     rmSync(directory, { recursive: true, force: true })
   }
 })
+
+test("refreshing a file keeps the ready content visible", async ({ page, gotoSession }) => {
+  const directory = mkdtempSync(path.join(tmpdir(), "openscience-file-refresh-"))
+  const filename = "refresh.txt"
+  const filepath = path.join(directory, filename)
+  writeFileSync(filepath, "stable content\n")
+
+  try {
+    await gotoSession()
+    await page.getByRole("tab", { name: "Files", exact: true }).click()
+
+    const location = page.getByPlaceholder("/absolute/path")
+    await location.fill(directory)
+    await location.press("Enter")
+    await page.getByPlaceholder("filter this folder…").fill(filename)
+    await page.getByRole("button", { name: new RegExp(`^${filename}\\b`) }).click()
+
+    const tab = page.locator(`[role="tab"][title="${filename}"]`)
+    await expect(tab).toHaveAttribute("aria-selected", "true")
+    await expect(page.getByText("stable content")).toBeVisible()
+
+    // A header refresh re-reads through the migrated read-state path; the
+    // content stays visible across the refreshing -> ready transition and
+    // never falls back to an error.
+    await page.locator('[title="refresh"]:visible').click()
+    await expect(page.getByText("stable content")).toBeVisible()
+    await expect(page.getByText("couldn't open this file", { exact: true })).toHaveCount(0)
+  } finally {
+    rmSync(directory, { recursive: true, force: true })
+  }
+})

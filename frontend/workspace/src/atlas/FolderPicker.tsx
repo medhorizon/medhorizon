@@ -1,9 +1,10 @@
 import { createSignal, createMemo, createResource, createEffect, type JSX, For, Show } from "solid-js"
 import { Dialog } from "@synsci/ui/dialog"
+import { AsyncState, type AsyncStateProps } from "@synsci/ui/async-state"
 import { useDialog } from "@synsci/ui/context/dialog"
 import { useGlobalSDK } from "@/context/global-sdk"
 import { useGlobalSync } from "@/context/global-sync"
-import { FONT_MONO, FONT_SANS } from "@/styles/tokens"
+import { FONT_MONO } from "@/styles/tokens"
 import { validateDirectoryPath } from "@/atlas/openDirectory"
 import {
   IconFolder,
@@ -18,6 +19,13 @@ import {
 interface FolderEntry {
   name: string
   absolute: string
+}
+
+interface ListEntry {
+  name: string
+  absolute: string
+  type: string
+  ignored: boolean
 }
 
 interface PickerProps {
@@ -65,37 +73,80 @@ export function FolderPicker(props: PickerProps): JSX.Element {
   const [cwd, setCwd] = createSignal(home())
   const [filter, setFilter] = createSignal("")
   const [pathInput, setPathInput] = createSignal("")
-  const [error, setError] = createSignal<string>()
 
   const [entries, { refetch }] = createResource(
     () => cwd(),
     async (dir): Promise<FolderEntry[]> => {
-      setError(undefined)
-      try {
-        const res: any = await sdk.client.file.list({ directory: dir, path: "." } as any)
-        const data = res?.data ?? res
-        const list = Array.isArray(data) ? data : []
-        return list
-          .filter((n: any) => n?.type === "directory" && !n.name.startsWith(".") && !n.ignored)
-          .map((n: any) => ({ name: n.name as string, absolute: n.absolute as string }))
-          .sort((a, b) => a.name.localeCompare(b.name))
-      } catch (err) {
-        // Surface the failure instead of masking it as an empty folder — an
-        // empty list and a failed listing are very different states.
-        setError(err instanceof Error ? err.message : String(err))
-        return []
-      }
+      // Failures surface as a real resource error (via the AsyncState shell
+      // below) — never as a masked empty folder.
+      const res = await sdk.client.file.list({ directory: dir, path: "." })
+      const data: unknown = res.data
+      if (!Array.isArray(data)) throw new Error("unexpected response while listing folders")
+      return (data as ListEntry[])
+        .filter((n) => n.type === "directory" && !n.name.startsWith(".") && !n.ignored)
+        .map((n) => ({ name: n.name, absolute: n.absolute }))
+        .sort((a, b) => a.name.localeCompare(b.name))
     },
   )
 
-  // Use `entries.latest` so we keep the previously-rendered rows visible
-  // while a new directory is being fetched. Without this the list briefly
-  // empties on every navigation, which read as a "whole page refresh".
+  // The resource accessor re-throws its error once resolved, so snapshot the
+  // last good value; rows() keeps the previous directory's entries visible on
+  // navigation and refresh errors (stale-while-revalidate).
+  const [known, setKnown] = createSignal<FolderEntry[] | undefined>(undefined)
+  createEffect(() => {
+    if (!entries.error) setKnown(entries())
+  })
+  const rows = () => known() ?? []
+
+  // Filtering runs over the stale/known rows, so a background refresh or a
+  // refresh error never blanks the list back to a loading flash.
   const filtered = createMemo(() => {
     const q = filter().toLowerCase().trim()
-    const list = entries.latest ?? entries() ?? []
+    const list = rows()
     if (!q) return list
     return list.filter((e) => e.name.toLowerCase().includes(q))
+  })
+
+  // The rows body — the filtered list, or the search no-match second layer.
+  // Only called when rows() is non-empty (ready/refreshing/error-with-stale),
+  // so a successful empty directory is the AsyncState `empty` state instead.
+  const listBody = (): JSX.Element => {
+    if (filtered().length === 0) {
+      return <div style={listMsg()}>no matching folders</div>
+    }
+    return (
+      <For each={filtered()}>
+        {(e) => <FolderRow entry={e} onDrill={() => drillInto(e)} onPick={() => pick(e.absolute)} />}
+      </For>
+    )
+  }
+
+  // Map the resource onto the kit AsyncState union. Error outranks loading;
+  // rows() keeps the previous directory's entries as stale children on refresh
+  // errors, and only a successful empty directory maps to `empty`.
+  const asyncState = createMemo<AsyncStateProps>(() => {
+    const error = entries.error
+    const stale = rows()
+    if (error) {
+      return {
+        state: "error",
+        label: "folders",
+        title: "couldn't list folders",
+        detail: errorDetail(error),
+        retryLabel: "retry",
+        retry: () => void refetch(),
+        children: stale.length > 0 ? listBody() : undefined,
+      }
+    }
+    if (entries.loading) {
+      return stale.length > 0
+        ? { state: "refreshing", label: "folders", message: "updating folders…", children: listBody() }
+        : { state: "loading", label: "folders", message: "loading folders…" }
+    }
+    if (stale.length === 0) {
+      return { state: "empty", label: "folders", message: "no folders here" }
+    }
+    return { state: "ready", label: "folders", loadedMessage: "folders loaded", children: listBody() }
   })
 
   const crumbs = createMemo(() => {
@@ -438,116 +489,7 @@ export function FolderPicker(props: PickerProps): JSX.Element {
               transition: "opacity 120ms ease",
             }}
           >
-            {/* Thin indeterminate loading bar across the top while fetching. */}
-            <Show when={entries.loading}>
-              <div
-                style={{
-                  position: "absolute",
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  height: "2px",
-                  overflow: "hidden",
-                  "pointer-events": "none",
-                  "z-index": 1,
-                }}
-              >
-                <div
-                  style={{
-                    width: "30%",
-                    height: "100%",
-                    background: "linear-gradient(90deg, transparent, var(--color-accent), transparent)",
-                    animation: "atlas-loading-slide 1.1s ease-in-out infinite",
-                  }}
-                />
-              </div>
-            </Show>
-            <Show
-              when={filtered().length > 0}
-              fallback={
-                <Show when={!entries.loading}>
-                  <Show
-                    when={!error()}
-                    fallback={
-                      <div
-                        class="atlas-fade-in"
-                        style={{
-                          padding: "32px 24px",
-                          "text-align": "center",
-                          "font-family": FONT_SANS,
-                          "font-size": "12px",
-                          color: "var(--color-error)",
-                          display: "flex",
-                          "flex-direction": "column",
-                          "align-items": "center",
-                          gap: "10px",
-                        }}
-                      >
-                        <span>couldn't read this folder</span>
-                        <span style={{ color: "var(--color-text-faint)", "max-width": "360px", "line-height": 1.5 }}>
-                          {error()}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => void refetch()}
-                          style={{
-                            all: "unset",
-                            cursor: "pointer",
-                            padding: "5px 12px",
-                            "border-radius": "4px",
-                            border: "1px solid var(--color-border)",
-                            "font-family": FONT_MONO,
-                            "font-size": "11px",
-                            color: "var(--color-text)",
-                          }}
-                        >
-                          retry
-                        </button>
-                      </div>
-                    }
-                  >
-                    <div
-                      class="atlas-fade-in"
-                      style={{
-                        padding: "32px 24px",
-                        "text-align": "center",
-                        "font-family": FONT_SANS,
-                        "font-size": "12px",
-                        color: "var(--color-text-faint)",
-                        display: "flex",
-                        "flex-direction": "column",
-                        gap: "8px",
-                      }}
-                    >
-                      <Show when={(entries() ?? []).length === 0} fallback={<span>nothing matches the filter</span>}>
-                        <Show
-                          when={
-                            /\/Desktop$|\/Documents$|\/Downloads$/.test(cwd()) ||
-                            cwd().endsWith("/Desktop") ||
-                            cwd().endsWith("/Documents") ||
-                            cwd().endsWith("/Downloads")
-                          }
-                          fallback={<span>this folder is empty · pick it with the button below</span>}
-                        >
-                          <span style={{ color: "var(--color-text)" }}>
-                            macOS is blocking the listing of <code>{cwd().split("/").pop()}</code>
-                          </span>
-                          <span style={{ "max-width": "360px", "line-height": 1.5 }}>
-                            To list this folder we'd need Full Disk Access for the
-                            <code>medhorizon</code> binary. For now, paste the absolute path of the folder you want into
-                            the <em>go to</em> bar above — MedHorizon can still open any path you give it.
-                          </span>
-                        </Show>
-                      </Show>
-                    </div>
-                  </Show>
-                </Show>
-              }
-            >
-              <For each={filtered()}>
-                {(e) => <FolderRow entry={e} onDrill={() => drillInto(e)} onPick={() => pick(e.absolute)} />}
-              </For>
-            </Show>
+            <AsyncState {...asyncState()} />
           </div>
 
           {/* Footer */}
@@ -592,6 +534,15 @@ export function FolderPicker(props: PickerProps): JSX.Element {
       </div>
     </Dialog>
   )
+}
+
+// The SDK throws the parsed JSON error body (e.g. hono's { message }); surface
+// that message as the AsyncState detail, falling back to a stable copy.
+function errorDetail(err: unknown): string {
+  if (typeof err === "string") return err
+  const raw = err as { body?: { message?: unknown }; message?: unknown }
+  const message = raw.body?.message ?? raw.message
+  return typeof message === "string" && message ? message : "couldn't list this folder"
 }
 
 function FolderRow(props: { entry: FolderEntry; onDrill: () => void; onPick: () => void }): JSX.Element {
@@ -759,6 +710,18 @@ function SidebarRow(props: {
       </div>
     </div>
   )
+}
+
+function listMsg(): JSX.CSSProperties {
+  return {
+    display: "grid",
+    "place-items": "center",
+    padding: "32px 24px",
+    "font-family": FONT_MONO,
+    "font-size": "11px",
+    color: "var(--color-text-faint)",
+    "text-align": "center",
+  } as JSX.CSSProperties
 }
 
 function navBtn(disabled: boolean): JSX.CSSProperties {
