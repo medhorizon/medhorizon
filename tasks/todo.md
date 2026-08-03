@@ -134,12 +134,13 @@ Plan 00 是后端/运行时代码的合并门槛；纯 UI 实施可与其并行�
 
 ### [03 — Research Graph sidecar supervisor](plans/03-research-graph-supervisor.md)
 
-- [ ] 版本化 health/capability contract
-- [ ] 为 sidecar entry 增加动态 loopback discovery
-- [ ] 实现 single-flight supervisor state machine
-- [ ] 增加黑盒 lifecycle/diagnostics 覆盖
-- [ ] 通过 Plan 03 Checkpoint
-- [ ] 完成 Plan 03 Definition of done
+- [x] 版本化 health/capability contract
+- [x] 为 sidecar entry 增加动态 loopback discovery
+- [x] 实现 single-flight supervisor state machine
+- [x] 增加黑盒 lifecycle/diagnostics 覆盖
+- [x] 通过 Plan 03 Checkpoint（full-suite 项因既有 Windows 挂起未勾选；见计划 Progress）
+- [ ] 完成 Plan 03 Definition of done（backend 全量 `bun test` 因既有 Windows 环境失败/挂起未勾选；见计划 Progress）
+- [ ] 移除 `RESEARCH_GRAPH_LEGACY_FIXED_PORT` 兼容开关（owned removal；目标 MedHorizon v0.5.0）
 
 ### [05 — UI 反馈通道清理](plans/05-ui-feedback-cleanup.md)
 
