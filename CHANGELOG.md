@@ -4,36 +4,40 @@ MedHorizon follows [semantic versioning](https://semver.org). GitHub Releases
 (`v0.x`) ship native binaries for Linux, macOS (Apple Silicon), and Windows via
 the `Release` workflow. Upstream OpenScience history is retained below.
 
-## MedHorizon v0.3.16 — 2026-08-03
+## MedHorizon v0.3.18 — 2026-08-03
 
 ### Added
 
-- **Research Graph sidecar supervisor (plan 03):** a supervised child per process with
-  explicit `idle → starting → ready → stopped` lifecycle, single-flight startup, and
-  restartable state.
-- **Versioned health/capability contract:** `/health` reports `service` / `version` /
-  `protocol`; managed sidecars require a per-process random (≥256-bit) capability via
-  timing-safe Bearer authentication on `/health` and `/api/*`.
-- **Dynamic loopback discovery:** the sidecar binds an OS-selected loopback port and
-  emits a single machine-readable discovery record on stdout; fixed `:8000` collisions
-  are gone.
-- **Classified diagnostics with redaction:** discovery/identity/protocol/auth/health
-  failures map to stable diagnostic codes; the capability is redacted from every log,
-  error, and snapshot.
+- **AsyncState primitives (plan 07):** `@synsci/ui` ships a discriminating-union AsyncState
+  component (loading / refreshing / empty / error / ready) with an ARIA lifecycle and a retry
+  contract, covered by new `bun run --cwd frontend/ui test:dom` vitest suites.
+- **File and skill async states (plan 07):** FileExplorer, FileView, and FolderPicker migrated to
+  a known-snapshot AsyncState contract — navigating to a missing directory shows a recoverable
+  state instead of an app-level ErrorBoundary white screen. SkillsBrowser / SkillsPage surface
+  syncing / empty / error states with a unified refetch, and a skill fetch failure is no longer
+  masked by an overall sync-complete signal.
+- **Settings dialogs (plan 06):** all eight native `window.prompt` / `window.confirm` calls in
+  Settings are gone. Connectors OAuth + removal, Storage path input, Credentials / Provider-key
+  removal, and Memory / Network / Specialists destructive confirms now use accessible Promise
+  dialogs stacked over the Settings parent — Kobalte focus trap, Escape/backdrop, single-settle,
+  submit busy veto, validation, and focus restore.
 
 ### Changed
 
-- Fixed dev tokens (`local-dev`/`dev`) require the explicit `RESEARCH_GRAPH_ALLOW_DEV_TOKENS=1`
-  bypass; `APP_ENV` alone no longer grants dev identity.
-- `serve` / `web` await orderly sidecar shutdown on Windows and POSIX (no orphaned children).
-- Explicit compatibility switches: `RESEARCH_GRAPH_DISABLE=1`, external `RESEARCH_GRAPH_API`
-  adoption (same strict handshake), time-limited `RESEARCH_GRAPH_LEGACY_FIXED_PORT=1` fallback
-  (removal target v0.5.0).
+- **Research Graph sidecar supervisor (plan 03):** supervised sidecar with a versioned
+  health/capability contract, dynamic loopback discovery, classified diagnostics with redaction,
+  and explicit compatibility switches.
+- **Local Explorer and session artifacts (plan 16):** contract-driven Explorer shell with a single
+  Files adapter; session artifact catalog committed with the `.dat` write and served via paginated
+  list, bounded preview, and download endpoints.
+- **Scientific file routing (plan 19):** single `ScienceFile` detector, canonical path resolver
+  (rejects `..` / symlinks / cross-drive), bounded inspect/preview/raw endpoints, and a
+  project-file renderer registry.
 
 ### Fixed
 
-- Managed-sidecar readiness no longer accepts "any 2xx on port 8000": identity, protocol,
-  and capability mismatches fail closed with distinct diagnostics.
+- The Settings navigation spec no longer waits for the retired `Billing` panel button, dropped from
+  the registry with the Atlas surface retirement.
 
 ## MedHorizon v0.3.17 — 2026-08-03
 
@@ -65,6 +69,37 @@ the `Release` workflow. Upstream OpenScience history is retained below.
 
 - The file-explorer E2E request capture no longer aborts page navigation when it hits an
   unparseable lifecycle URL.
+
+## MedHorizon v0.3.16 — 2026-08-03
+
+### Added
+
+- **Research Graph sidecar supervisor (plan 03):** a supervised child per process with
+  explicit `idle → starting → ready → stopped` lifecycle, single-flight startup, and
+  restartable state.
+- **Versioned health/capability contract:** `/health` reports `service` / `version` /
+  `protocol`; managed sidecars require a per-process random (≥256-bit) capability via
+  timing-safe Bearer authentication on `/health` and `/api/*`.
+- **Dynamic loopback discovery:** the sidecar binds an OS-selected loopback port and
+  emits a single machine-readable discovery record on stdout; fixed `:8000` collisions
+  are gone.
+- **Classified diagnostics with redaction:** discovery/identity/protocol/auth/health
+  failures map to stable diagnostic codes; the capability is redacted from every log,
+  error, and snapshot.
+
+### Changed
+
+- Fixed dev tokens (`local-dev`/`dev`) require the explicit `RESEARCH_GRAPH_ALLOW_DEV_TOKENS=1`
+  bypass; `APP_ENV` alone no longer grants dev identity.
+- `serve` / `web` await orderly sidecar shutdown on Windows and POSIX (no orphaned children).
+- Explicit compatibility switches: `RESEARCH_GRAPH_DISABLE=1`, external `RESEARCH_GRAPH_API`
+  adoption (same strict handshake), time-limited `RESEARCH_GRAPH_LEGACY_FIXED_PORT=1` fallback
+  (removal target v0.5.0).
+
+### Fixed
+
+- Managed-sidecar readiness no longer accepts "any 2xx on port 8000": identity, protocol,
+  and capability mismatches fail closed with distinct diagnostics.
 
 ## MedHorizon v0.3.15 — 2026-08-01
 
