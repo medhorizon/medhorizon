@@ -4,6 +4,36 @@ MedHorizon follows [semantic versioning](https://semver.org). GitHub Releases
 (`v0.x`) ship native binaries for Linux, macOS (Apple Silicon), and Windows via
 the `Release` workflow. Upstream OpenScience history is retained below.
 
+## MedHorizon v0.3.20 — 2026-08-05
+
+### Added
+
+- **Session Artifacts Explorer module (plan 16):** the Explorer shell now mounts a
+  second `session-artifacts` module beside host Files. List / refresh / load-more,
+  bounded preview, and explicit download consume the generated session-artifact SDK;
+  keep-mounted state is scoped to the current `sessionID` and clears on session switch.
+- **Inspect-first FileView load policy (plan 19):** opening a project file issues
+  `file.inspect` before any full `file.read`. Generated `readPolicy` selects editable
+  full content, bounded preview, metadata-only, or same-origin raw/stream download;
+  `ProjectScienceView` routes scientific capabilities without mixing tool/session
+  artifact identity.
+- **Science routing E2E:** `session-artifacts`, `file-science-routing`, and updated
+  science file-viewer specs cover register→list→preview→download, session A→B
+  isolation, CSV/FASTA/VCF/PDB/HDF5/unknown fixtures, and zero `/api/atlas` requests.
+
+### Fixed
+
+- Session-switch preview no longer crashes the app when a stale artifact preview
+  resource is in error (Solid `createResource` accessor rethrow guarded).
+- Files-tab / science-routing E2E flakiness around tab ambiguity and strict
+  transport assertions for image/PDF raw URLs.
+
+### Known limitations
+
+- Plan 16/19 Checkpoint B and Definition of done remain open: full `backend/cli`
+  suite, root typecheck/build, and `atlas-retirement` E2E (Research Graph sidecar
+  environment) are not claimed closed by this release.
+
 ## MedHorizon v0.3.19 — 2026-08-03
 
 ### Added

@@ -204,32 +204,22 @@ jobs:
         with:
           name: "MedHorizon ${{ github.ref_name }}"
           body: |
-            ## MedHorizon v0.3.19 - 2026-08-03
-            <!--
-            ## MedHorizon v0.3.19 — 2026-08-03
-
-            ## MedHorizon v0.3.18 — 2026-08-03
-
-            -->
+            ## MedHorizon v0.3.20 - 2026-08-05
 
             ### Added
 
-            - **AsyncState primitives (plan 07):** `@synsci/ui` ships a discriminating-union AsyncState component (loading / refreshing / empty / error / ready) with an ARIA lifecycle and retry contract, covered by new `bun run --cwd frontend/ui test:dom` vitest suites.
-            - **Agent context closeout (plan 02):** deterministic context reports cover 14 native profiles; legacy `research` remains baseline-only and no schema edit is enabled without provider calibration.
-            - **MCP and Research Graph soaks (plan 02):** real SDK and sidecar workflows cover the required restart/TTL/invalidation/failure events and 0.9×/2×/10× payloads while preserving IDs, relations, provenance, and error evidence.
-            - **File and skill async states (plan 07):** FileExplorer, FileView, and FolderPicker migrated to a known-snapshot AsyncState contract (a missing directory recovers instead of an app-level ErrorBoundary white screen); SkillsBrowser / SkillsPage surface syncing / empty / error states with a unified refetch.
-            - **Settings dialogs (plan 06):** all eight native `window.prompt` / `window.confirm` calls in Settings are gone — Connectors OAuth + removal, Storage path input, Credentials / Provider-key removal, and Memory / Network / Specialists destructive confirms now use accessible Promise dialogs stacked over the Settings parent (Kobalte focus trap, Escape/backdrop, single-settle, busy veto, validation, focus restore).
-
-            ### Changed
-
-            - **Research Graph sidecar supervisor (plan 03):** supervised sidecar with a versioned health/capability contract, dynamic loopback discovery, classified diagnostics with redaction, and explicit compatibility switches.
-            - **Local Explorer + session artifacts (plan 16):** contract-driven Explorer shell with a Files adapter; session artifact catalog committed with the `.dat` write, served via paginated list / bounded preview / download endpoints.
-            - **Scientific file routing (plan 19):** single `ScienceFile` detector, canonical path resolver, bounded inspect/preview/raw endpoints, and a project-file renderer registry.
-            - **Conservative tool-result bounding (plan 02):** structured identity/status/error/evidence fields remain visible and spill paths remain readable across later turns and compaction; both experimental flags stay default-off pending calibration and full-suite gates.
+            - **Session Artifacts Explorer module (plan 16):** Explorer mounts `session-artifacts` beside host Files — list / refresh / load-more, bounded preview, and explicit download via the generated SDK; keep-mounted state clears on session switch.
+            - **Inspect-first FileView (plan 19):** project files call `file.inspect` before any full read; `readPolicy` selects editable-full / bounded-preview / metadata-only / same-origin raw stream, routed through `ProjectScienceView`.
+            - **Science routing E2E:** session-artifacts and file-science-routing specs cover register→list→preview→download, session A→B isolation, representative scientific fixtures, and zero `/api/atlas` requests.
 
             ### Fixed
 
-            - The Settings navigation spec no longer waits for the retired `Billing` panel button, dropped from the registry with the Atlas surface retirement.
+            - Stale artifact preview errors no longer crash the app on session switch.
+            - Files-tab / science-routing E2E flakiness around tab ambiguity and raw URL transport assertions.
+
+            ### Known limitations
+
+            - Plan 16/19 Checkpoint B and Definition of done remain open (full backend suite / root build gates and sidecar-dependent atlas-retirement E2E).
 
             ## 一键安装
 
@@ -253,8 +243,8 @@ jobs:
             设置环境变量 `RESEARCH_GRAPH_DISABLE=1` 可跳过 sidecar 与内置插件。
 
             ---
-            Full release notes: [CHANGELOG](https://github.com/medhorizon/medhorizon/blob/release/v0.3.19/CHANGELOG.md)
-            完整说明见 [README](https://github.com/medhorizon/medhorizon#readme) · [CHANGELOG](https://github.com/medhorizon/medhorizon/blob/release/v0.3.17/CHANGELOG.md)
+            Full release notes: [CHANGELOG](https://github.com/medhorizon/medhorizon/blob/release/v0.3.20/CHANGELOG.md)
+            完整说明见 [README](https://github.com/medhorizon/medhorizon#readme) · [CHANGELOG](https://github.com/medhorizon/medhorizon/blob/release/v0.3.20/CHANGELOG.md)
           files: |
             artifacts/*
           draft: false
