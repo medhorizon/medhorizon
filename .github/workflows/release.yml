@@ -28,7 +28,7 @@ jobs:
     name: Build ${{ matrix.target }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: oven-sh/setup-bun@v2
         with:
@@ -84,7 +84,7 @@ jobs:
           tar -czf medhorizon-${{ matrix.target }}.tar.gz -C release medhorizon
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: medhorizon-${{ matrix.target }}
           path: medhorizon-${{ matrix.target }}.${{ matrix.archive }}
@@ -93,9 +93,9 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           path: artifacts
           merge-multiple: true
@@ -107,7 +107,7 @@ jobs:
           cat checksums.txt
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           name: "MedHorizon ${{ github.ref_name }}"
           body: |
