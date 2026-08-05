@@ -15,27 +15,39 @@ import { Markdown } from "@synsci/ui/markdown"
 import { AsyncState, type AsyncStateProps } from "@synsci/ui/async-state"
 import { useSDK } from "@/context/sdk"
 import { useSync } from "@/context/sync"
-import { usePlatform } from "@/context/platform"
 import { FONT_MONO, FONT_SANS, FONT_CODE } from "@/styles/tokens"
 import { PdfViewer } from "@/science/renderers/documents/PdfViewer"
+import { ProjectScienceView } from "@/science/ProjectScienceView"
+import { clipText, formatBytes, inspectTruncated, mapInspectToUi, previewOf, type ProjectUiMode } from "@/science/files"
+import type { ScienceFileInspect } from "@synsci/sdk/v2/client"
 import { toast } from "@/atlas/Toast"
 import { IconFile, IconX, IconCopy, IconDownload, IconBookOpen, IconBraces, IconRefresh } from "@/atlas/shared/Icon"
 
 /**
- * Slide-in SIDE PREVIEW pane for opening a file from the Files tree.
+ * Inline file view — header (icon + name + subtitle + controls) over the
+ * type-aware renderer body.
  *
- * A file's extension picks the renderer:
- *   .md / .markdown  → formatted markdown (@synsci/ui Markdown)
- *   .pdf             → PdfViewer (pdfjs page rasterizer)
- *   .tex / .latex    → highlighted LaTeX source (a .tex is a source FILE, not a
- *                      math expression — the KaTeX LatexView is reserved for
- *                      kind:"latex" math ARTIFACTS with a single math string)
- *   images           → inline <img>
- *   everything else  → syntax-aware code/text view (with edit + save)
+ * LOAD POLICY (inspect-first): the only request issued on mount is the bounded
+ * science `file.inspect`. The old eager `file.read` never starts before inspect
+ * resolves; after inspect the generated `readPolicy` decides the rest:
  *
- * It mounts as a right-anchored drawer over the session so md / pdf / latex
- * get room to breathe instead of the cramped 360px pane. Esc / backdrop
- * click / the header × all close it.
+ *   - `editable-full` (within the frozen size threshold) → a single `file.read`
+ *     for the full text, then the existing markdown / code / renderer path.
+ *   - `bounded-preview` (over-budget text) → only the server-bounded preview,
+ *     read-only, with a hard char cap and an explicit truncated note.
+ *   - `metadata-only` (large/unknown binary) → metadata/capability summary and
+ *     a same-origin raw download; no full read, no base64/data URL.
+ *   - `streamed-media` (pdf) → the canonical same-origin raw/Range URL is handed
+ *     to the native consumer (pdfjs). Never base64/data-URL/JS content state.
+ *
+ * Read-only previews/metadata never expose a source/edit action that could
+ * implicitly trigger a full read. An inspect failure with unknown size/policy
+ * NEVER falls back to a full read — only retry / a raw stream download.
+ *
+ * Renderer-capable project files (sequence/structure) are handed to the
+ * project wrapper `ProjectScienceView`; everything else keeps the renderers
+ * below. This is the single load/renderer entry — the slide-in drawer
+ * (`FilePreview`, below) and the center-pane document tabs both mount it.
  */
 
 const ext = (name: string): string => {
@@ -101,15 +113,15 @@ const LANG: Record<string, string> = {
 
 type Kind = "markdown" | "pdf" | "image" | "code" | "binary"
 
-type FileData = { content?: string; encoding?: string; mimeType?: string }
-
 /**
- * Inline file view — header (icon + name + subtitle + controls) over the
- * type-aware renderer body. This is the single source of truth for the
- * renderer dispatch; both the slide-in drawer (FilePreview, below) and the
- * center-pane document tabs mount it, so nothing about opening a file is
- * duplicated.
+ * Image extensions that may be previewed inline by streaming the canonical
+ * same-origin raw URL through a native `<img>`. This is a DISPLAY affordance
+ * (like `LANG`), not a scientific detector: routing still follows the generated
+ * inspect readPolicy (a `metadata-only` binary shows metadata/capability), and
+ * the raw transport is the sanctioned streamed-media path — never a data URL.
  */
+const IMAGE_EXTS = new Set(["png", "jpg", "jpeg", "gif", "webp", "bmp", "svg"])
+
 export function FileView(props: {
   path: string
   directory?: string
@@ -118,7 +130,6 @@ export function FileView(props: {
 }): JSX.Element {
   const sdk = useSDK()
   const sync = useSync()
-  const platform = usePlatform()
   const directory = () => props.directory || sync.project?.worktree || sync.data.path.directory || sdk.directory
   const name = () => props.path.split("/").pop() || props.path
   const e = () => ext(name())
@@ -130,88 +141,142 @@ export function FileView(props: {
   const [savedText, setSavedText] = createSignal("")
   const [saving, setSaving] = createSignal(false)
   const [refreshKey, setRefreshKey] = createSignal(0)
+  const [imageFailed, setImageFailed] = createSignal(false)
 
-  const [file] = createResource(
+  // Phase 1 — inspect-first. The ONLY request issued on mount is the bounded
+  // science inspect; the old `file.read` is never started before this resolves.
+  const [inspectState] = createResource(
     () => [directory(), props.path, refreshKey()] as const,
     async ([dir, path]) => {
       if (!dir || !path) return undefined
       // Pass the params FLAT — the generated client maps `directory`/`path`
-      // into the query string; a `{ query: {...} }` wrapper is dropped and
-      // sends nothing. `directory` re-roots the backend Instance so any host
-      // file is readable by absolute directory + relative path (File.read).
-      const res = await sdk.client.file.read({ directory: dir, path })
-      const data: unknown = res.data
-      if (data === undefined) throw new Error("unexpected response while reading file")
-      return data as FileData
+      // into the query string; `directory` re-roots the backend Instance so any
+      // host folder is inspectable by directory + relative path.
+      const res = await sdk.client.file.inspect({ directory: dir, path })
+      const data = res.data
+      if (data === undefined) throw new Error("unexpected response while inspecting file")
+      return data
     },
   )
 
   // The resource accessor re-throws its error once resolved, so snapshot the
-  // last good value; data() stays readable for stale content and refresh
+  // last good value; inspect() stays readable for stale content and refresh
   // errors (the error banner renders above it instead of clearing it).
-  const [known, setKnown] = createSignal<FileData | undefined>(undefined)
+  const [knownInspect, setKnownInspect] = createSignal<ScienceFileInspect | undefined>(undefined)
   createEffect(() => {
-    if (!file.error) setKnown(file())
+    if (!inspectState.error) setKnownInspect(inspectState())
+  })
+  const inspect = () => knownInspect()
+
+  // Phase 2 — full content. Runs ONLY for editable-full text within the frozen
+  // threshold, and never before inspect settles. The source key includes the
+  // inspect result, so a refresh that changes the readPolicy (e.g. the file
+  // outgrew the full-read threshold) re-evaluates and aborts an in-flight read.
+  const [full] = createResource(
+    () => {
+      const ins = inspect()
+      if (!ins || ins.readPolicy !== "editable-full" || ins.mode !== "text") return undefined
+      return [directory(), props.path, refreshKey(), ins] as const
+    },
+    async ([dir, path]) => {
+      if (!dir || !path) return ""
+      const res = await sdk.client.file.read({ directory: dir, path })
+      const data = res.data
+      if (data === undefined) throw new Error("unexpected response while reading file")
+      return data.content ?? ""
+    },
+  )
+
+  const [knownText, setKnownText] = createSignal<string | undefined>(undefined)
+  createEffect(() => {
+    if (!full.error) setKnownText(full())
+  })
+  const fullText = () => knownText()
+
+  const editable = createMemo(() => {
+    const ins = inspect()
+    return !!ins && ins.mode === "text" && ins.readPolicy === "editable-full"
+  })
+  const boundedText = createMemo(() => {
+    const ins = inspect()
+    return !!ins && ins.mode === "text" && ins.readPolicy === "bounded-preview"
+  })
+  const binaryMode = createMemo(() => {
+    const ins = inspect()
+    return !!ins && ins.mode === "binary"
+  })
+  const uiMode = createMemo<ProjectUiMode | undefined>(() => {
+    const ins = inspect()
+    return ins ? mapInspectToUi(ins).mode : undefined
   })
 
-  const data = () => known()
-  const isBinary = () => data()?.encoding === "base64"
-  const mime = () => data()?.mimeType ?? ""
-  const b64 = () => data()?.content ?? ""
-  const dataUrl = () => `data:${mime() || "application/octet-stream"};base64,${b64()}`
-  const text = () => (!data() || isBinary() ? "" : (data()!.content ?? ""))
-  const dirty = () => draft() !== savedText()
+  // Displayed text: the full read for editable-full, or the server-bounded
+  // preview for bounded-preview. Metadata/stream modes carry no text.
+  const textContent = createMemo(() => {
+    const ins = inspect()
+    if (!ins || ins.mode !== "text") return ""
+    if (ins.readPolicy === "editable-full") return fullText() ?? ""
+    return previewOf(ins)
+  })
+  const dirty = () => editable() && draft() !== savedText()
 
   const kind = createMemo<Kind>(() => {
+    const ins = inspect()
     const x = e()
-    if (isBinary()) {
-      if (mime().startsWith("image/") || ["png", "jpg", "jpeg", "gif", "webp", "bmp", "svg"].includes(x)) return "image"
-      if (mime() === "application/pdf" || x === "pdf") return "pdf"
-      return "binary"
-    }
+    if (ins?.format === "pdf" || ins?.readPolicy === "streamed-media") return "pdf"
+    if (ins?.mode === "binary") return IMAGE_EXTS.has(x) ? "image" : "binary"
     if (x === "md" || x === "markdown" || x === "mdx") return "markdown"
-    if (x === "pdf") return "pdf"
-    // .tex / .latex / .sty / .cls are source files → highlighted "code" view
-    // (LANG maps them to the shiki `latex` grammar). They are NEVER routed to
-    // KaTeX, which blanks on a full \documentclass document.
     return "code"
   })
 
   const badge = () => {
+    const ins = inspect()
     const k = kind()
     if (k === "code") return LANG[e()] ?? e() ?? "text"
+    if (k === "binary") return ins && ins.format !== "unknown" ? ins.format : "binary"
     return k
   }
 
   createEffect(() => {
-    if (file.loading || file.error) return
-    const next = text()
+    if (!editable() || full.loading || full.error) return
+    const next = textContent()
     setDraft(next)
     setSavedText(next)
   })
 
+  // Reset the image-fallback flag whenever the document is re-inspected.
+  createEffect(() => {
+    void refreshKey()
+    setImageFailed(false)
+  })
+
+  // Canonical same-origin raw/Range URL for native consumption (img, pdfjs,
+  // download). Built with URLSearchParams for path-safety; never a fetch, never
+  // JSON/base64/data-URL, never held in JS content state.
+  const rawUrl = () => {
+    const dir = directory()
+    const p = props.path
+    if (!dir || !p) return ""
+    const url = new URL(`${sdk.url.replace(/\/$/, "")}/file/raw`)
+    url.searchParams.set("directory", dir)
+    url.searchParams.set("path", p)
+    return url.toString()
+  }
+
   const save = async () => {
-    if (saving() || isBinary() || !dirty()) return
+    if (saving() || !editable() || !dirty()) return
     setSaving(true)
     try {
-      // The generated SDK has no file.write; hit the real PUT /file/content
-      // route directly. `directory` re-roots the backend Instance, `path` is
-      // relative to it (see server middleware + File.write).
-      const url = `${sdk.url.replace(/\/$/, "")}/file/content?directory=${encodeURIComponent(directory())}`
-      const doFetch = platform.fetch ?? fetch
-      const res = await doFetch(url, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ path: props.path, content: draft() }),
-      })
-      if (!res.ok) throw new Error(`save failed (${res.status})`)
-      const d: any = await res.json().catch(() => ({}))
-      const next = typeof d?.content === "string" ? d.content : draft()
+      // The generated SDK owns file writes (its `file.write` method maps to the
+      // backend write route); the legacy handwritten fetch workaround is gone.
+      const res = await sdk.client.file.write({ directory: directory(), path: props.path, content: draft() })
+      const d = res.data
+      const next = d && typeof d.content === "string" ? d.content : draft()
       setDraft(next)
       setSavedText(next)
       toast.success("saved", name())
-    } catch (err: any) {
-      toast.error("save failed", err?.message ?? String(err))
+    } catch (err) {
+      toast.error("save failed", errorDetail(err))
     } finally {
       setSaving(false)
     }
@@ -219,49 +284,59 @@ export function FileView(props: {
 
   const copy = async () => {
     try {
-      await navigator.clipboard?.writeText(isBinary() ? dataUrl() : draft())
+      await navigator.clipboard?.writeText(textContent())
       toast.success("copied", name())
     } catch {}
   }
 
-  const toggleable = () => kind() === "markdown" || kind() === "code"
+  const toggleable = () => editable() && (kind() === "markdown" || kind() === "code")
 
-  // The renderer body — markdown / pdf / image / binary / highlighted source.
-  // binary is a capability state after a successful read, never an error.
-  const body = (): JSX.Element => (
-    <Switch>
-      {/* markdown */}
-      <Match when={kind() === "markdown" && !showSource()}>
-        <div style={{ padding: "22px 26px", "max-width": "820px", margin: "0 auto" }}>
-          <Markdown class="atlas-md" text={draft()} />
+  // The renderer body — render mode via the project wrapper, then pdf / image /
+  // binary / bounded text, then the existing markdown / code views. binary is a
+  // capability state after a successful inspect, never an error.
+  const body = (): JSX.Element => {
+    const ins = inspect()
+    const k = kind()
+
+    if (uiMode() === "render" && ins && textContent()) {
+      return (
+        <div style={{ padding: "14px 16px" }}>
+          <ProjectScienceView inspect={ins} content={textContent()} downloadUrl={rawUrl()} height={100000} />
         </div>
-      </Match>
+      )
+    }
 
-      {/* pdf */}
-      <Match when={kind() === "pdf"}>
+    if (k === "pdf") {
+      // streamed-media: hand the canonical raw URL to pdfjs — never base64.
+      return (
         <div style={{ padding: "14px" }}>
-          <PdfViewer kind="pdf" data={{ base64: b64(), maxPages: 40 }} height={100000} />
+          <PdfViewer kind="pdf" data={{ url: rawUrl(), maxPages: 40 }} height={100000} />
         </div>
-      </Match>
+      )
+    }
 
-      {/* image */}
-      <Match when={kind() === "image"}>
+    if (k === "image") {
+      return (
         <div style={{ display: "grid", "place-items": "center", padding: "22px", "min-height": "100%" }}>
-          <img
-            src={dataUrl()}
-            alt={name()}
-            style={{
-              "max-width": "100%",
-              "max-height": "100%",
-              "object-fit": "contain",
-              "border-radius": "4px",
-            }}
-          />
+          <Show when={!imageFailed()} fallback={<BinaryNote inspect={ins} />}>
+            <img
+              src={rawUrl()}
+              alt={name()}
+              onError={() => setImageFailed(true)}
+              style={{
+                "max-width": "100%",
+                "max-height": "100%",
+                "object-fit": "contain",
+                "border-radius": "4px",
+              }}
+            />
+          </Show>
         </div>
-      </Match>
+      )
+    }
 
-      {/* binary */}
-      <Match when={kind() === "binary"}>
+    if (k === "binary") {
+      return (
         <div
           style={{
             display: "grid",
@@ -271,61 +346,111 @@ export function FileView(props: {
             "text-align": "center",
           }}
         >
-          <div
+          <BinaryNote inspect={ins} />
+        </div>
+      )
+    }
+
+    if (boundedText()) {
+      // Over-budget text: server-bounded preview only, read-only, hard-capped
+      // retained chars and minimal DOM (a single <pre>, no syntax highlighting).
+      return (
+        <div style={{ padding: "14px 16px" }}>
+          <Show when={truncatedNote()}>
+            <div
+              data-slot="project-science-truncated"
+              style={{ "font-size": "12px", color: "#a8760a", "margin-bottom": "6px" }}
+            >
+              Bounded preview — content clipped to fit the retained-chars budget.
+            </div>
+          </Show>
+          <pre
+            data-slot="project-science-text-body"
+            class="atlas-scroll"
             style={{
-              "font-family": FONT_SANS,
-              "font-size": "13px",
-              color: "var(--color-text-muted)",
-              "line-height": 1.6,
+              margin: "0",
+              "max-height": "420px",
+              overflow: "auto",
+              "white-space": "pre-wrap",
+              "word-break": "break-word",
+              "font-family": FONT_CODE,
+              "font-size": "12px",
+              "line-height": 1.65,
+              color: "var(--color-text)",
+              background: "rgba(128,128,128,0.06)",
+              padding: "8px 10px",
+              "border-radius": "4px",
             }}
           >
-            Binary file — no inline preview.
-            <br />
-            Use the download button above to open it.
+            {clipText(textContent())}
+          </pre>
+        </div>
+      )
+    }
+
+    return (
+      <Switch>
+        {/* markdown */}
+        <Match when={k === "markdown" && !showSource()}>
+          <div style={{ padding: "22px 26px", "max-width": "820px", margin: "0 auto" }}>
+            <Markdown class="atlas-md" text={draft()} />
           </div>
-        </div>
-      </Match>
+        </Match>
 
-      {/* code / text — highlighted read view (the editable textarea renders
-          directly in the body Show below to keep its fill-height layout) */}
-      <Match when={kind() === "code" || (kind() === "markdown" && showSource())}>
-        <div style={{ padding: "14px 16px" }}>
-          <Markdown
-            class="atlas-md"
-            text={fence(
-              showSource() && kind() !== "code" ? langFor(kind(), e()) : (LANG[e()] ?? "text"),
-              draft(),
-            )}
-          />
-        </div>
-      </Match>
-    </Switch>
-  )
+        {/* code / text — highlighted read view (the editable textarea renders
+            directly in the body Show below to keep its fill-height layout) */}
+        <Match when={k === "code" || (k === "markdown" && showSource())}>
+          <div style={{ padding: "14px 16px" }}>
+            <Markdown
+              class="atlas-md"
+              text={fence(
+                showSource() && k !== "code" ? langFor(k, e()) : (LANG[e()] ?? "text"),
+                draft(),
+              )}
+            />
+          </div>
+        </Match>
+      </Switch>
+    )
+  }
 
-  // Map the read resource onto the kit AsyncState union. Error/loading follow
-  // the derivation rules with known() as the stale value; a successful empty
-  // read maps to `empty` (still editable via the header), and binary/unsupported
-  // is a ready capability state, not an error.
+  const truncatedNote = () => {
+    const ins = inspect()
+    const serverTruncated = ins ? inspectTruncated(ins) : false
+    return serverTruncated || clipText(textContent()).length < textContent().length
+  }
+
+  // Map the inspect/full resources onto the kit AsyncState union. Error/loading
+  // follow the derivation rules with the last-good values as stale content; a
+  // successful empty text file maps to `empty` (still editable via the header);
+  // binary/unsupported is a ready capability state, not an error.
   const asyncState = createMemo<AsyncStateProps>(() => {
-    const error = file.error
-    const stale = data()
-    if (error) {
+    const err = inspectState.error || full.error
+    const loading = inspectState.loading || (editable() && full.loading)
+    const stale = (() => {
+      const ins = inspect()
+      if (!ins) return false
+      if (ins.mode !== "text") return true
+      return textContent().length > 0
+    })()
+    if (err) {
       return {
         state: "error",
         label: name(),
         title: "couldn't open this file",
-        detail: errorDetail(error),
+        detail: errorDetail(err),
         retryLabel: "retry",
         retry: () => setRefreshKey((k) => k + 1),
         children: stale ? body() : undefined,
       }
     }
-    if (file.loading) {
+    if (loading) {
       return stale
         ? { state: "refreshing", label: name(), message: "updating file…", children: body() }
         : { state: "loading", label: name(), message: "loading file…" }
     }
-    if (!isBinary() && text() === "") {
+    const ins = inspect()
+    if (ins && ins.mode === "text" && textContent() === "") {
       return { state: "empty", label: name(), message: "empty file" }
     }
     return { state: "ready", label: name(), loadedMessage: "file loaded", children: body() }
@@ -424,13 +549,13 @@ export function FileView(props: {
           </button>
         </Show>
 
-        <Show when={!isBinary()}>
+        <Show when={!binaryMode()}>
           <button type="button" onClick={() => void copy()} title="copy contents" style={iconBtn()}>
             <IconCopy size={13} strokeWidth={1.6} />
           </button>
         </Show>
-        <Show when={isBinary()}>
-          <a href={dataUrl()} download={name()} title="download" style={{ ...iconBtn(), "text-decoration": "none" }}>
+        <Show when={binaryMode()}>
+          <a href={rawUrl()} download={name()} title="download" style={{ ...iconBtn(), "text-decoration": "none" }}>
             <IconDownload size={13} strokeWidth={1.6} />
           </a>
         </Show>
@@ -450,7 +575,7 @@ export function FileView(props: {
           editor layout is preserved; every other state goes through the shared
           AsyncState shell. */}
       <Show
-        when={kind() === "code" && showSource()}
+        when={editable() && kind() === "code" && showSource()}
         fallback={
           <div
             class="atlas-scroll"
@@ -485,6 +610,43 @@ export function FileView(props: {
             "tab-size": 2,
           }}
         />
+      </Show>
+    </div>
+  )
+}
+
+/**
+ * Metadata/capability summary for a binary project file. Kept as the plain
+ * "Binary file — no inline preview." capability state (with the inspect's
+ * family/format/size) — a successful inspect capability, never an error.
+ */
+function BinaryNote(props: { inspect?: ScienceFileInspect }): JSX.Element {
+  return (
+    <div
+      style={{
+        "font-family": FONT_SANS,
+        "font-size": "13px",
+        color: "var(--color-text-muted)",
+        "line-height": 1.6,
+      }}
+    >
+      Binary file — no inline preview.
+      <br />
+      Use the download button above to open it.
+      <Show when={props.inspect}>
+        {(ins) => (
+          <div
+            data-slot="project-science-meta"
+            style={{
+              "margin-top": "8px",
+              "font-family": FONT_MONO,
+              "font-size": "11px",
+              color: "var(--color-text-faint)",
+            }}
+          >
+            family {ins().family} · format {ins().format} · {formatBytes(ins().size)}
+          </div>
+        )}
       </Show>
     </div>
   )

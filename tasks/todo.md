@@ -72,8 +72,8 @@ Plan 00 是后端/运行时代码的合并门槛；纯 UI 实施可与其并行�
 - [x] 冻结 backend 单一 project-file manifest、扩展名/magic 优先级、read policy、renderer capability 与浏览器/服务端预算
 - [x] 实现共享 canonical resolver、bounded inspect/preview、stream download API 并生成 SDK
 - [x] 建立 project-file renderer registry，复用现有 science renderer 且不混 tool/session artifact identity
-- [ ] 在统一 FileView 落地 inspect-first 路由、AsyncState、生成 SDK write、错误恢复和大文件 fallback
-- [ ] 用真实 CSV/FASTA/VCF/PDB/HDF5/unknown fixtures 锁定全链路与零 Atlas 请求
+- [x] 在统一 FileView 落地 inspect-first 路由、AsyncState、生成 SDK write、错误恢复和大文件 fallback
+- [x] 用真实 CSV/FASTA/VCF/PDB/HDF5/unknown fixtures 锁定全链路与零 Atlas 请求
 - [ ] 通过 Plan 19 Checkpoint A/B
 - [ ] 完成 Plan 19 Definition of done
 
@@ -212,9 +212,9 @@ Plan 00 是后端/运行时代码的合并门槛；纯 UI 实施可与其并行�
 - [x] 冻结 RLMArtifacts 基线、legacy 行为与 Atlas-independent 模块边界
 - [x] 以 `.dat` 最后 visibility commit 原子增加 session artifact metadata、分页 list、bounded preview、download API 并生成 SDK
 - [x] 建立 Explorer core shell，以单一 compatibility adapter 插入现有 FileExplorer
-- [ ] 插入 Session Artifacts 列表、preview/download 模块
-- [ ] keep-mounted 仅保留同一 session 状态；session 切换取消旧请求并清空 artifact page/selection/preview
-- [ ] 通过真实 register→list→preview→download E2E 与零 Atlas 请求断言
+- [x] 插入 Session Artifacts 列表、preview/download 模块
+- [x] keep-mounted 仅保留同一 session 状态；session 切换取消旧请求并清空 artifact page/selection/preview
+- [x] 通过真实 register→list→preview→download E2E 与零 Atlas 请求断言
 - [ ] 通过 Plan 16 Checkpoint A/B
 - [ ] 完成 Plan 16 Definition of done
 
@@ -226,7 +226,7 @@ Plan 00 是后端/运行时代码的合并门槛；纯 UI 实施可与其并行�
 - [ ] workspace 仅有一个 Toast host，且不存在 `window.prompt/window.confirm`
 - [ ] loading/refreshing/empty/error/ready 语义互斥且 error 可 retry
 - [x] Atlas 产品入口不可见且默认无外部请求；Stage、Research Graph 与 BYOK/local 仍可用（E2E 待 CI 补跑）
-- [ ] Explorer 默认保持 host Files，并可插入本地 session artifacts；两条路径均不依赖 Atlas
+- [x] Explorer 默认保持 host Files，并可插入本地 session artifacts；两条路径均不依赖 Atlas
 
 ## Wave B：Research Graph 同源边界
 

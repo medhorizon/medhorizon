@@ -28,6 +28,7 @@ import { RightPane } from "@/atlas/RightPane"
 import { FileView } from "@/atlas/FilePreview"
 import { ExplorerShell } from "@/features/explorer/ExplorerShell"
 import { filesModule } from "@/features/explorer/modules/files"
+import { artifactsModule } from "@/features/explorer/modules/artifacts"
 import SkillsPage from "@/atlas/SkillsPage"
 import { centerTabs } from "@/atlas/store/centerTabs"
 import { FONT_MONO, FONT_SANS } from "@/styles/tokens"
@@ -65,9 +66,10 @@ import { toast } from "@/atlas/Toast"
 type SyncSession = ReturnType<typeof useSync>["data"]["session"][number]
 
 // Explorer module list — kept local to this page (the host injects modules).
-// Plan 16 Task 4 will append a `session-artifacts` module here; the shell
-// then renders the module tablist and keep-mounted panels.
-const EXPLORER_MODULES = [filesModule]
+// Files stays the default; the session-artifacts module is a second surface
+// that consumes only the generated SDK. The shell renders the module tablist
+// and keep-mounted panels.
+const EXPLORER_MODULES = [filesModule, artifactsModule]
 const EXPLORER_DEFAULT_MODULE = "files"
 
 /**
