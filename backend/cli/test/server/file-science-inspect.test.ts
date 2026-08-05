@@ -176,4 +176,43 @@ describe("file science HTTP routes", () => {
       },
     })
   })
+
+  test("OPENSCIENCE_ENABLE_ATLAS=1: science file routes never reach the Atlas bridge", async () => {
+    const prev = process.env.OPENSCIENCE_ENABLE_ATLAS
+    process.env.OPENSCIENCE_ENABLE_ATLAS = "1"
+    try {
+      await using tmp = await tmpdir({
+        init: async (dir) => {
+          await Bun.write(path.join(dir, "data.csv"), "a,b,c\n1,2,3\n")
+        },
+      })
+      await Instance.provide({
+        directory: tmp.path,
+        fn: async () => {
+          const hits: string[] = []
+          const realFetch = globalThis.fetch
+          globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+            hits.push(String(input))
+            return realFetch(input, init)
+          }) as typeof fetch
+          try {
+            const fetch = Server.internalFetch()
+            const csv = "&path=" + encodeURIComponent("data.csv")
+            for (const endpoint of ["/file/inspect", "/file/preview", "/file/raw"]) {
+              const res = await fetch(route(tmp.path, endpoint, csv))
+              expect(res.status).toBe(200)
+            }
+            // Enabling the Atlas cloud flag must not cause project-file I/O to
+            // touch the Atlas bridge (/api/atlas/*) or any outbound network.
+            expect(hits).toEqual([])
+          } finally {
+            globalThis.fetch = realFetch
+          }
+        },
+      })
+    } finally {
+      if (prev === undefined) delete process.env.OPENSCIENCE_ENABLE_ATLAS
+      else process.env.OPENSCIENCE_ENABLE_ATLAS = prev
+    }
+  })
 })

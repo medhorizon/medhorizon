@@ -12,6 +12,7 @@ import { PREVIEW_CAP } from "../../src/server/routes/session-artifacts"
 // Hono app via Server.internalFetch() (in-process, guarded by the nonce).
 const artifactsDir = (sessionId: string) => path.join(Global.Path.data, "artifacts", sessionId)
 const fetch = Server.internalFetch()
+const realFetch = globalThis.fetch
 const base = (sessionId: string, suffix = "") => `http://openscience.internal/session/${sessionId}${suffix}`
 
 // Warm the per-process project instance at module scope: the first request
@@ -307,5 +308,45 @@ describe("session artifact catalog API", () => {
     // committed payload and corrupt formal entry survive
     expect(await RLMArtifacts.resolve(sessionId, committed.id)).toBe("keep-me")
     expect(await fs.stat(path.join(dir, `${corruptId}.dat`)).catch(() => null)).not.toBeNull()
+  })
+
+  test("OPENSCIENCE_ENABLE_ATLAS on/off yields an identical contract with zero Atlas/upstream requests", async () => {
+    const sessionId = "ses-api-flag-neutral"
+    const ref = await RLMArtifacts.register(sessionId, "analysis", "flag-neutral payload", "flag neutral")
+
+    const snapshot = async () => {
+      const list = await fetch(base(sessionId, "/artifacts"))
+      const preview = await fetch(base(sessionId, `/artifacts/${ref.id}/preview`))
+      const content = await fetch(base(sessionId, `/artifacts/${ref.id}/content`))
+      return {
+        list: { status: list.status, body: await list.json() },
+        preview: { status: preview.status, body: await preview.json() },
+        content: { status: content.status, text: await content.text() },
+      }
+    }
+
+    // Baseline under the default flag-off environment.
+    const baseline = await snapshot()
+
+    const prev = process.env.OPENSCIENCE_ENABLE_ATLAS
+    try {
+      process.env.OPENSCIENCE_ENABLE_ATLAS = "1"
+      const hits: string[] = []
+      globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+        hits.push(String(input))
+        return realFetch(input, init)
+      }) as typeof globalThis.fetch
+
+      // The session artifact routes read only the local RLMArtifacts catalog:
+      // toggling the flag never changes the contract and no request escapes to
+      // Atlas, an account/bridge endpoint, or any upstream host.
+      const flagged = await snapshot()
+      expect(flagged).toEqual(baseline)
+      expect(hits).toEqual([])
+    } finally {
+      globalThis.fetch = realFetch
+      if (prev === undefined) delete process.env.OPENSCIENCE_ENABLE_ATLAS
+      else process.env.OPENSCIENCE_ENABLE_ATLAS = prev
+    }
   })
 })

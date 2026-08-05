@@ -26,7 +26,7 @@ test("Files listing, search, and open use only host file endpoints", async ({ pa
   })
 
   await gotoSession()
-  await page.getByRole("tab", { name: "Files", exact: true }).click()
+  await page.locator('[role="tab"][title="Files"]').click()
 
   // Directory listing: descend into the repo tree.
   const item = (name: string) => page.getByRole("button", { name: new RegExp(`^${name}\\b`) }).first()
