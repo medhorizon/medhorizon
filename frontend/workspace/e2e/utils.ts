@@ -3,9 +3,10 @@ import { base64Encode } from "@synsci/util/encode"
 
 export const serverHost = process.env.PLAYWRIGHT_SERVER_HOST ?? "localhost"
 export const serverPort = process.env.PLAYWRIGHT_SERVER_PORT ?? "4096"
+const displayPort = process.env.VITE_OPENSCIENCE_SERVER_PORT ?? serverPort
 
 export const serverUrl = `http://${serverHost}:${serverPort}`
-export const serverName = `${serverHost}:${serverPort}`
+export const serverName = `${serverHost}:${displayPort}`
 
 export const modKey = process.platform === "darwin" ? "Meta" : "Control"
 export const terminalToggleKey = "Control+Backquote"

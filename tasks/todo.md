@@ -43,11 +43,12 @@ Plan 00 是后端/运行时代码的合并门槛；纯 UI 实施可与其并行�
 
 ### [18 — Tool 执行运行时与资源效率优化](plans/18-tool-runtime-optimization.md)
 
-- [ ] 冻结真实 Python/R、kernel、用户 shell、大输出与 fan-out 基线，并定义隐私安全 ProcessReceipt
+- [ ] 用固定三类真实派生 workload mix 冻结 Python/R、kernel、用户 shell、大输出与 fan-out 基线；ProcessReceipt 只用 opaque receipt/call/session ID，不记录 command-derived hash
 - [ ] 消除重复 tool ID、dead profile declaration 与 origin capability 漂移
 - [ ] 用 ProcessSupervisor 接管 Bash 和一次性 Python/R，统一 deadline、thread cap、bounded output 与 kill-tree
 - [ ] 收敛 notebook/rkernel 的 timer、session release、串行执行、全局 cap、redaction 与 rich output 生命周期
-- [ ] 落地 ephemeral-first 路由、scoped subprocess env、strict sandbox 与统一用户 shell 路径
+- [ ] 落地 skill 声明 + agent 授权 + 单次请求的 subprocess capability 契约，完成 shipped provider-skill inventory 后再 enforce scoped env
+- [ ] 落地 ephemeral-first 路由、strict sandbox 与统一用户 shell 路径
 - [ ] 让 Batch 只消费当前 selected invoker，并以有界并发拒绝 stateful/heavy 工具
 - [ ] 硬化 WebFetch 的逐跳 redirect/SSRF 校验、body deadline 与 5 MiB stream budget
 - [ ] 让 Read/Grep 在输入源头 bounded，不再先读取完整文件或完整匹配输出
@@ -56,9 +57,9 @@ Plan 00 是后端/运行时代码的合并门槛；纯 UI 实施可与其并行�
 
 ### Plan 18 checkpoint
 
-- [ ] one-shot success/failure/cancel/timeout 后 2 秒内无存活后代，kernel 在 TTL/session delete 后完全释放
+- [ ] POSIX/Windows Job Object containment 下 one-shot success/failure/cancel/timeout 后 2 秒内经 probe 无存活后代；taskkill-only Windows 明确 degraded；kernel 在 TTL/session delete 后完全释放
 - [ ] 默认 deadline、线程与 global/session/scientific lane 上限由代码强制，20+ fan-out 无 permit/listener/process leak
-- [ ] Bash/notebook/rkernel/用户 shell 的 stdout、stderr、metadata、receipt 与 spill 均为 0 secret 泄漏
+- [ ] Bash/notebook/rkernel/用户 shell 的所有文本通道与 PNG ancillary text 均为 0 secret 泄漏；binary/base64/像素责任边界明确
 - [ ] 100 MiB process output、Read/Grep 输入与 WebFetch body 均在源头 bounded，内存不随总输入/输出线性增长
 - [ ] effective tool IDs 与 profile 一致，Batch capability bypass 为 0
 - [ ] flag off/shadow/bash/scientific/shell/on 与 scoped env 回退均已演练
@@ -178,19 +179,19 @@ Plan 00 是后端/运行时代码的合并门槛；纯 UI 实施可与其并行�
 
 ### [06 — Settings Dialog 收敛](plans/06-settings-dialogs.md)
 
-- [ ] 硬化共享 Promise dialog 原语
-- [ ] 迁移 OAuth code 与 Storage path 输入
-- [ ] 迁移 Connectors、Credentials、General 确认
-- [ ] 迁移 Memory、Network、Specialists 确认
+- [x] 硬化共享 Promise dialog 原语
+- [x] 迁移 OAuth code 与 Storage path 输入
+- [x] 迁移 Connectors、Credentials、General 确认
+- [x] 迁移 Memory、Network、Specialists 确认
 - [ ] 通过 Plan 06 Checkpoint
 - [ ] 完成 Plan 06 Definition of done
 
 ### [07 — 异步资源状态统一](plans/07-async-resource-states.md)
 
-- [ ] 实现并测试 AsyncState 展示原语
-- [ ] 迁移两棵文件树并停止错误转空
-- [ ] 迁移文件预览与 FolderPicker 状态
-- [ ] 区分技能同步中、空库与无搜索结果
+- [x] 实现并测试 AsyncState 展示原语
+- [x] 迁移两棵文件树并停止错误转空
+- [x] 迁移文件预览与 FolderPicker 状态
+- [x] 区分技能同步中、空库与无搜索结果
 - [ ] 通过 Plan 07 Checkpoint
 - [ ] 完成 Plan 07 Definition of done
 
@@ -232,29 +233,30 @@ Plan 00 是后端/运行时代码的合并门槛；纯 UI 实施可与其并行�
 
 ### [04 — Research Graph 同源 gateway](plans/04-research-graph-gateway.md)
 
-- [ ] 构建 backend-only reverse proxy
-- [ ] 让嵌入 Research Graph UI 支持路径前缀
-- [ ] 增加权威 session→graph resolution
-- [ ] 生成 SDK 并迁移 workspace pane
-- [ ] 增加 gateway contract 与浏览器 E2E
-- [ ] 通过 Plan 04 Checkpoint
-- [ ] 完成 Plan 04 Definition of done
+- [x] 构建 backend-only reverse proxy
+- [x] 让嵌入 Research Graph UI 支持路径前缀
+- [x] 增加权威 session→graph resolution
+- [x] 生成 SDK 并迁移 workspace pane
+- [x] 增加 gateway contract 与浏览器 E2E
+- [x] 通过 Plan 04 Checkpoint
+- [x] 完成 Plan 04 Definition of done
 
 ### Wave B checkpoint
 
-- [ ] 浏览器不直接访问 sidecar 端口、不持有 capability token
-- [ ] session binding 不再做标题猜测或逐 graph tree 扫描
-- [ ] gateway contract、SDK consumer 与浏览器 E2E 通过
+- [x] 浏览器不直接访问 sidecar 端口、不持有 capability token
+- [x] session binding 不再做标题猜测或逐 graph tree 扫描
+- [x] gateway contract、SDK consumer 与浏览器 E2E 通过
 
 ## Wave C：视觉基线与 Orchestrator MVP
 
 ### [08 — 视觉系统与回归基线](plans/08-visual-system-and-regression.md)
 
-- [ ] 定义语义 token 与兼容 alias
-- [ ] 在 Home/Session 壳层采用 token
-- [ ] 在 Settings/共享 primitive 采用 token
-- [ ] 建立 18 张代表面 screenshot golden
-- [ ] 增加 axe、键盘、reduced-motion 与 CI gate
+- [x] 定义语义 token 与兼容 alias
+- [x] 在 Home/Session 壳层采用 token
+- [x] 在 Settings/共享 primitive 采用 token
+- [x] 提前建立统一视觉稳定化、axe、键盘与 reduced-motion smoke
+- [ ] 建立 18 张基础与 2 张 Session drawer-open screenshot golden（正式 baseline 待 07 完成）
+- [ ] 用独立 10 分钟 job 分阶段启用 visual/a11y CI gate（job 已接线；required gate 待两轮冷 Linux 观察）
 - [ ] 通过 Plan 08 Checkpoint
 - [ ] 完成 Plan 08 Definition of done
 

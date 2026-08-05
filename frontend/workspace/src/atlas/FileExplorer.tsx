@@ -195,16 +195,21 @@ export function FileExplorer(): JSX.Element {
   )
 
   // The resource accessor AND `entries.latest` re-throw once errored, so
-  // snapshot the last good value here; sorted() stays readable for stale rows
-  // under a refresh error, and navigating never blanks to a "loading…" flash.
-  const [known, setKnown] = createSignal<FileNode[] | undefined>(undefined)
+  // snapshot the last good value here. Stale rows remain readable only while
+  // refreshing the same folder, never after navigating to another folder.
+  const [known, setKnown] = createSignal<{ path: string; rows: FileNode[] }>()
   createEffect(() => {
-    if (!entries.error) setKnown(entries())
+    const path = cwd()
+    if (entries.loading || entries.error) return
+    const rows = entries()
+    if (!rows) return
+    setKnown({ path, rows })
   })
+  const latest = () => (known()?.path === cwd() ? known()?.rows : undefined)
 
   // Sort once per directory load; filtering then runs over the already-sorted
   // list against the debounced query.
-  const sorted = createMemo(() => sortNodes(known() ?? []))
+  const sorted = createMemo(() => sortNodes(latest() ?? []))
   const filtered = createMemo(() => {
     const q = query().toLowerCase().trim()
     const rows = sorted()
@@ -244,7 +249,7 @@ export function FileExplorer(): JSX.Element {
   // backend's guidance text as the error detail.
   const asyncState = createMemo<AsyncStateProps>(() => {
     const error = entries.error
-    const latest = known()
+    const rows = latest()
     if (error) {
       return {
         state: "error",
@@ -253,11 +258,11 @@ export function FileExplorer(): JSX.Element {
         detail: errorDetail(error),
         retryLabel: "retry",
         retry: () => setRefreshKey((k) => k + 1),
-        children: latest?.length ? body() : undefined,
+        children: rows?.length ? body() : undefined,
       }
     }
     if (entries.loading) {
-      return latest?.length
+      return rows?.length
         ? { state: "refreshing", label: "Files", message: "updating files…", children: body() }
         : { state: "loading", label: "Files", message: "loading files…" }
     }
@@ -350,88 +355,88 @@ export function FileExplorer(): JSX.Element {
           "flex-shrink": 0,
         }}
       >
-          <button
-            type="button"
-            title="back"
-            disabled={!history().length}
-            style={navBtn(!history().length)}
-            onClick={goBack}
-          >
-            <IconChevronLeft size={13} strokeWidth={1.6} />
-          </button>
-          <button type="button" title="up" style={navBtn(false)} onClick={goUp}>
-            <IconArrowUp size={13} strokeWidth={1.6} />
-          </button>
-          <div style={pathBar()}>
-            <input
-              value={pathDraft()}
-              spellcheck={false}
-              onFocus={() => (editing = true)}
-              onBlur={() => {
-                editing = false
-                setPathDraft(cwd())
-              }}
-              onInput={(e) => setPathDraft(e.currentTarget.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  editing = false
-                  navigate(pathDraft().trim())
-                  e.currentTarget.blur()
-                }
-                if (e.key === "Escape") {
-                  setPathDraft(cwd())
-                  e.currentTarget.blur()
-                }
-              }}
-              placeholder="/absolute/path"
-              style={{
-                all: "unset",
-                flex: 1,
-                "min-width": 0,
-                "font-family": FONT_MONO,
-                "font-size": "11px",
-                color: "var(--color-text)",
-              }}
-            />
-          </div>
-          <button type="button" title="refresh" style={navBtn(false)} onClick={() => setRefreshKey((k) => k + 1)}>
-            <IconRefresh size={12} strokeWidth={1.6} />
-          </button>
-        </div>
-
-        {/* search */}
-        <div
-          style={{
-            display: "flex",
-            "align-items": "center",
-            gap: "6px",
-            padding: "8px 14px",
-            "border-bottom": "1px solid var(--color-border)",
-            "flex-shrink": 0,
-          }}
+        <button
+          type="button"
+          title="back"
+          disabled={!history().length}
+          style={navBtn(!history().length)}
+          onClick={goBack}
         >
-          <IconSearch size={11} strokeWidth={1.5} />
+          <IconChevronLeft size={13} strokeWidth={1.6} />
+        </button>
+        <button type="button" title="up" style={navBtn(false)} onClick={goUp}>
+          <IconArrowUp size={13} strokeWidth={1.6} />
+        </button>
+        <div style={pathBar()}>
           <input
-            value={filter()}
-            onInput={(e) => setFilterDebounced(e.currentTarget.value)}
-            placeholder="filter this folder…"
+            value={pathDraft()}
+            spellcheck={false}
+            onFocus={() => (editing = true)}
+            onBlur={() => {
+              editing = false
+              setPathDraft(cwd())
+            }}
+            onInput={(e) => setPathDraft(e.currentTarget.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                editing = false
+                navigate(pathDraft().trim())
+                e.currentTarget.blur()
+              }
+              if (e.key === "Escape") {
+                setPathDraft(cwd())
+                e.currentTarget.blur()
+              }
+            }}
+            placeholder="/absolute/path"
             style={{
               all: "unset",
               flex: 1,
+              "min-width": 0,
               "font-family": FONT_MONO,
               "font-size": "11px",
               color: "var(--color-text)",
             }}
           />
-          <span style={{ "font-family": FONT_MONO, "font-size": "10px", color: "var(--color-text-faint)" }}>
-            {filtered().length} items
-          </span>
         </div>
+        <button type="button" title="refresh" style={navBtn(false)} onClick={() => setRefreshKey((k) => k + 1)}>
+          <IconRefresh size={12} strokeWidth={1.6} />
+        </button>
+      </div>
 
-        {/* body */}
-        <div class="atlas-scroll" style={{ flex: 1, "min-height": 0, "overflow-y": "auto", "overflow-x": "hidden" }}>
-          <AsyncState {...asyncState()} />
-        </div>
+      {/* search */}
+      <div
+        style={{
+          display: "flex",
+          "align-items": "center",
+          gap: "6px",
+          padding: "8px 14px",
+          "border-bottom": "1px solid var(--color-border)",
+          "flex-shrink": 0,
+        }}
+      >
+        <IconSearch size={11} strokeWidth={1.5} />
+        <input
+          value={filter()}
+          onInput={(e) => setFilterDebounced(e.currentTarget.value)}
+          placeholder="filter this folder…"
+          style={{
+            all: "unset",
+            flex: 1,
+            "font-family": FONT_MONO,
+            "font-size": "11px",
+            color: "var(--color-text)",
+          }}
+        />
+        <span style={{ "font-family": FONT_MONO, "font-size": "10px", color: "var(--color-text-faint)" }}>
+          {filtered().length} items
+        </span>
+      </div>
+
+      {/* body */}
+      <div class="atlas-scroll" style={{ flex: 1, "min-height": 0, "overflow-y": "auto", "overflow-x": "hidden" }}>
+        <AsyncState {...asyncState()} />
+      </div>
     </div>
   )
 }

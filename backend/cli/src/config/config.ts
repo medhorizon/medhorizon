@@ -28,6 +28,7 @@ import { existsSync } from "fs"
 import { Bus } from "@/bus"
 import { GlobalBus } from "@/bus/global"
 import { Event } from "../server/event"
+import { CapabilityPolicy } from "../process/policy"
 
 export namespace Config {
   const log = Log.create({ service: "config" })
@@ -733,6 +734,11 @@ export namespace Config {
         .optional()
         .describe("Hide this subagent from the @ autocomplete menu (default: false, only applies to mode: subagent)"),
       options: z.record(z.string(), z.any()).optional(),
+      /** Upper bounds for logical subprocess capabilities.  These fields are
+       * intentionally explicit so they cannot be silently moved into the
+       * legacy `options` bag. */
+      subprocess_capabilities: CapabilityPolicy.grants.optional(),
+      subprocessCapabilities: CapabilityPolicy.grants.optional(),
       color: z
         .string()
         .regex(/^#[0-9a-fA-F]{6}$/, "Invalid hex color format")
@@ -767,6 +773,8 @@ export namespace Config {
         "maxSteps",
         "toolset",
         "options",
+        "subprocess_capabilities",
+        "subprocessCapabilities",
         "permission",
         "disable",
         "tools",
@@ -794,10 +802,21 @@ export namespace Config {
       // Convert legacy maxSteps to steps
       const steps = agent.steps ?? agent.maxSteps
 
-      return { ...agent, options, permission, steps } as typeof agent & {
+      if (agent.subprocess_capabilities && agent.subprocessCapabilities) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["subprocessCapabilities"],
+          message: "Use only one of subprocess_capabilities or subprocessCapabilities",
+        })
+      }
+
+      const subprocessCapabilities = agent.subprocessCapabilities ?? agent.subprocess_capabilities
+
+      return { ...agent, options, permission, steps, subprocessCapabilities } as typeof agent & {
         options?: Record<string, unknown>
         permission?: Permission
         steps?: number
+        subprocessCapabilities?: z.output<typeof CapabilityPolicy.grants>
       }
     })
     .meta({

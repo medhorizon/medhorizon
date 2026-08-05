@@ -4,6 +4,7 @@ import { Log } from "@/util/log"
 import { Token } from "@/util/token"
 import { MessageV2 } from "./message-v2"
 import type { Tool } from "ai"
+import type { ProcessReceipt } from "../process/types"
 import z from "zod"
 
 // Context-management telemetry (spec P0 + plan 13 task 1). Every metric is a bus
@@ -90,6 +91,33 @@ export namespace SessionTelemetry {
         before: z.number().optional(),
         after: z.number().optional(),
         reclaimed: z.number(),
+      }),
+    ),
+    // Privacy-safe process runtime receipt.  The event intentionally mirrors
+    // only anonymous IDs, timing, status, byte counters and sandbox state;
+    // commands, arguments, paths, env values and output bodies never enter the
+    // session event stream.
+    Process: BusEvent.define(
+      "session.process",
+      z.object({
+        sessionID: z.string(),
+        callID: z.string(),
+        receiptID: z.string(),
+        runtime: z.enum(["bash", "python", "r", "notebook", "rkernel", "shell"]),
+        mode: z.enum(["ephemeral", "persistent"]),
+        lane: z.enum(["general", "scientific", "kernel"]),
+        status: z.enum(["success", "failure", "cancelled", "timeout"]),
+        waitMs: z.number().nonnegative(),
+        runMs: z.number().nonnegative(),
+        sandbox: z.enum(["requested", "enforced", "degraded", "unavailable"]),
+        backend: z.string().optional(),
+        output: z.object({
+          inlineBytes: z.number().int().nonnegative(),
+          totalBytes: z.number().int().nonnegative(),
+          truncated: z.boolean(),
+          spilled: z.boolean(),
+          ref: z.string().optional(),
+        }),
       }),
     ),
   }
@@ -367,5 +395,22 @@ export namespace SessionTelemetry {
       after,
       reclaimed: input.reclaimed,
     }).catch((error) => log.debug("compaction telemetry publish failed", { error: `${error}` }))
+  }
+
+  export function recordProcess(receipt: ProcessReceipt) {
+    return Bus.publish(Event.Process, {
+      sessionID: receipt.sessionID,
+      callID: receipt.callID,
+      receiptID: receipt.receiptID,
+      runtime: receipt.runtime,
+      mode: receipt.mode,
+      lane: receipt.lane,
+      status: receipt.status,
+      waitMs: receipt.waitMs,
+      runMs: receipt.runMs,
+      sandbox: receipt.sandbox,
+      backend: receipt.backend,
+      output: receipt.output,
+    }).catch((error) => log.debug("process telemetry publish failed", { error: `${error}` }))
   }
 }

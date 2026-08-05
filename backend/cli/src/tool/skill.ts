@@ -115,7 +115,7 @@ export const SkillTool = Tool.define("skill", async (ctx) => {
         return {
           title: `Skills in category: ${cat} (${matched.length})`,
           output: `## Category: ${cat}\n\n${matched.length} skills available. Load one by calling this tool with its name.\n\n${listing}`,
-          metadata: { name: cat, dir: "" },
+          metadata: { name: cat, dir: "", sourceID: "", digest: "" },
         }
       }
 
@@ -126,7 +126,7 @@ export const SkillTool = Tool.define("skill", async (ctx) => {
         return {
           title: "Skill categories",
           output: `Provide a skill \`name\` to load, or a \`category\` to browse. Available categories: ${available}`,
-          metadata: { name: "", dir: "" },
+          metadata: { name: "", dir: "", sourceID: "", digest: "" },
         }
       }
 
@@ -191,6 +191,8 @@ export const SkillTool = Tool.define("skill", async (ctx) => {
         metadata: {
           name: skill.name,
           dir,
+          sourceID: skill.sourceID ?? "",
+          digest: skill.digest ?? Skill.digest(await Bun.file(skill.location).text().catch(() => content)),
         },
       }
     },

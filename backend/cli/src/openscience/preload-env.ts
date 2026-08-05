@@ -21,6 +21,8 @@ import * as path from "node:path"
 import { isSyncedEnvAllowed } from "./synced-env-policy"
 import { loadProjectDotenv } from "./dotenv"
 
+const MAX_REGISTERED_SECRET_BYTES = 16 * 1024
+
 function syncedEnvPath(): string {
   const xdg = process.env.XDG_CONFIG_HOME || path.join(os.homedir(), ".config")
   const candidates = ["medhorizon", "openscience", "synsc"].map((dir) => path.join(xdg, dir, "synced-env.json"))
@@ -61,6 +63,7 @@ function syncedEnvPath(): string {
   if (!env || typeof env !== "object" || Array.isArray(env)) return
   for (const [k, v] of Object.entries(env as Record<string, unknown>)) {
     if (typeof v !== "string") continue
+    if (Buffer.byteLength(v, "utf8") > MAX_REGISTERED_SECRET_BYTES) continue
     // Drop per-provider LLM credentials that are BYOK-local-only now — a stale
     // synced key must never shadow the user's own (see synced-env-policy.ts).
     if (!isSyncedEnvAllowed(k, v)) continue

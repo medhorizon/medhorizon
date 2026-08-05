@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test"
 import path from "path"
+import { open } from "fs/promises"
 import { GrepTool } from "../../src/tool/grep"
 import { Instance } from "../../src/project/instance"
 import { tmpdir } from "../fixture/fixture"
@@ -56,6 +57,48 @@ describe("tool.grep", () => {
         )
         expect(result.metadata.matches).toBe(0)
         expect(result.output).toBe("No files found")
+      },
+    })
+  })
+
+  test("bounds high-match output at the match and byte budgets", async () => {
+    await using tmp = await tmpdir({
+      init: async (dir) => {
+        const filepath = path.join(dir, "many-matches.txt")
+        const file = await open(filepath, "w")
+        try {
+          const line = `needle ${"x".repeat(300)}\n`
+          const block = line.repeat(3200)
+          for (const _ of Array.from({ length: 100 })) await file.write(block)
+        } finally {
+          await file.close()
+        }
+      },
+    })
+    await Instance.provide({
+      directory: tmp.path,
+      fn: async () => {
+        const grep = await GrepTool.init()
+        const result = await grep.execute({ pattern: "needle", path: tmp.path }, ctx)
+        expect(result.metadata.matches).toBe(100)
+        expect(result.metadata.truncated).toBe(true)
+        expect(result.output).toContain("Found 100 matches")
+        expect(result.output).toContain("Results are truncated")
+      },
+    })
+  })
+
+  test("reports a real ripgrep command failure instead of no matches", async () => {
+    await using tmp = await tmpdir({
+      init: async (dir) => {
+        await Bun.write(path.join(dir, "test.txt"), "content")
+      },
+    })
+    await Instance.provide({
+      directory: tmp.path,
+      fn: async () => {
+        const grep = await GrepTool.init()
+        await expect(grep.execute({ pattern: "[", path: tmp.path }, ctx)).rejects.toThrow(/ripgrep failed/)
       },
     })
   })

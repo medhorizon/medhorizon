@@ -4,6 +4,7 @@ import { Instance } from "../../src/project/instance"
 import { Bus } from "../../src/bus"
 import { Log } from "../../src/util/log"
 import { SessionTelemetry } from "../../src/session/telemetry"
+import { createReceipt } from "../../src/process/types"
 import { tmpdir } from "../fixture/fixture"
 
 Log.init({ print: false })
@@ -165,6 +166,52 @@ describe("session.telemetry.recordCompaction", () => {
           reclaimed: 176_000,
         })
         expect(seen[0]).toMatchObject({ trigger: "overflow", mechanism: "summary", before: 180_000, after: 4_000 })
+      },
+    })
+  })
+})
+
+describe("session.telemetry.recordProcess", () => {
+  test("publishes receipt metrics without command, env, or output content", async () => {
+    await using tmp = await tmpdir()
+    await Instance.provide({
+      directory: tmp.path,
+      fn: async () => {
+        const seen: unknown[] = []
+        Bus.subscribe(SessionTelemetry.Event.Process, (e) => seen.push(e.properties))
+        const receipt = createReceipt({
+          callID: "call_process",
+          sessionID: "ses_process",
+          runtime: "python",
+          mode: "ephemeral",
+          lane: "scientific",
+          status: "success",
+          queuedAt: 100,
+          startedAt: 110,
+          endedAt: 140,
+          waitMs: 10,
+          runMs: 30,
+          sandbox: "unavailable",
+          output: { inlineBytes: 12, totalBytes: 12, truncated: false, spilled: false },
+        })
+        await SessionTelemetry.recordProcess(receipt)
+
+        expect(seen).toEqual([
+          {
+            sessionID: "ses_process",
+            callID: "call_process",
+            receiptID: receipt.receiptID,
+            runtime: "python",
+            mode: "ephemeral",
+            lane: "scientific",
+            status: "success",
+            waitMs: 10,
+            runMs: 30,
+            sandbox: "unavailable",
+            output: { inlineBytes: 12, totalBytes: 12, truncated: false, spilled: false },
+          },
+        ])
+        expect(JSON.stringify(seen)).not.toMatch(/command|args|env|secret|output content/i)
       },
     })
   })

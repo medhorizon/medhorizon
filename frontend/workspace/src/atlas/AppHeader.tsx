@@ -12,8 +12,8 @@ export function AppHeader(props: { children: JSX.Element }): JSX.Element {
       style={{
         display: "flex",
         "align-items": "center",
-        gap: "12px",
-        padding: "10px 20px",
+        gap: "var(--space-3)",
+        padding: "var(--space-2) var(--space-4)",
         "flex-shrink": 0,
         position: "relative",
         "z-index": 10,
@@ -44,11 +44,11 @@ export function HeaderIconButton(props: {
         display: "inline-flex",
         "align-items": "center",
         "justify-content": "center",
-        "border-radius": "4px",
+        "border-radius": "var(--radius-control)",
         border: "1px solid var(--color-border)",
         color: "var(--color-text-muted)",
         background: "var(--color-surface-solid)",
-        transition: "background 120ms ease, color 120ms ease",
+        transition: "background var(--motion-fast) var(--motion-ease), color var(--motion-fast) var(--motion-ease)",
       }}
       onMouseEnter={(e) => {
         e.currentTarget.style.background = "var(--color-bg-elevated)"
@@ -65,5 +65,5 @@ export function HeaderIconButton(props: {
 }
 
 export function HeaderDivider(): JSX.Element {
-  return <span style={{ width: "1px", height: "16px", background: "var(--color-border)" }} />
+  return <span style={{ width: "1px", height: "var(--space-4)", background: "var(--color-border)" }} />
 }

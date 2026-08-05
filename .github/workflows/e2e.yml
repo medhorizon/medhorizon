@@ -2,6 +2,12 @@ name: E2E
 
 on:
   workflow_dispatch:
+    inputs:
+      update_visual:
+        description: "Generate Linux visual baseline candidates instead of comparing snapshots"
+        required: false
+        default: false
+        type: boolean
   # Nightly rather than per-PR: the suite is long and browser-heavy. Promote
   # to a PR trigger once it has a green track record.
   schedule:
@@ -21,12 +27,22 @@ jobs:
             host: ubuntu-latest
             playwright: bunx playwright install --with-deps
             workdir: .
+            job_timeout: 60
+            run_timeout: 30
             # Only the browser suite. The backend unit suite already runs in
             # ci.yml on every push/PR; re-running it here fails (this job never
             # configures a git identity) and reads the seeded XDG dirs as its
             # global config.
             command: |
               bun turbo test --filter=@synsci/workspace
+          - name: visual-a11y
+            host: ubuntu-latest
+            playwright: bunx playwright install --with-deps
+            workdir: .
+            job_timeout: 10
+            run_timeout: 10
+            command: |
+              bun run --cwd frontend/workspace test:e2e:visual
           # Windows e2e:local skipped — chronically failing since
           # 2026-04-28 across all PRs from all authors. Root cause is
           # the in-process Playwright/bun/Vite spawn chain not
@@ -35,7 +51,7 @@ jobs:
           # PR with full audit context (see commits b47b779/d7ad855/
           # 21aae5d/6a9dcd0/0f1d7c1 for the diagnosis chain).
     runs-on: ${{ matrix.settings.host }}
-    timeout-minutes: 60
+    timeout-minutes: ${{ matrix.settings.job_timeout }}
     defaults:
       run:
         shell: bash
@@ -165,7 +181,12 @@ jobs:
 
       - name: run
         working-directory: ${{ matrix.settings.workdir }}
-        run: ${{ matrix.settings.command }}
+        run: |
+          if [ "${{ matrix.settings.name }}" = "visual-a11y" ] && [ "${{ inputs.update_visual }}" = "true" ]; then
+            VISUAL_BASELINE_UPDATE=1 bun run --cwd frontend/workspace visual:update
+          else
+            ${{ matrix.settings.command }}
+          fi
         env:
           CI: true
           OPENSCIENCE_DISABLE_SHARE: "true"
@@ -182,7 +203,42 @@ jobs:
           VITE_OPENSCIENCE_SERVER_HOST: "127.0.0.1"
           VITE_OPENSCIENCE_SERVER_PORT: "4096"
           OPENSCIENCE_CLIENT: "app"
-        timeout-minutes: 30
+          # Until the formal Linux baseline is approved, visual runs are
+          # observation-only. Set the repository variable
+          # VISUAL_BASELINE_READY=true after Task 5 review to enable compare.
+          VISUAL_OBSERVE: ${{ matrix.settings.name == 'visual-a11y' && inputs.update_visual != true && vars.VISUAL_BASELINE_READY != 'true' && '1' || '' }}
+        timeout-minutes: ${{ matrix.settings.run_timeout }}
+
+      - name: Upload visual/a11y reports
+        if: always() && matrix.settings.name == 'visual-a11y'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: visual-a11y-report-${{ github.run_attempt }}
+          if-no-files-found: warn
+          retention-days: 7
+          path: |
+            frontend/workspace/e2e/test-results
+            frontend/workspace/e2e/playwright-report
+
+      - name: Upload visual observation
+        if: matrix.settings.name == 'visual-a11y' && inputs.update_visual != true && vars.VISUAL_BASELINE_READY != 'true' && success()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: visual-observation-${{ github.run_attempt }}
+          if-no-files-found: warn
+          retention-days: 7
+          path: |
+            frontend/workspace/e2e/test-results
+            frontend/workspace/e2e/playwright-report
+
+      - name: Upload visual baseline candidates
+        if: matrix.settings.name == 'visual-a11y' && inputs.update_visual == true
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: visual-baseline-candidates-${{ github.run_attempt }}
+          if-no-files-found: error
+          retention-days: 7
+          path: frontend/workspace/e2e/visual-shells.spec.ts-snapshots
 
       - name: Print server log
         if: failure() && matrix.settings.name != 'windows'

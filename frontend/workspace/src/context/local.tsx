@@ -54,25 +54,31 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
     const ALL_CYCLABLE = ["research", "biology", "physics", "ml"] as const
 
     const agent = (() => {
-      const list = createMemo(() => sync.data.agent.filter((x) => x.mode !== "subagent" && !x.hidden))
-      const all = createMemo(() => sync.data.agent.filter((x) => x.mode !== "subagent"))
+      const list = createMemo(() => {
+        const agents = sync.data.agent
+        return Array.isArray(agents) ? agents.filter((x) => x.mode !== "subagent" && !x.hidden) : []
+      })
+      const all = createMemo(() => {
+        const agents = sync.data.agent
+        return Array.isArray(agents) ? agents.filter((x) => x.mode !== "subagent") : []
+      })
       const [store, setStore] = createStore<{
         current?: string
       }>({
-        current: list()[0]?.name,
+        current: list()?.[0]?.name,
       })
       return {
         list,
         all,
         current() {
-          const allAgents = all()
-          const visible = list()
+          const allAgents = all() ?? []
+          const visible = list() ?? []
           if (allAgents.length === 0) return undefined
           return allAgents.find((x) => x.name === store.current) ?? visible[0]
         },
         set(name: string | undefined) {
-          const allAgents = all()
-          const visible = list()
+          const allAgents = all() ?? []
+          const visible = list() ?? []
           if (allAgents.length === 0) {
             setStore("current", undefined)
             return
@@ -84,7 +90,7 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
           setStore("current", visible[0]?.name)
         },
         move(direction: 1 | -1) {
-          const available = list()
+          const available = list() ?? []
           if (available.length === 0) {
             setStore("current", undefined)
             return

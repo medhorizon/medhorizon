@@ -2,7 +2,7 @@
 
 **Status:** Planned  
 **Priority:** P2  
-**Dependencies:** `11-orchestrator-evaluation.md` 已固定行为基线；建议在 orchestrator/runtime 行为稳定后实施。
+**Dependencies:** `11-orchestrator-evaluation.md` 已固定行为基线。Task 1 可先行冻结 `17-pi-runtime-migration.md` 可消费的 framework-neutral runtime contract；Tasks 2–5 建议在 orchestrator/runtime 行为稳定后实施，避免 Pi adapter 等待本计划全部抽取完成。
 
 ## Current state
 
@@ -42,6 +42,7 @@ session/turn/context.ts      history/reminders/artifacts/system/composition
 session/turn/tools.ts        selection, context, invocation and hook envelope
 session/turn/finalize.ts     terminal message/error/status/callback completion
 session/turn/runner.ts       narrow child/session execution port
+session/runtime/runtime.ts   framework-neutral turn runtime contract
 ```
 
 依赖只指向下层模块；`tool/task.ts` 使用注入到 `Tool.Context` 的窄 runner/cancel port，不再 import `session/prompt.ts`。公共 `SessionPrompt` exports 保持：`PromptInput/prompt/loop/cancel/assertNotBusy/resolvePromptParts`、Shell/Command API、`modelTier` 与 `OUTPUT_TOKEN_MAX`。
@@ -49,6 +50,12 @@ session/turn/runner.ts       narrow child/session execution port
 ### Characterization trace
 
 测试收集真实 Bus/MessageV2 事件的规范化 trace（去除随机 ID/时间），至少固定：text-only、tool success/error、permission、subtask、cancel、retry、overflow compaction、empty/doom-loop。断言相对顺序和恰好一次语义，不把整个内部实现序列化为脆弱 snapshot。
+
+### Frozen runtime contract
+
+Task 1 在移动实现之前冻结一个 versioned internal contract：turn input 只包含领域 IDs、已经 assembly 的 system/messages、当前 turn 已 selection 的 tool handles、共享 invoker、event sink、`AbortSignal` 与 deadline；输出只包含 canonical runtime events 和 terminal outcome。该 contract 不导出 Pi、AI SDK、TypeBox、具体 provider 或 SessionPrompt namespace 类型。
+
+Plan 17 可在 Task 1 完成后基于该 contract 开发 adapter；正式接入 `prompt.ts` 与共享 invoke path 仍等待本计划 Tasks 2–3。contract harness 使用真实领域 fixture 与轻量 in-memory sink/invoker，不通过 mock 复制 SessionPrompt、tool invoke 或 finalize 判定。
 
 ### Compatibility and rollback
 
@@ -61,7 +68,7 @@ session/turn/runner.ts       narrow child/session execution port
 
 ### Task 1: 固定 turn 事件与结果契约
 
-**Description:** 新增真实 session characterization harness，规范化随机字段并断言关键事件/part/status 相对顺序。
+**Description:** 新增真实 session characterization harness，规范化随机字段并断言关键事件/part/status 相对顺序；同时在实现抽取前冻结 framework-neutral turn runtime contract，使后续 adapter 可并行开发而不抢先改写生产 seam。
 
 **Acceptance:**
 
@@ -69,15 +76,20 @@ session/turn/runner.ts       narrow child/session execution port
 - [ ] 断言 plugin before/after、tool part running→terminal、message completed、flush、idle 的恰好一次和相对顺序。
 - [ ] harness 订阅真实 Bus/Storage/Session 流，不复制 loop 判定。
 - [ ] trace 只规范化 ID/时间等非语义字段，不隐藏 status、finish、error 或 event type。
+- [ ] `TurnRuntime` contract 明确 turn input、selected handles、shared invoker、event sink、terminal outcome、`AbortSignal` 与 deadline；不泄露 Pi、AI SDK、TypeBox、provider 或 SessionPrompt namespace 类型。
+- [ ] contract 带内部版本与兼容性不变量；Plan 17 只能实现该 port，签名变更必须由 Plans 13/17 同一 owner 更新 contract tests 与变更记录。
+- [ ] contract harness 使用真实 domain fixture 与 in-memory sink/invoker，禁止用 mock 复制 SessionPrompt loop、invoke 或 finalize 行为。
 
 **Verification:**
 
 - [ ] 从 `backend/cli` 运行新 contract suite 两次，输出稳定。
 - [ ] 人工交换一个关键事件或重复 hook 时，测试必须失败。
+- [ ] legacy implementation 跑完整 runtime contract suite；另用 compile-time fixture 验证 port 可被替代实现消费，fixture 不复制或声称验证生产 loop 行为。
 
 **Dependencies:** Plan 11 baseline 可用。  
-**Files:** `backend/cli/test/session/prompt-contract.test.ts`、`backend/cli/test/session/fixture/turn-trace.ts`、`backend/cli/test/session/fixture/turn-cases.ts`。  
-**Scope:** M（3 files）
+**Files:** `backend/cli/src/session/runtime/runtime.ts`、`backend/cli/test/session/prompt-contract.test.ts`、`backend/cli/test/session/runtime-contract.test.ts`、`backend/cli/test/session/fixture/turn-trace.ts`、`backend/cli/test/session/fixture/turn-cases.ts`。
+
+**Scope:** M（5 files）
 
 ### Task 2: 打破 TaskTool 与 SessionPrompt 模块环
 
@@ -161,6 +173,7 @@ session/turn/runner.ts       narrow child/session execution port
 
 ## Checkpoint
 
+- [ ] Task 1 已冻结 versioned `TurnRuntime` contract；Plan 17 可据此开发 adapter，生产 wiring 仍等待 Tasks 2–3。
 - [ ] `prompt.ts` 是兼容 facade，核心职责已沿单向依赖拆开。
 - [ ] TaskTool 不再反向 import SessionPrompt，普通/pending subtask 共用 invoke envelope。
 - [ ] 所有 characterization traces 与公开 API/schema 不变。
@@ -169,13 +182,14 @@ session/turn/runner.ts       narrow child/session execution port
 
 ## Risks
 
-| Risk                                     | Impact                   | Mitigation                                                    |
-| ---------------------------------------- | ------------------------ | ------------------------------------------------------------- |
-| “只移动代码”改变事件顺序                 | UI/SDK race、状态假 idle | 先建 trace；每 commit 比对相对顺序                            |
-| 循环依赖转成隐蔽 service locator         | 更难理解/测试            | 窄 typed runner port，显式注入，不暴露 namespace              |
-| 统一 tool envelope 改变 hooks/permission | 安全与 plugin 回归       | before/after exactly-once contract + permission focused tests |
-| 抽取时顺带改 prompt                      | 模型行为漂移             | system/messages golden；本计划禁止 prompt 优化                |
-| 文件变多但边界不清                       | 复杂度只是搬家           | 明确 dependency direction；模块禁止反向 import                |
+| Risk                                       | Impact                     | Mitigation                                                                   |
+| ------------------------------------------ | -------------------------- | ---------------------------------------------------------------------------- |
+| “只移动代码”改变事件顺序                   | UI/SDK race、状态假 idle   | 先建 trace；每 commit 比对相对顺序                                           |
+| runtime contract 过晚冻结或被 adapter 私改 | Plan 17 串行阻塞或边界漂移 | Task 1 提前冻结 version/invariants；Plans 13/17 共用 owner 与 contract tests |
+| 循环依赖转成隐蔽 service locator           | 更难理解/测试              | 窄 typed runner port，显式注入，不暴露 namespace                             |
+| 统一 tool envelope 改变 hooks/permission   | 安全与 plugin 回归         | before/after exactly-once contract + permission focused tests                |
+| 抽取时顺带改 prompt                        | 模型行为漂移               | system/messages golden；本计划禁止 prompt 优化                               |
+| 文件变多但边界不清                         | 复杂度只是搬家             | 明确 dependency direction；模块禁止反向 import                               |
 
 ## Definition of done
 

@@ -35,6 +35,8 @@ function textFrom(value: unknown): string {
 
 function replyFor(body: ChatRequest) {
   const text = textFrom(body.messages)
+  const visual = text.match(/E2E_VISUAL_MARKDOWN_BEGIN\n([\s\S]*?)\nE2E_VISUAL_MARKDOWN_END/)
+  if (visual?.[1]) return visual[1]
   if (text.includes("E2E_TIER_COMMAND")) {
     return `E2E_TIER_COMMAND_${body.model ?? "unknown"}_${body.service_tier ?? "standard"}`
   }

@@ -34,7 +34,7 @@ import {
   IconSettings,
   IconSun,
 } from "@/atlas/shared/Icon"
-import { FONT_CODE, FONT_MONO, FONT_SANS, FONT_SERIF } from "@/styles/tokens"
+import { FONT_CODE, FONT_CONTENT, FONT_UI } from "@/styles/tokens"
 
 /** 26px bordered icon button shared by the hover action clusters in grid cards and list rows. */
 const ACTION_BUTTON: JSX.CSSProperties = {
@@ -45,11 +45,11 @@ const ACTION_BUTTON: JSX.CSSProperties = {
   "justify-content": "center",
   width: "26px",
   height: "26px",
-  "border-radius": "4px",
+  "border-radius": "var(--radius-control)",
   background: "var(--color-surface-solid)",
   border: "1px solid var(--color-border)",
   color: "var(--color-text-faint)",
-  transition: "all var(--duration-fast) var(--ease-standard)",
+  transition: "all var(--motion-fast) var(--motion-ease)",
 }
 
 /**
@@ -182,6 +182,7 @@ export default function Home(): JSX.Element {
   return (
     <div
       class="atlas-root"
+      data-visual-ready={sync.ready ? "home" : undefined}
       style={{
         flex: 1,
         display: "flex",
@@ -202,11 +203,11 @@ export default function Home(): JSX.Element {
           style={{
             display: "inline-flex",
             "align-items": "center",
-            gap: "6px",
+            gap: "var(--space-2)",
             height: "32px",
             "box-sizing": "border-box",
-            padding: "0 10px",
-            "border-radius": "4px",
+            padding: "0 var(--space-3)",
+            "border-radius": "var(--radius-control)",
             border: "1px solid var(--color-border)",
             background: "var(--color-surface-solid)",
             "min-width": "240px",
@@ -221,7 +222,7 @@ export default function Home(): JSX.Element {
             style={{
               all: "unset",
               flex: 1,
-              "font-family": FONT_SANS,
+              "font-family": FONT_UI,
               "font-size": "13px",
               color: "var(--color-text)",
             }}
@@ -237,14 +238,14 @@ export default function Home(): JSX.Element {
             cursor: "pointer",
             display: "inline-flex",
             "align-items": "center",
-            gap: "6px",
+            gap: "var(--space-2)",
             height: "32px",
             "box-sizing": "border-box",
-            padding: "0 14px",
-            "border-radius": "4px",
+            padding: "0 var(--space-3)",
+            "border-radius": "var(--radius-control)",
             background: "var(--color-accent)",
             color: "var(--color-on-accent)",
-            "font-family": FONT_SANS,
+            "font-family": FONT_UI,
             "font-size": "13px",
             "font-weight": 400,
             "box-shadow": "var(--shadow-sm)",
@@ -270,14 +271,14 @@ export default function Home(): JSX.Element {
             cursor: "pointer",
             display: "inline-flex",
             "align-items": "center",
-            gap: "6px",
+            gap: "var(--space-2)",
             height: "32px",
             "box-sizing": "border-box",
-            padding: "0 10px",
-            "border-radius": "4px",
+            padding: "0 var(--space-3)",
+            "border-radius": "var(--radius-control)",
             border: "1px solid var(--color-border)",
             background: "var(--color-surface-solid)",
-            "font-family": FONT_MONO,
+            "font-family": FONT_CODE,
             "font-size": "10px",
             color: "var(--color-text-muted)",
           }}
@@ -304,7 +305,7 @@ export default function Home(): JSX.Element {
         style={{
           flex: 1,
           "overflow-y": "auto",
-          padding: "44px 32px 80px",
+          padding: "var(--space-7) var(--space-6) var(--space-8)",
           "max-width": "1240px",
           margin: "0 auto",
           width: "100%",
@@ -317,14 +318,14 @@ export default function Home(): JSX.Element {
               display: "flex",
               "align-items": "baseline",
               "justify-content": "space-between",
-              gap: "14px",
-              "margin-bottom": "16px",
+              gap: "var(--space-3)",
+              "margin-bottom": "var(--space-4)",
             }}
           >
-            <div style={{ display: "flex", "align-items": "baseline", gap: "9px" }}>
+            <div style={{ display: "flex", "align-items": "baseline", gap: "var(--space-2)" }}>
               <h1
                 style={{
-                  "font-family": FONT_SANS,
+                  "font-family": FONT_UI,
                   "font-size": "17px",
                   "font-weight": 700,
                   "letter-spacing": "-0.01em",
@@ -336,7 +337,7 @@ export default function Home(): JSX.Element {
               </h1>
               <span
                 style={{
-                  "font-family": FONT_MONO,
+                  "font-family": FONT_CODE,
                   "font-size": "11px",
                   color: "var(--color-text-faint)",
                 }}
@@ -358,7 +359,7 @@ export default function Home(): JSX.Element {
                     display: "flex",
                     "flex-direction": "column",
                     border: "1px solid var(--color-border)",
-                    "border-radius": "4px",
+                    "border-radius": "var(--radius-card)",
                     overflow: "hidden",
                   }}
                 >
@@ -389,7 +390,7 @@ export default function Home(): JSX.Element {
                 style={{
                   display: "grid",
                   "grid-template-columns": "repeat(auto-fill, minmax(264px, 1fr))",
-                  gap: "10px",
+                  gap: "var(--space-2)",
                 }}
               >
                 <For each={filtered()}>
@@ -425,23 +426,23 @@ function NoProjectMatches(props: { query: string; onClear: () => void; onChoose:
   return (
     <div
       style={{
-        padding: "42px 20px",
+        padding: "var(--space-7) var(--space-5)",
         border: "1px dashed var(--color-border-strong)",
-        "border-radius": "4px",
+        "border-radius": "var(--radius-card)",
         background: "var(--color-surface-solid)",
         display: "flex",
         "flex-direction": "column",
         "align-items": "center",
-        gap: "12px",
+        gap: "var(--space-3)",
         "text-align": "center",
       }}
     >
-      <div style={{ "font-family": FONT_SERIF, "font-size": "24px", color: "var(--color-text)" }}>
+      <div style={{ "font-family": FONT_CONTENT, "font-size": "24px", color: "var(--color-text)" }}>
         No matching projects
       </div>
       <div
         style={{
-          "font-family": FONT_SANS,
+          "font-family": FONT_CONTENT,
           "font-size": "13px",
           color: "var(--color-text-muted)",
           "line-height": 1.5,
@@ -449,7 +450,7 @@ function NoProjectMatches(props: { query: string; onClear: () => void; onChoose:
       >
         Nothing matched <code style={{ "font-family": FONT_CODE }}>{props.query}</code>.
       </div>
-      <div style={{ display: "flex", gap: "8px" }}>
+      <div style={{ display: "flex", gap: "var(--space-2)" }}>
         <button type="button" onClick={props.onClear} style={emptyButton()}>
           clear search
         </button>
@@ -465,12 +466,12 @@ function emptyButton(primary = false): JSX.CSSProperties {
   return {
     all: "unset",
     cursor: "pointer",
-    padding: "6px 12px",
-    "border-radius": "4px",
+    padding: "var(--space-2) var(--space-3)",
+    "border-radius": "var(--radius-control)",
     border: primary ? "1px solid var(--color-accent)" : "1px solid var(--color-border)",
     background: primary ? "var(--color-accent)" : "var(--color-bg-elevated)",
     color: primary ? "var(--color-on-accent)" : "var(--color-text)",
-    "font-family": FONT_MONO,
+    "font-family": FONT_UI,
     "font-size": "11px",
     "font-weight": 400,
   }
@@ -493,15 +494,9 @@ function ProjectCard(props: {
   }
   return (
     <div
-      role="button"
-      tabindex="0"
+      role="group"
+      aria-label={`Project ${name()}`}
       onClick={props.onOpen}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault()
-          props.onOpen()
-        }
-      }}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       class="atlas-stagger"
@@ -509,82 +504,94 @@ function ProjectCard(props: {
         cursor: "pointer",
         display: "flex",
         "flex-direction": "column",
-        gap: "8px",
-        padding: "13px 15px",
+        gap: "var(--space-2)",
+        padding: "var(--space-3) var(--space-4)",
         background: hover() ? "var(--color-bg-elevated)" : "var(--color-surface-solid)",
         border: "1px solid var(--color-border)",
-        "border-radius": "4px",
-        transition: "border-color 140ms ease, background 140ms ease",
+        "border-radius": "var(--radius-card)",
+        transition:
+          "border-color var(--motion-normal) var(--motion-ease), background var(--motion-normal) var(--motion-ease)",
         "border-color": hover() ? "var(--color-border-strong)" : "var(--color-border)",
         position: "relative",
         overflow: "hidden",
       }}
     >
-      <div style={{ display: "flex", "align-items": "center", gap: "9px", position: "relative" }}>
-        <FolderGlyph />
-        <div style={{ flex: 1, "min-width": 0 }}>
-          <div
-            style={{
-              display: "flex",
-              "align-items": "center",
-              gap: "6px",
-            }}
-          >
-            <span
+      <button
+        type="button"
+        aria-label={`Open ${name()}`}
+        onClick={(e) => {
+          e.stopPropagation()
+          props.onOpen()
+        }}
+        style={{ all: "unset", cursor: "pointer", display: "block", width: "100%", "text-align": "left" }}
+      >
+        <div style={{ display: "flex", "align-items": "center", gap: "var(--space-2)", position: "relative" }}>
+          <FolderGlyph />
+          <div style={{ flex: 1, "min-width": 0 }}>
+            <div
               style={{
-                "font-family": FONT_SANS,
-                "font-size": "15px",
-                "font-weight": 400,
-                color: "var(--color-text)",
+                display: "flex",
+                "align-items": "center",
+                gap: "var(--space-2)",
+              }}
+            >
+              <span
+                style={{
+                  "font-family": FONT_UI,
+                  "font-size": "15px",
+                  "font-weight": 400,
+                  color: "var(--color-text)",
+                  overflow: "hidden",
+                  "text-overflow": "ellipsis",
+                  "white-space": "nowrap",
+                  "min-width": 0,
+                  flex: 1,
+                }}
+              >
+                {name()}
+              </span>
+              <Show when={props.isFavorite}>
+                <span
+                  style={{
+                    display: "inline-flex",
+                    color: "var(--color-warning)",
+                    "flex-shrink": 0,
+                  }}
+                  title="favorite"
+                >
+                  <IconStarFilled size={12} />
+                </span>
+              </Show>
+            </div>
+            <div
+              style={{
+                "font-family": FONT_CODE,
+                "font-size": "11px",
+                color: "var(--color-text-faint)",
+                "margin-top": "var(--space-1)",
                 overflow: "hidden",
                 "text-overflow": "ellipsis",
                 "white-space": "nowrap",
-                "min-width": 0,
-                flex: 1,
               }}
             >
-              {name()}
-            </span>
-            <Show when={props.isFavorite}>
-              <span
-                style={{
-                  display: "inline-flex",
-                  color: "var(--color-warning)",
-                  "flex-shrink": 0,
-                }}
-                title="favorite"
-              >
-                <IconStarFilled size={12} />
-              </span>
-            </Show>
-          </div>
-          <div
-            style={{
-              "font-family": FONT_MONO,
-              "font-size": "11px",
-              color: "var(--color-text-faint)",
-              "margin-top": "1px",
-              overflow: "hidden",
-              "text-overflow": "ellipsis",
-              "white-space": "nowrap",
-            }}
-          >
-            {display()}
+              {display()}
+            </div>
           </div>
         </div>
-      </div>
+      </button>
 
       {/* Hover-revealed action cluster — top-right corner */}
       <div
         style={{
           position: "absolute",
-          top: "10px",
-          right: "10px",
+          top: "var(--space-2)",
+          right: "var(--space-2)",
           display: "flex",
-          gap: "4px",
+          gap: "var(--space-1)",
           opacity: hover() || props.isFavorite ? 1 : 0,
           transform: hover() ? "translateY(0)" : "translateY(-4px)",
-          transition: "opacity 160ms ease, transform 160ms ease",
+          transition:
+            "opacity var(--motion-normal) var(--motion-ease), transform var(--motion-normal) var(--motion-ease)",
           "pointer-events": hover() || props.isFavorite ? "auto" : "none",
         }}
       >
@@ -637,13 +644,16 @@ function ProjectCard(props: {
         style={{
           display: "flex",
           "align-items": "center",
-          gap: "12px",
-          "font-family": FONT_MONO,
+          gap: "var(--space-3)",
+          "font-family": FONT_CODE,
           "font-size": "11px",
           color: "var(--color-text-faint)",
         }}
       >
-        <span style={{ display: "inline-flex", "align-items": "center", gap: "5px" }}>
+        <span
+          data-slot="relative-time"
+          style={{ display: "inline-flex", "align-items": "center", gap: "var(--space-1)" }}
+        >
           <IconClock size={11} strokeWidth={1.5} />
           {DateTime.fromMillis(props.updatedAt).toRelative() ?? "—"}
         </span>
@@ -653,7 +663,7 @@ function ProjectCard(props: {
             style={{
               display: "inline-flex",
               "align-items": "center",
-              gap: "4px",
+              gap: "var(--space-1)",
               color: "var(--color-text)",
               "font-weight": 400,
             }}
@@ -676,7 +686,7 @@ function ViewToggle(props: { view: "grid" | "list"; onChange: (v: "grid" | "list
     "justify-content": "center",
     width: "28px",
     height: "26px",
-    "border-radius": "4px",
+    "border-radius": "var(--radius-control)",
     color: active ? "var(--color-text)" : "var(--color-text-faint)",
     background: active ? "var(--color-surface-solid)" : "transparent",
     border: active ? "1px solid var(--color-border)" : "1px solid transparent",
@@ -685,9 +695,9 @@ function ViewToggle(props: { view: "grid" | "list"; onChange: (v: "grid" | "list
     <div
       style={{
         display: "inline-flex",
-        gap: "2px",
-        padding: "2px",
-        "border-radius": "4px",
+        gap: "var(--space-1)",
+        padding: "var(--space-1)",
+        "border-radius": "var(--radius-control)",
         background: "var(--color-bg-subtle)",
         border: "1px solid var(--color-border)",
       }}
@@ -745,72 +755,86 @@ function ProjectRow(props: {
   }
   return (
     <div
-      role="button"
-      tabindex="0"
+      role="group"
+      aria-label={`Project ${name()}`}
       onClick={props.onOpen}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault()
-          props.onOpen()
-        }
-      }}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       style={{
         cursor: "pointer",
         display: "flex",
         "align-items": "center",
-        gap: "10px",
-        padding: "6px 14px",
+        gap: "var(--space-2)",
+        padding: "var(--space-2) var(--space-3)",
         "border-bottom": props.last ? "none" : "1px solid var(--color-border)",
         background: hover() ? "var(--color-bg-elevated)" : "transparent",
-        transition: "background 120ms ease",
+        transition: "background var(--motion-fast) var(--motion-ease)",
       }}
     >
-      <FolderGlyph />
-      <span
-        style={{
-          "font-family": FONT_SANS,
-          "font-size": "13px",
-          "font-weight": 400,
-          color: "var(--color-text)",
-          "flex-shrink": 0,
+      <button
+        type="button"
+        aria-label={`Open ${name()}`}
+        onClick={(e) => {
+          e.stopPropagation()
+          props.onOpen()
         }}
-      >
-        {name()}
-      </span>
-      <Show when={props.isFavorite}>
-        <span style={{ display: "inline-flex", color: "var(--color-warning)", "flex-shrink": 0 }}>
-          <IconStarFilled size={12} />
-        </span>
-      </Show>
-      <span
         style={{
+          all: "unset",
+          cursor: "pointer",
+          display: "flex",
+          "align-items": "center",
+          gap: "var(--space-2)",
           flex: 1,
           "min-width": 0,
-          "font-family": FONT_MONO,
-          "font-size": "11px",
-          color: "var(--color-text-faint)",
-          overflow: "hidden",
-          "text-overflow": "ellipsis",
-          "white-space": "nowrap",
+          "text-align": "left",
         }}
       >
-        {display()}
-      </span>
-      <span
-        style={{ "font-family": FONT_MONO, "font-size": "11px", color: "var(--color-text-faint)", "flex-shrink": 0 }}
-      >
-        {DateTime.fromMillis(props.updatedAt).toRelative() ?? "—"}
-      </span>
+        <FolderGlyph />
+        <span
+          style={{
+            "font-family": FONT_UI,
+            "font-size": "13px",
+            "font-weight": 400,
+            color: "var(--color-text)",
+            "flex-shrink": 0,
+          }}
+        >
+          {name()}
+        </span>
+        <Show when={props.isFavorite}>
+          <span style={{ display: "inline-flex", color: "var(--color-warning)", "flex-shrink": 0 }}>
+            <IconStarFilled size={12} />
+          </span>
+        </Show>
+        <span
+          style={{
+            flex: 1,
+            "min-width": 0,
+            "font-family": FONT_CODE,
+            "font-size": "11px",
+            color: "var(--color-text-faint)",
+            overflow: "hidden",
+            "text-overflow": "ellipsis",
+            "white-space": "nowrap",
+          }}
+        >
+          {display()}
+        </span>
+        <span
+          data-slot="relative-time"
+          style={{ "font-family": FONT_CODE, "font-size": "11px", color: "var(--color-text-faint)", "flex-shrink": 0 }}
+        >
+          {DateTime.fromMillis(props.updatedAt).toRelative() ?? "—"}
+        </span>
+      </button>
       <div
         style={{
           display: "flex",
-          gap: "4px",
+          gap: "var(--space-1)",
           "flex-shrink": 0,
           opacity: hover() || props.isFavorite ? 1 : 0,
           "pointer-events": hover() || props.isFavorite ? "auto" : "none",
-          transition: "opacity 140ms ease",
+          transition: "opacity var(--motion-normal) var(--motion-ease)",
         }}
       >
         <button
@@ -876,17 +900,18 @@ function NewProjectCard(props: { onClick: () => void }): JSX.Element {
         "flex-direction": "column",
         "align-items": "center",
         "justify-content": "center",
-        gap: "6px",
-        padding: "13px 15px",
+        gap: "var(--space-2)",
+        padding: "var(--space-3) var(--space-4)",
         background: "transparent",
         border: hover() ? "1px dashed var(--color-text-faint)" : "1px dashed var(--color-border-strong)",
-        "border-radius": "4px",
+        "border-radius": "var(--radius-card)",
         color: hover() ? "var(--color-text)" : "var(--color-text-faint)",
-        transition: "border-color 160ms ease, color 160ms ease",
+        transition:
+          "border-color var(--motion-normal) var(--motion-ease), color var(--motion-normal) var(--motion-ease)",
       }}
     >
       <IconPlus size={15} strokeWidth={2} />
-      <span style={{ "font-family": FONT_SANS, "font-size": "13px", "font-weight": 400 }}>new project</span>
+      <span style={{ "font-family": FONT_UI, "font-size": "13px", "font-weight": 400 }}>new project</span>
     </button>
   )
 }
@@ -900,15 +925,15 @@ function EmptyHero(props: { onChoose: () => void }): JSX.Element {
         "flex-direction": "column",
         "align-items": "center",
         "justify-content": "center",
-        gap: "20px",
-        padding: "100px 24px 64px",
+        gap: "var(--space-5)",
+        padding: "var(--space-8) var(--space-5) var(--space-6)",
         "text-align": "center",
       }}
     >
       <AgentIcon size={56} animated={false} strokeWidth={1.0} />
       <h1
         style={{
-          "font-family": FONT_SERIF,
+          "font-family": FONT_CONTENT,
           "font-size": "48px",
           "font-weight": 400,
           "letter-spacing": "-0.025em",
@@ -921,7 +946,7 @@ function EmptyHero(props: { onChoose: () => void }): JSX.Element {
       </h1>
       <p
         style={{
-          "font-family": FONT_SANS,
+          "font-family": FONT_CONTENT,
           "font-size": "15px",
           "line-height": 1.55,
           color: "var(--color-text-muted)",
@@ -931,7 +956,7 @@ function EmptyHero(props: { onChoose: () => void }): JSX.Element {
       >
         Pick a folder to work in — your sessions stay organized around it.
       </p>
-      <div style={{ display: "flex", gap: "10px", "margin-top": "8px" }}>
+      <div style={{ display: "flex", gap: "var(--space-2)", "margin-top": "var(--space-2)" }}>
         <button
           onClick={props.onChoose}
           style={{
@@ -939,12 +964,12 @@ function EmptyHero(props: { onChoose: () => void }): JSX.Element {
             cursor: "pointer",
             display: "inline-flex",
             "align-items": "center",
-            gap: "8px",
-            padding: "12px 22px",
-            "border-radius": "4px",
+            gap: "var(--space-2)",
+            padding: "var(--space-3) var(--space-5)",
+            "border-radius": "var(--radius-control)",
             background: "var(--color-accent)",
             color: "var(--color-on-accent)",
-            "font-family": FONT_SANS,
+            "font-family": FONT_UI,
             "font-size": "14px",
             "font-weight": 400,
             "box-shadow": "var(--shadow-md)",
@@ -956,11 +981,11 @@ function EmptyHero(props: { onChoose: () => void }): JSX.Element {
       </div>
       <div
         style={{
-          "font-family": FONT_MONO,
+          "font-family": FONT_CODE,
           "font-size": "11px",
           color: "var(--color-text-faint)",
           "letter-spacing": "0.06em",
-          "margin-top": "16px",
+          "margin-top": "var(--space-4)",
         }}
       >
         ⌘K command palette · ? help

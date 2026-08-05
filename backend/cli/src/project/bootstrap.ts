@@ -16,6 +16,7 @@ import { RSILifecycle } from "../session/rsi/lifecycle"
 import { RLMArtifacts } from "../session/rlm/artifacts"
 import { Session } from "../session"
 import { SessionCompaction } from "../session/compaction"
+import { releaseSessionKernels } from "../science/kernel/lifecycle"
 
 export async function InstanceBootstrap() {
   Log.Default.info("bootstrapping", { directory: Instance.directory })
@@ -52,5 +53,6 @@ export async function InstanceBootstrap() {
   // long-running instance handling many sessions doesn't accumulate stale breaker state.
   Bus.subscribe(Session.Event.Deleted, (payload) => {
     SessionCompaction.resetBreaker(payload.properties.info.id)
+    void releaseSessionKernels(payload.properties.info.id)
   })
 }

@@ -1,4 +1,4 @@
-Executes a given bash command in a persistent shell session with optional timeout, ensuring proper handling and security measures.
+Executes a given bash command in a new ephemeral process with an optional timeout, ensuring proper handling and security measures. State (variables, imports, and the process ID) is not shared between calls. The default timeout is 120000 ms (2 minutes); values are clamped to the 1-600000 ms policy range and zero is rejected.
 
 All commands run in ${directory} by default. Use the `workdir` parameter if you need to run a command in a different directory. AVOID using `cd <directory> && <command>` patterns - use `workdir` instead.
 
@@ -22,7 +22,8 @@ Before executing the command, please follow these steps:
 
 Usage notes:
   - The command argument is required.
-  - You can specify an optional timeout in milliseconds. If not specified, commands will time out after 120000ms (2 minutes).
+  - You can specify an optional timeout in milliseconds. If not specified, commands time out after 120000ms (2 minutes); requests are clamped to a maximum of 600000ms (10 minutes), and zero is rejected.
+  - `execution` is optional metadata for a declared skill/capability request, for example `{ "skill": "bundled:name", "capabilities": ["llm:openrouter"] }`. Capability IDs are policy-allowlisted; command text and ambient environment variables never grant a capability.
   - It is very helpful if you write a clear, concise description of what this command does in 5-10 words.
   - If the output exceeds ${maxLines} lines or ${maxBytes} bytes, it will be truncated and the full output will be written to a file. You can use Read with offset/limit to read specific sections or Grep to search the full content. Because of this, you do NOT need to use `head`, `tail`, or other truncation commands to limit output - just run the command directly.
 

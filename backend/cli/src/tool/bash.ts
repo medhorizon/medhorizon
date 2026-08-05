@@ -1,16 +1,14 @@
 import z from "zod"
-import { spawn } from "child_process"
 import { Tool } from "./tool"
 import path from "path"
+import { realpathSync } from "fs"
 import DESCRIPTION from "./bash.txt"
 import { Log } from "../util/log"
 import { Instance } from "../project/instance"
 import { lazy } from "@/util/lazy"
 import { Language } from "web-tree-sitter"
 
-import { $ } from "bun"
 import { fileURLToPath } from "url"
-import { Flag } from "@/flag/flag.ts"
 import { Shell } from "@/shell/shell"
 
 import { BashArity } from "@/permission/arity"
@@ -18,9 +16,10 @@ import { Truncate } from "./truncation"
 import { OpenScience } from "@/openscience"
 import { Sandbox } from "@/sandbox/sandbox"
 import { Config } from "@/config/config"
+import { ProcessSupervisor } from "@/process/supervisor"
+import { CapabilityPolicy } from "@/process/policy"
 
-const MAX_METADATA_LENGTH = 30_000
-const DEFAULT_TIMEOUT = Flag.OPENSCIENCE_EXPERIMENTAL_BASH_DEFAULT_TIMEOUT_MS || 0
+const ExecutionInput = z.object({ skill: z.string().optional(), capabilities: z.array(z.string()).optional() })
 
 export const log = Log.create({ service: "bash-tool" })
 
@@ -53,9 +52,10 @@ const parser = lazy(async () => {
 })
 
 // TODO: we may wanna rename this tool so it works better on other shells
-export const BashTool = Tool.define("bash", async () => {
+export const BashTool = Tool.define("bash", async (initCtx) => {
   const shell = Shell.acceptable()
   log.info("bash tool using shell", { shell })
+  const grants = initCtx?.agent?.subprocessCapabilities ?? {}
 
   return {
     description: DESCRIPTION.replaceAll("${directory}", Instance.directory)
@@ -64,6 +64,9 @@ export const BashTool = Tool.define("bash", async () => {
     parameters: z.object({
       command: z.string().describe("The command to execute"),
       timeout: z.number().describe("Optional timeout in milliseconds").optional(),
+      execution: ExecutionInput
+        .optional()
+        .describe("Optional, explicitly declared subprocess capability request"),
       workdir: z
         .string()
         .describe(
@@ -77,18 +80,15 @@ export const BashTool = Tool.define("bash", async () => {
         ),
     }),
     async execute(params, ctx) {
-      const cwd = params.workdir || Instance.directory
-      try {
-        const { existsSync, mkdirSync } = await import("fs")
-        if (!existsSync(cwd)) {
-          mkdirSync(cwd, { recursive: true })
-        }
-      } catch {}
-      if (params.timeout !== undefined && params.timeout < 0) {
-        throw new Error(`Invalid timeout value: ${params.timeout}. Timeout must be a positive number.`)
+      const input = params as {
+        command: string
+        timeout?: number
+        execution?: { skill?: string; capabilities?: string[] }
+        workdir?: string
+        description: string
       }
-      const timeout = params.timeout ?? DEFAULT_TIMEOUT
-      const tree = await parser().then((p) => p.parse(params.command))
+      const cwd = input.workdir || Instance.directory
+      const tree = await parser().then((p) => p.parse(input.command))
       if (!tree) {
         throw new Error("Failed to parse command")
       }
@@ -119,20 +119,17 @@ export const BashTool = Tool.define("bash", async () => {
         if (["cd", "rm", "cp", "mv", "mkdir", "touch", "chmod", "chown", "cat"].includes(command[0])) {
           for (const arg of command.slice(1)) {
             if (arg.startsWith("-") || (command[0] === "chmod" && arg.startsWith("+"))) continue
-            const resolved = await $`realpath ${arg}`
-              .cwd(cwd)
-              .quiet()
-              .nothrow()
-              .text()
-              .then((x) => x.trim())
+            const candidate = path.resolve(cwd, arg)
+            const resolved = (() => {
+              try {
+                return realpathSync(candidate)
+              } catch {
+                return candidate
+              }
+            })()
             log.info("resolved path", { arg, resolved })
             if (resolved) {
-              // Git Bash on Windows returns Unix-style paths like /c/Users/...
-              const normalized =
-                process.platform === "win32" && resolved.match(/^\/[a-z]\//)
-                  ? resolved.replace(/^\/([a-z])\//, (_, drive) => `${drive.toUpperCase()}:\\`).replace(/\//g, "\\")
-                  : resolved
-              if (!Instance.containsPath(normalized)) directories.add(normalized)
+              if (!Instance.containsPath(resolved)) directories.add(resolved)
             }
           }
         }
@@ -162,146 +159,68 @@ export const BashTool = Tool.define("bash", async () => {
         })
       }
 
+      // Permission checks above are intentionally the last operation before
+      // process/filesystem side effects. In particular, a denied call must not
+      // create a missing cwd or a spill file.
+      const capability = CapabilityPolicy.resolve({
+        sessionID: ctx.sessionID,
+        turnID: ctx.messageID,
+        agent: ctx.agent,
+        grants,
+        execution: input.execution,
+      })
+      try {
+        const { existsSync, mkdirSync } = await import("fs")
+        if (!existsSync(cwd)) mkdirSync(cwd, { recursive: true })
+      } catch (error) {
+        throw new Error(`Unable to prepare working directory: ${error instanceof Error ? error.message : String(error)}`)
+      }
+
       // Seed the BYOK secret cache so redact() below masks the user's own
       // provider keys (auth.json + shell env), not just synced managed ones.
       await OpenScience.refreshByokSecrets(process.env).catch(() => {})
-
-      const env = await OpenScience.subprocessEnv(process.env)
 
       // Wrap the command in an OS sandbox when configured. The permission checks
       // above decide *whether* to run; this decides *with what authority*. When
       // sandbox is off (default) `plan` returns the raw command unchanged.
       const sandbox = Sandbox.plan({
-        command: params.command,
+        command: input.command,
         shell,
         cwd,
         workspace: [Instance.directory, Instance.worktree],
         options: await Config.trustedSandbox(),
       })
 
-      const proc = sandbox.sandboxed
-        ? spawn(sandbox.file, sandbox.args ?? [], {
-            cwd,
-            env,
-            stdio: ["ignore", "pipe", "pipe"],
-            detached: process.platform !== "win32",
-          })
-        : spawn(sandbox.file, {
-            shell: sandbox.useShell,
-            cwd,
-            env,
-            stdio: ["ignore", "pipe", "pipe"],
-            detached: process.platform !== "win32",
-          })
-
-      let output = ""
-
-      // Initialize metadata with empty output
-      ctx.metadata({
-        metadata: {
-          output: "",
-          description: params.description,
+      const runtime = ProcessSupervisor.isScientificCommand(input.command)
+        ? /(?:^|[\s;&|])Rscript(?=\s|$)/.test(input.command)
+          ? "r" as const
+          : "python" as const
+        : "bash" as const
+      const result = await ProcessSupervisor.run({
+        file: sandbox.file,
+        args: sandbox.sandboxed ? sandbox.args : undefined,
+        shell: sandbox.sandboxed ? false : sandbox.useShell,
+        cwd,
+        env: OpenScience.scopedSubprocessEnv(process.env, capability.env),
+        runtime,
+        mode: "ephemeral",
+        lane: runtime === "bash" ? "general" : "scientific",
+        timeout: input.timeout,
+        signal: ctx.abort,
+        sessionID: ctx.sessionID,
+        callID: ctx.callID,
+        description: input.description,
+        capabilities: capability.capabilities,
+        secrets: OpenScience.subprocessSecrets(),
+        sandbox,
+        metadata: ({ output }) => {
+          ctx.metadata({ metadata: { output, description: input.description } })
         },
       })
-
-      const redact = (text: string) => {
-        try {
-          return OpenScience.redactSecrets(text)
-        } catch {
-          return text
-        }
-      }
-
-      const append = (chunk: Buffer) => {
-        output += chunk.toString()
-        const redacted = redact(output)
-        ctx.metadata({
-          metadata: {
-            output:
-              redacted.length > MAX_METADATA_LENGTH ? redacted.slice(0, MAX_METADATA_LENGTH) + "\n\n..." : redacted,
-            description: params.description,
-          },
-        })
-      }
-
-      proc.stdout?.on("data", append)
-      proc.stderr?.on("data", append)
-
-      let timedOut = false
-      let aborted = false
-      let exited = false
-
-      const kill = () => Shell.killTree(proc, { exited: () => exited, detached: process.platform !== "win32" })
-
-      if (ctx.abort.aborted) {
-        aborted = true
-        await kill()
-      }
-
-      const abortHandler = () => {
-        aborted = true
-        void kill()
-      }
-
-      ctx.abort.addEventListener("abort", abortHandler, { once: true })
-
-      const timeoutTimer =
-        timeout > 0
-          ? setTimeout(() => {
-              timedOut = true
-              void kill()
-            }, timeout + 100)
-          : undefined
-
-      await new Promise<void>((resolve, reject) => {
-        const cleanup = () => {
-          if (timeoutTimer) clearTimeout(timeoutTimer)
-          ctx.abort.removeEventListener("abort", abortHandler)
-        }
-
-        proc.once("exit", () => {
-          exited = true
-          cleanup()
-          resolve()
-        })
-
-        proc.once("error", (error) => {
-          exited = true
-          cleanup()
-          reject(error)
-        })
-      })
-
-      const resultMetadata: string[] = []
-
-      if (sandbox.warning) {
-        resultMetadata.push(sandbox.warning)
-      }
-
-      if (timedOut) {
-        resultMetadata.push(`bash tool terminated command after exceeding timeout ${timeout} ms`)
-      }
-
-      if (aborted) {
-        resultMetadata.push("User aborted the command")
-      }
-
-      if (resultMetadata.length > 0) {
-        output += "\n\n<bash_metadata>\n" + resultMetadata.join("\n") + "\n</bash_metadata>"
-      }
-
-      const redactedOutput = redact(output)
       return {
-        title: params.description,
-        metadata: {
-          output:
-            redactedOutput.length > MAX_METADATA_LENGTH
-              ? redactedOutput.slice(0, MAX_METADATA_LENGTH) + "\n\n..."
-              : redactedOutput,
-          exit: proc.exitCode,
-          description: params.description,
-        },
-        output: redactedOutput,
+        title: input.description,
+        metadata: result.metadata,
+        output: result.output,
       }
     },
   }

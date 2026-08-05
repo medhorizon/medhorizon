@@ -29,6 +29,27 @@ test("subprocess env filtering still passes BYOK OpenRouter keys", () => {
   expect(filtered.OPENROUTER_API_KEY).toBe("sk-or-user-owned")
 })
 
+test("scoped subprocess env hides capability keys until explicitly granted", () => {
+  const env = {
+    PATH: "/usr/bin",
+    OPENAI_API_KEY: "sk-openai-user",
+    OPENROUTER_API_KEY: "sk-or-user",
+    HF_TOKEN: "hf-user",
+    CUSTOM_VALUE: "ok",
+  }
+
+  const hidden = OpenScience.scopedSubprocessEnv(env)
+  expect(hidden.PATH).toBe("/usr/bin")
+  expect(hidden.CUSTOM_VALUE).toBe("ok")
+  expect(hidden.OPENAI_API_KEY).toBeUndefined()
+  expect(hidden.OPENROUTER_API_KEY).toBeUndefined()
+  expect(hidden.HF_TOKEN).toBeUndefined()
+
+  const granted = OpenScience.scopedSubprocessEnv(env, ["OPENROUTER_API_KEY"])
+  expect(granted.OPENROUTER_API_KEY).toBe("sk-or-user")
+  expect(granted.OPENAI_API_KEY).toBeUndefined()
+})
+
 test("mergeByokEnv injects a locally-connected OpenRouter key + pins public base url", () => {
   const merged = OpenScience.mergeByokEnv(
     { PATH: "/usr/bin", OPENROUTER_BASE_URL: "https://atlas.test/api/llm/proxy/openrouter/v1" },

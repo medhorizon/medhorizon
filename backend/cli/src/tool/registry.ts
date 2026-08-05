@@ -1,5 +1,6 @@
 import { QuestionTool } from "./question"
 import { BashTool } from "./bash"
+import { ListTool } from "./ls"
 import { EditTool } from "./edit"
 import { GlobTool } from "./glob"
 import { GrepTool } from "./grep"
@@ -141,12 +142,13 @@ export namespace ToolRegistry {
     const custom = await state().then((x) => x.custom)
     const config = await Config.get()
 
-    return [
+    const builtin = unique([
       InvalidTool,
       ...(["app", "cli", "desktop"].includes(Flag.OPENSCIENCE_CLIENT) ? [QuestionTool] : []),
       BashTool,
       ReadTool,
       GlobTool,
+      ListTool,
       GrepTool,
       EditTool,
       WriteTool,
@@ -171,12 +173,30 @@ export namespace ToolRegistry {
       RKernelTool,
       ArtifactTool,
       LearnTool,
-      ...custom,
-    ]
+    ])
+    const seen = new Set(builtin.map((tool) => tool.id))
+    const extension = custom.filter((tool) => {
+      if (seen.has(tool.id)) {
+        log.warn("ignoring custom tool with duplicate id", { id: tool.id })
+        return false
+      }
+      seen.add(tool.id)
+      return true
+    })
+    return [...builtin, ...extension]
+  }
+
+  function unique(tools: Tool.Info[]) {
+    const seen = new Set<string>()
+    return tools.filter((tool) => {
+      if (seen.has(tool.id)) return false
+      seen.add(tool.id)
+      return true
+    })
   }
 
   const ARTIFACT_TOOL_ID = "artifact"
-  const ARTIFACT_AGENTS = ["research", "biology", "ml"]
+  const ARTIFACT_AGENTS = ["research", "biology", "physics", "ml"]
 
   export async function definitions() {
     return all()
@@ -185,7 +205,8 @@ export namespace ToolRegistry {
   /** IDs contributed by plugins or `{tool,tools}/*` config modules (not built-ins). */
   export async function customIds() {
     const { custom } = await state()
-    return new Set(custom.map((tool) => tool.id))
+    const active = new Set(await all())
+    return new Set(custom.filter((tool) => active.has(tool)).map((tool) => tool.id))
   }
 
   export async function ids(model?: { providerID: string; modelID: string }, agent?: Agent.Info) {

@@ -53,6 +53,8 @@ export interface ExecuteOptions {
   signal?: AbortSignal
   /** Whether to capture rich (MIME) display outputs. Default true. */
   rich?: boolean
+  /** Secret values are redacted from textual MIME/stream fields before return. */
+  secrets?: Iterable<string>
 }
 
 export interface KernelStartOptions {
@@ -62,6 +64,12 @@ export interface KernelStartOptions {
   env?: Record<string, string>
   /** Interpreter binary override (e.g. a specific python/Rscript path). */
   binary?: string
+  /** Logical capability IDs resolved for this kernel instance. */
+  capabilities?: string[]
+  /** Canonical skill source bound to the capability grant. */
+  skill?: string
+  /** Cancel a queued global-cap admission or startup. */
+  signal?: AbortSignal
 }
 
 /** A single persistent interpreter process. State persists across executes. */

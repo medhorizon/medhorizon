@@ -1,5 +1,7 @@
 import path from "path"
 import fs from "fs/promises"
+import { lookup } from "node:dns/promises"
+import { isIP } from "node:net"
 import z from "zod"
 import { Global } from "../global"
 import { Log } from "../util/log"
@@ -111,6 +113,16 @@ export namespace Network {
   })
   export type State = z.infer<typeof State>
 
+  export type Address = {
+    address: string
+    family: 4 | 6
+  }
+
+  export type Resolution = {
+    url: URL
+    addresses: Address[]
+  }
+
   const file = path.join(Global.Path.data, "settings", "network.json")
 
   function defaultState(): State {
@@ -176,5 +188,136 @@ export namespace Network {
     const allowed = domains(state)
     if (domainAllowed(url.hostname, allowed)) return
     throw new Error(`Network access to ${url.hostname} is not in the configured allow-list`)
+  }
+
+  function range(value: number, base: number, bits: number): boolean {
+    const size = 2 ** (32 - bits)
+    return value >= base && value < base + size
+  }
+
+  function ipv4(value: string): boolean {
+    const parts = value.split(".")
+    if (parts.length !== 4) return true
+    const octets = parts.map(Number)
+    if (octets.some((part) => !Number.isInteger(part) || part < 0 || part > 255)) return true
+    const number = octets.reduce((result, part) => result * 256 + part, 0)
+    return [
+      [0, 8],
+      [0x0a000000, 8],
+      [0x64400000, 10],
+      [0x7f000000, 8],
+      [0xa9fe0000, 16],
+      [0xac100000, 12],
+      [0xc0000000, 24],
+      [0xc0000200, 24],
+      [0xc0586300, 24],
+      [0xc0a80000, 16],
+      [0xc6120000, 15],
+      [0xc6336400, 24],
+      [0xcb007100, 24],
+      [0xe0000000, 4],
+    ].some(([base, bits]) => range(number, base, bits))
+  }
+
+  function ipv6(value: string): boolean {
+    const text = value.toLowerCase().split("%")[0]
+    const sections = text.split("::")
+    if (sections.length > 2) return true
+
+    const parse = (part: string): number[] | undefined => {
+      if (!part) return []
+      const pieces = part.split(":")
+      const last = pieces.at(-1)
+      if (last?.includes(".")) {
+        const octets = last.split(".").map(Number)
+        if (octets.length !== 4 || octets.some((octet) => !Number.isInteger(octet) || octet < 0 || octet > 255)) {
+          return undefined
+        }
+        pieces.splice(-1, 1, `${(octets[0] * 256 + octets[1]).toString(16)}`, `${(octets[2] * 256 + octets[3]).toString(16)}`)
+      }
+      if (pieces.some((piece) => !piece || !/^[0-9a-f]{1,4}$/.test(piece))) return undefined
+      return pieces.map((piece) => Number.parseInt(piece, 16))
+    }
+
+    const left = parse(sections[0])
+    const right = sections.length === 2 ? parse(sections[1]) : []
+    if (!left || !right) return true
+    const missing = 8 - left.length - right.length
+    if (missing < 0) return true
+    const groups = sections.length === 2 ? [...left, ...Array(missing).fill(0), ...right] : left
+    if (groups.length !== 8) return true
+
+    const number = groups.reduce((result, part) => (result << 16n) | BigInt(part), 0n)
+    const mapped = number >> 32n === 0xffffn
+    if (mapped) {
+      const mappedValue = Number(number & 0xffffffffn)
+      return ipv4(`${mappedValue >>> 24}.${(mappedValue >>> 16) & 255}.${(mappedValue >>> 8) & 255}.${mappedValue & 255}`)
+    }
+    if (number >> 32n === 0n) {
+      const compatible = Number(number & 0xffffffffn)
+      return ipv4(`${compatible >>> 24}.${(compatible >>> 16) & 255}.${(compatible >>> 8) & 255}.${compatible & 255}`)
+    }
+
+    const prefix = (base: bigint, bits: number) => number >> BigInt(128 - bits) === base >> BigInt(128 - bits)
+    return (
+      number === 0n ||
+      number === 1n ||
+      prefix(0xfc000000000000000000000000000000n, 7) ||
+      prefix(0xfe000000000000000000000000000000n, 9) ||
+      prefix(0xff000000000000000000000000000000n, 8) ||
+      prefix(0x20010db8000000000000000000000000n, 32)
+    )
+  }
+
+  function restricted(value: string): boolean {
+    const family = isIP(value)
+    if (family === 4) return ipv4(value)
+    if (family === 6) return ipv6(value)
+    return true
+  }
+
+  async function resolveAll(hostname: string, signal?: AbortSignal): Promise<Address[]> {
+    const task = lookup(hostname, { all: true, verbatim: true }).then((values) =>
+      values.map((value) => ({ address: value.address, family: value.family === 6 ? 6 : 4 }) satisfies Address),
+    )
+    if (!signal) return task
+    if (signal.aborted) throw new Error("webfetch DNS resolution aborted")
+    return new Promise((resolve, reject) => {
+      const stop = () => {
+        signal.removeEventListener("abort", stop)
+        reject(new Error("webfetch DNS resolution aborted"))
+      }
+      signal.addEventListener("abort", stop, { once: true })
+      void task.then(
+        (values) => {
+          signal.removeEventListener("abort", stop)
+          resolve(values)
+        },
+        (error) => {
+          signal.removeEventListener("abort", stop)
+          reject(error)
+        },
+      )
+    })
+  }
+
+  export async function resolve(raw: string, signal?: AbortSignal): Promise<Resolution> {
+    const url = URL.canParse(raw) ? new URL(raw) : undefined
+    if (!url) throw new Error(`webfetch invalid URL: ${raw}`)
+    if (url.protocol !== "http:" && url.protocol !== "https:") {
+      throw new Error(`webfetch unsupported URL scheme: ${url.protocol}`)
+    }
+    if (url.username || url.password) throw new Error("webfetch URL credentials are not allowed")
+
+    await assertAllowed(url.toString())
+    const hostname = url.hostname.replace(/^\[|\]$/g, "")
+    const addresses = await resolveAll(hostname, signal).catch((error) => {
+      if (signal?.aborted) throw error
+      throw new Error(`webfetch DNS resolution failed for ${hostname}`, { cause: error })
+    })
+    if (!addresses.length || addresses.some((value) => restricted(value.address))) {
+      throw new Error(`webfetch blocked private or reserved address for ${hostname}`)
+    }
+    return { url, addresses }
   }
 }

@@ -55,6 +55,11 @@ if (API_BASE !== DEFAULT_API_BASE) {
 const VERIFICATION_PAGE = process.env.SYNSC_AUTH_URL?.replace(/\/+$/, "") || "https://app.syntheticsciences.ai/cli"
 
 const syncedSecretValues = new Map<string, string>()
+export const MAX_REGISTERED_SECRET_BYTES = 16 * 1024
+
+function secretWithinLimit(value: string): boolean {
+  return Buffer.byteLength(value, "utf8") <= MAX_REGISTERED_SECRET_BYTES
+}
 
 // User-owned (BYOK) secret values — api keys from auth.json and provider env
 // vars the user set in their own shell. Cached synchronously so redactSecrets()
@@ -83,7 +88,7 @@ function getSyncedConfigDir(): string {
     const parsed: unknown = JSON.parse(raw)
     if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
       for (const [key, value] of Object.entries(parsed)) {
-        if (typeof value === "string" && value) syncedSecretValues.set(key, value)
+        if (typeof value === "string" && value && secretWithinLimit(value)) syncedSecretValues.set(key, value)
       }
     }
   } catch {
@@ -100,6 +105,39 @@ const SHARED_PROVIDER_KEYS = new Set([
   "META_MODEL_API_KEY",
   "META_MODEL_BASE_URL",
   "XAI_API_KEY",
+])
+
+// Provider/compute variables are withheld from local subprocesses unless the
+// invocation explicitly grants the matching capability.  Keep this set in the
+// env boundary as a second line of defence even when a provider adds a new
+// credential name to the broader sync allow-list below.
+const CAPABILITY_ENV_KEYS = new Set([
+  ...SHARED_PROVIDER_KEYS,
+  "GOOGLE_API_KEY",
+  "OPENROUTER_API_KEY",
+  "OPENROUTER_BASE_URL",
+  "TOGETHER_API_KEY",
+  "GROQ_API_KEY",
+  "FIREWORKS_API_KEY",
+  "MISTRAL_API_KEY",
+  "DEEPSEEK_API_KEY",
+  "CEREBRAS_API_KEY",
+  "TINKER_API_KEY",
+  "TINKER_BASE_URL",
+  "HF_TOKEN",
+  "HUGGING_FACE_HUB_TOKEN",
+  "WANDB_API_KEY",
+  "MODAL_TOKEN_ID",
+  "MODAL_TOKEN_SECRET",
+  "LAMBDA_API_KEY",
+  "LAMBDA_LABS_API_KEY",
+  "RUNPOD_API_KEY",
+  "PRIME_INTELLECT_API_KEY",
+  "TENSORPOOL_API_KEY",
+  "VAST_API_KEY",
+  "LANGSMITH_API_KEY",
+  "LANGCHAIN_API_KEY",
+  "PINECONE_API_KEY",
 ])
 
 /** Env vars that are safe to pass to subprocesses */
@@ -293,6 +331,7 @@ function withAtlasOnPath(env: Record<string, string>): Record<string, string> {
 }
 
 export namespace OpenScience {
+  export const MAX_REGISTERED_SECRET_BYTES = 16 * 1024
   const filepath = path.join(Global.Path.data, "medhorizon-session.json")
 
   /** Friendly device label sent to the backend. Surfaced in the
@@ -840,7 +879,7 @@ export namespace OpenScience {
       for (const [, svc] of Object.entries(data.services)) {
         if (svc.connected && svc.env) {
           for (const [key, value] of Object.entries(svc.env)) {
-            if (value) fresh.set(key, value)
+            if (value && secretWithinLimit(value)) fresh.set(key, value)
           }
         }
       }
@@ -903,7 +942,7 @@ export namespace OpenScience {
         // Track the synced value regardless (for redaction + later cleanup). A
         // shadowing shell export is left untouched by the unset pass above, which
         // only removes a var whose live value still equals the synced one.
-        syncedSecretValues.set(key, value)
+        if (secretWithinLimit(value)) syncedSecretValues.set(key, value)
       }
 
       // Write model lockdown config to managed config dir (highest priority config layer)
@@ -978,7 +1017,7 @@ export namespace OpenScience {
       const auth = await Auth.all().catch(() => ({}) as Record<string, Auth.Info>)
       for (const info of Object.values(auth)) {
         if (info.type !== "api") continue
-        if (!info.key || isManagedAtlasKey(info.key)) continue
+        if (!info.key || isManagedAtlasKey(info.key) || !secretWithinLimit(info.key)) continue
         byokSecretValues.add(info.key)
       }
     } catch {
@@ -986,7 +1025,7 @@ export namespace OpenScience {
     }
     for (const key of BYOK_ENV_KEYS) {
       const value = env[key]
-      if (!value || isManagedAtlasKey(value)) continue
+      if (!value || isManagedAtlasKey(value) || !secretWithinLimit(value)) continue
       byokSecretValues.add(value)
     }
   }
@@ -996,7 +1035,11 @@ export namespace OpenScience {
    *  output exactly like BYOK/managed keys. Short and managed (thk_*) values are
    *  ignored. Idempotent — safe to call on every credential save. */
   export function registerSecretValues(values: Iterable<string>): void {
-    for (const value of values) {
+    const next = [...values]
+    if (next.some((value) => !secretWithinLimit(value))) {
+      throw new Error(`Secret exceeds ${MAX_REGISTERED_SECRET_BYTES / 1024} KiB redaction limit`)
+    }
+    for (const value of next) {
       if (!value || value.length < 4 || isManagedAtlasKey(value)) continue
       byokSecretValues.add(value)
     }
@@ -1008,14 +1051,23 @@ export namespace OpenScience {
   export function redactSecrets(text: string): string {
     let result = text
     for (const value of syncedSecretValues.values()) {
-      if (value.length < 4) continue
+      if (value.length < 4 || !secretWithinLimit(value)) continue
       result = result.replaceAll(value, "[REDACTED]")
     }
     for (const value of byokSecretValues) {
-      if (value.length < 4) continue
+      if (value.length < 4 || !secretWithinLimit(value)) continue
       result = result.replaceAll(value, "[REDACTED]")
     }
     return result
+  }
+
+  /** Snapshot known secret values for streaming redactors. Values above the
+   * 16 KiB registration limit are intentionally omitted; callers fail closed
+   * when they try to register such a value rather than carrying an unbounded
+   * matcher state. */
+  export function subprocessSecrets(): string[] {
+    const values = [...syncedSecretValues.values(), ...byokSecretValues]
+    return [...new Set(values)].filter((value) => value.length >= 4 && Buffer.byteLength(value, "utf8") <= 16 * 1024)
   }
 
   /** Whether a value is a managed Atlas proxy token (thk_*). Managed calls are
@@ -1051,6 +1103,26 @@ export namespace OpenScience {
       if (isSafe || !syncedSecretValues.has(key)) {
         result[key] = value
       }
+    }
+    return result
+  }
+
+  /**
+   * Strict capability-scoped environment for process-backed tools.  Start from
+   * the legacy safe filter, remove every known credential-bearing variable, and
+   * re-add only the exact names granted by the already-resolved invocation.
+   * Values are never inferred from shell text or a skill name.
+   */
+  export function scopedSubprocessEnv(
+    env: NodeJS.ProcessEnv = process.env,
+    allowedKeys: Iterable<string> = [],
+  ): Record<string, string> {
+    const result = filterEnvForSubprocess(env)
+    for (const key of CAPABILITY_ENV_KEYS) delete result[key]
+    for (const key of new Set(allowedKeys)) {
+      const value = env[key]
+      if (!value || isManagedAtlasKey(value) || !CAPABILITY_ENV_KEYS.has(key)) continue
+      result[key] = value
     }
     return result
   }

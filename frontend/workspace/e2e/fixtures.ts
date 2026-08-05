@@ -80,10 +80,10 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
 
     const gotoSession = async (sessionID?: string) => {
       await page.goto(sessionPath(directory, sessionID))
-      // Cold Vite dev-server first compile + browser boot can exceed the global
-      // 10s expect timeout on a loaded machine; give the initial session render
-      // a wider window so a slow cold start is not misreported as a blank page.
-      await expect(page.locator(promptSelector)).toBeVisible({ timeout: 30_000 })
+      // The isolated backend installs its bundled plugin and hydrates the
+      // provider/agent catalog on first project access. Allow that one-time
+      // bootstrap to finish before asserting the prompt surface.
+      await expect(page.locator(promptSelector)).toBeVisible({ timeout: 60_000 })
     }
     await use(gotoSession)
   },

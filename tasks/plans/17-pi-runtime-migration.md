@@ -2,7 +2,7 @@
 
 **Status:** Planned  
 **Priority:** P1（Task 1 兼容性闸门）；P2（Tasks 2–8 适配、灰度与切流）  
-**Dependencies:** `00-ci-test-guardrails.md`、`01-task-result-contract.md`。正式接入还依赖 `02-agent-context-closeout.md`、`10-subagent-scheduler.md`、`11-orchestrator-evaluation.md`，并与 `13-session-turn-pipeline.md` 的 characterization、tool invoke seam 串行实施。
+**Dependencies:** `00-ci-test-guardrails.md`、`01-task-result-contract.md`。正式接入还依赖 `02-agent-context-closeout.md`、`10-subagent-scheduler.md`、`11-orchestrator-evaluation.md`。`13-session-turn-pipeline.md` Task 1 先冻结 characterization 与 runtime contract，允许 adapter 提前开发；生产 wiring 仍与其 Tasks 2–3 的 runner/invoke seam 串行实施。
 
 ## Decision summary
 
@@ -10,7 +10,7 @@ Pi 有足够的低层接口支持“替换内部 Agent loop、保留 MedHorizon 
 
 推荐只接入 `@earendil-works/pi-agent-core` 的 `Agent`/loop 能力，通过 MedHorizon 自有 `TurnRuntime` port 提供 `LegacyRuntimeAdapter` 与 `PiRuntimeAdapter` 双实现；不把产品改造成 Pi Coding Agent，也不让 Pi 接管 Session 持久化、权限、安全沙箱、工具 registry、TaskResult、API/SDK 或初期 compaction。这样改动集中在 session runtime 边界，前端、协议和大多数工具实现无需迁移。
 
-正式迁移属于中高风险的核心运行时集成，而不是全仓大重构：预计 33–54 个工程日；若 Plan 13 的 characterization、统一 invoke envelope 和单向边界先落地，可减少约 6–10 个工程日。直接采用 Pi Coding Agent 的 SessionManager、内置工具、extension host 和 compaction 重写现有栈，预计至少扩大到 60–100+ 个工程日，并显著增加数据、权限和 UI 契约回归风险，因此不采用。
+正式迁移属于中高风险的核心运行时集成，而不是全仓大重构：任务净工作量预计 36–59 个工程日；计入 20% 的集成、上游复核与跨计划协调余量后，计划窗口约 43–71 个工程日（通常为 8–12+ 周日历时间）。若 Plan 13 的 characterization、统一 invoke envelope 和单向边界先落地，可减少约 6–10 个工程日。直接采用 Pi Coding Agent 的 SessionManager、内置工具、extension host 和 compaction 重写现有栈，预计至少扩大到 60–100+ 个工程日，并显著增加数据、权限和 UI 契约回归风险，因此不采用。
 
 ## Source baseline
 
@@ -22,7 +22,7 @@ Pi 有足够的低层接口支持“替换内部 Agent loop、保留 MedHorizon 
 - Coding Agent：[SDK](https://github.com/earendil-works/pi/blob/14551e769493f1c6ceac55954332ab14747ee05c/packages/coding-agent/docs/sdk.md)、[extensions](https://github.com/earendil-works/pi/blob/14551e769493f1c6ceac55954332ab14747ee05c/packages/coding-agent/docs/extensions.md)、[compaction](https://github.com/earendil-works/pi/blob/14551e769493f1c6ceac55954332ab14747ee05c/packages/coding-agent/docs/compaction.md)、[security](https://github.com/earendil-works/pi/blob/14551e769493f1c6ceac55954332ab14747ee05c/packages/coding-agent/docs/security.md)
 - 尚不能作为已发布承诺的设计文档：[AgentHarness lifecycle](https://github.com/earendil-works/pi/blob/14551e769493f1c6ceac55954332ab14747ee05c/packages/agent/docs/agent-harness.md)、[hooks design](https://github.com/earendil-works/pi/blob/14551e769493f1c6ceac55954332ab14747ee05c/packages/agent/docs/hooks.md)、[observability design](https://github.com/earendil-works/pi/blob/14551e769493f1c6ceac55954332ab14747ee05c/packages/agent/docs/observability.md)
 
-生产依赖必须固定精确版本和上游 commit 证据，不跟随 floating minor。Pi 声明的是 Node engine，而仓库运行在 Bun 1.3.14；是否可用必须由 Task 1 的真实 Bun import、test、build 与 abort/tool flow 证明，不能只依据类型兼容推断。
+生产依赖必须固定精确版本和上游 commit 证据，不跟随 floating minor。Pi 声明的是 Node engine，而仓库运行在 Bun 1.3.14；是否可用必须由 Task 1 的真实 Bun import、test、build、压力与 abort/tool flow 证明，不能只依据类型兼容推断。Node 24.18.1 位于其 engine 支持范围内，仅作为同 fixture 对照组，Bun 结果才是生产 go/no-go 依据。
 
 ## Current state
 
@@ -85,7 +85,7 @@ SessionPrompt facade / server API
                                   └─ lifecycle subscriber -> shared MessageV2/telemetry sink
 ```
 
-`TurnRuntime` 是 MedHorizon-owned internal API。其最终签名由 Task 2 冻结，但必须只接收稳定领域值：session/message/model IDs、已经 assembly 的 system/messages、已经 selection 的 tool handles、`AbortSignal`、共享 invoker、event sink 和 deadline；只返回 canonical runtime events/terminal outcome。Pi `AgentMessage`、TypeBox、provider event、session object 不得越过该边界。
+`TurnRuntime` 是 MedHorizon-owned internal API。其签名由 Plan 13 Task 1 提前冻结，Task 2 实现并接入该 contract；它只接收稳定领域值：session/message/model IDs、已经 assembly 的 system/messages、已经 selection 的 tool handles、`AbortSignal`、共享 invoker、event sink 和 deadline；只返回 canonical runtime events/terminal outcome。Pi `AgentMessage`、TypeBox、provider event、session object 不得越过该边界。
 
 ### Ownership invariants
 
@@ -105,18 +105,21 @@ SessionPrompt facade / server API
 - 首期生产代码只允许直接依赖 `@earendil-works/pi-agent-core`，以及 adapter 确实需要的 `@earendil-works/pi-ai` 类型/协议包；不得引入 `@earendil-works/pi-coding-agent`。
 - TypeBox 若被 adapter 直接 import，必须声明为直接依赖并固定与 Pi 兼容的版本，不能依赖 transitive resolution。
 - Pi 升级需要重跑 Task 1 compatibility report、runtime characterization 和 Plan 11 canary gate；不使用宽松版本范围自动升级。
+- Task 5 后、Task 6 前必须执行一次上游版本复核；复核不自动改变生产 pin，升级只能作为独立决策落地。
 
 ## Implementation tasks
 
 ### Task 1: 建立 Bun/Pi compatibility spike 与 go/no-go 记录
 
-**Description:** 在不接产品默认路径的隔离实验中，用真实 Bun、现有 deterministic local provider、一个真实 MedHorizon tool 和现有 AbortSignal 跑通 Pi `Agent`；同时验证依赖、build、schema 和事件顺序。
+**Description:** 在不接产品默认路径的隔离实验中，用真实 Bun、现有 deterministic local provider、真实 MedHorizon tools 和现有 AbortSignal 跑通 Pi `Agent`；以 Node 24.18.1 运行同一 fixture 作对照，同时验证依赖、build、schema、stream/event-loop 行为和资源回收。
 
 **Acceptance:**
 
-- [ ] Bun 1.3.14 能 import、typecheck、test、build 精确版本 `0.83.0`，无运行时 Node-only blocker；结果记录 OS、Bun、Pi、Node engine 和上游 commit。
+- [ ] Bun 1.3.14 能 import、typecheck、test、build 精确版本 `0.83.0`，无运行时 Node-only blocker；Node 24.18.1 跑同一 suite 作对照，结果记录 OS、Bun、Node、Pi 和上游 commit。
 - [ ] custom `streamFn` 能复用 `SessionLLM` 跑 text、tool success、invalid args、tool throw、abort 五条流，不另建 provider credential/config store。
 - [ ] `Agent.subscribe()` 的 message barrier、tool preflight、tool result 与 `agent_end` settlement 顺序可映射到现有 contract；明确拒绝用 raw loop 承担持久化 barrier。
+- [ ] Bun 与 Node 分别完成至少 20 个连续 turns；场景包含 streaming/backpressure、至少 5 次 tool error、至少 5 次位于首 delta 前/stream 中/tool 执行中的 abort，以及 `worker_threads` 创建与回收路径。
+- [ ] 压力场景结束后 provider active requests、child processes 与未预期 active handles 均为 0，listener/timer 相对预热后基线无净增长；RSS/heap 趋势与 Bun/Node 差异记录在 compatibility report。
 - [ ] Zod→Pi/TypeBox bridge 对代表性 optional/default/union/enum/array/object/refinement 参数有 valid/invalid parity 报告。
 - [ ] 未引入 Pi Coding Agent、built-in tools、SessionManager、UI/RPC 或生产 feature flag。
 - [ ] 若需要 fork Pi、复制 provider 栈、放宽权限/校验、或无法可靠 abort/settle，则记录 no-go 并停止 Tasks 2–8。
@@ -124,31 +127,36 @@ SessionPrompt facade / server API
 **Verification:**
 
 - [ ] `(cwd: backend/cli) bun test test/experiment/pi-runtime.test.ts`
+- [ ] `(cwd: backend/cli) bun test test/experiment/pi-runtime-stress.test.ts`，并用 Node 24.18.1 执行同 fixture 的 Node entry。
 - [ ] `(cwd: backend/cli) bun run typecheck && bun run build`
 - [ ] 从仓库根运行 `bun install --frozen-lockfile`，确认精确依赖和 lockfile 可复现；完整门槛仍由 Plan 00 承接。
 
 **Dependencies:** Plans 00、01。  
-**Files:** `backend/cli/src/experiment/pi-runtime.ts`、`backend/cli/test/experiment/pi-runtime.test.ts`、`backend/cli/package.json`、`bun.lock`、本计划 Progress。  
-**Scope / estimate:** M，3–5 工程日。
+**Files:** `backend/cli/src/experiment/pi-runtime.ts`、`backend/cli/test/experiment/pi-runtime.test.ts`、`backend/cli/test/experiment/pi-runtime-stress.test.ts`、`backend/cli/package.json`、`bun.lock`、compatibility report、本计划 Progress。
 
-### Task 2: 冻结 TurnRuntime port 与零行为变化的 legacy adapter
+**Scope / estimate:** M，4–7 工程日。
 
-**Description:** 在 Plan 13 characterization 保护下抽出 framework-neutral `TurnRuntime`、event sink 和 outcome；先让 `LegacyRuntimeAdapter` 调回当前实现，默认行为和公开 API 完全不变。
+### Task 2: 实现 TurnRuntime port 与零行为变化的 legacy adapter
+
+**Description:** 消费 Plan 13 Task 1 已冻结的 framework-neutral `TurnRuntime`、event sink 和 outcome contract；先让 `LegacyRuntimeAdapter` 调回当前实现，默认行为和公开 API 完全不变。adapter 可先基于 contract harness 开发，生产 `prompt.ts` wiring 等待 Plan 13 Tasks 2–3。
 
 **Acceptance:**
 
 - [ ] port 不导出 Pi、AI SDK、TypeBox 或具体 provider 类型；只使用 MedHorizon domain IDs、handles、events 和 signals。
+- [ ] adapter 不私自扩展或复制 frozen contract；必要变更由 Plans 13/17 同一 owner 更新 contract version、invariants 和两侧测试。
 - [ ] `SessionPrompt` facade、server route、MessageV2 schema、Bus 相对顺序、prompt、compaction、retry、billing 与 RSI 行为不变。
 - [ ] `agent_runtime=legacy` 是唯一默认，且 legacy adapter 调用现有实现而不是复制第二份 loop/invoke/finalize。
 - [ ] runtime selection 在 turn 开始时冻结；invalid/unknown 配置 fail closed 到 legacy 并记录非敏感诊断。
 - [ ] Plan 13 Task 1 traces 对 text/tool/subtask/permission/cancel/retry/overflow/terminal error 均 byte-equivalent after normalization。
+- [ ] 开发期验证使用真实 domain fixture 与 in-memory sink/invoker；不以复制 SessionPrompt/SessionProcessor 判定的 mock 作为兼容证据。
 
 **Verification:**
 
 - [ ] `(cwd: backend/cli) bun test test/session/prompt-contract.test.ts test/session/runtime.test.ts`
 - [ ] 运行 Plan 13 已列出的 TaskTool、permission、compaction、retry focused suites。
 
-**Dependencies:** Task 1 go；Plan 13 Task 1。与 Plan 13 Tasks 2–3 使用同一 owner/branch，不能平行建立第二个 runner 或 invoke envelope。  
+**Dependencies:** Task 1 go；Plan 13 Task 1 是 adapter development gate；Plan 13 Tasks 2–3 是 production wiring gate。重叠文件使用同一 owner/branch，不能平行建立第二个 runner 或 invoke envelope。
+
 **Files:** `backend/cli/src/session/runtime/runtime.ts`、`backend/cli/src/session/runtime/legacy.ts`、`backend/cli/src/session/prompt.ts`、`backend/cli/test/session/runtime.test.ts`、Plan 13 Progress。  
 **Scope / estimate:** M，4–6 工程日。
 
@@ -162,16 +170,18 @@ SessionPrompt facade / server API
 - [ ] text/reasoning/tool-call/tool-result 的 ID、delta、finish 和 usage 可无损进入共享 MessageV2 sink；未知上游 event fail visible，不静默丢弃。
 - [ ] assistant `message_end` persistence barrier 在 tool preflight 前 settle；`agent_end` listener settle 后 runtime Promise 才完成。
 - [ ] abort 从 SessionPrompt 传播到 Pi、provider stream 和共享 sink；abort 后无 late delta/terminal reversal。
+- [ ] production adapter 完成至少 30 次 abort storm（预热后分别在首 delta 前、stream 中、tool 执行中快速重复触发同一 controller）；settle deadline 后 active provider request 和 child process 为 0，listener/timer/active-handle delta 回到基线，heap/RSS 不呈持续增长且满足 Task 1 报告冻结的阈值。
 - [ ] provider retry、compaction、billing 和 snapshot 不在 Pi adapter 中复制。
 
 **Verification:**
 
 - [ ] `(cwd: backend/cli) bun test test/session/pi-message.test.ts test/session/pi-runtime.test.ts test/session/prompt-contract.test.ts`
 - [ ] 真实 deterministic provider 覆盖 text、reasoning、单工具、多工具、provider error、abort 和 overflow fixture。
+- [ ] abort storm 输出每轮 terminal、active requests/handles/listeners、child count 与内存摘要；任一 late delta、listener leak、未回收子进程或 terminal reversal 使 suite 失败。
 
 **Dependencies:** Task 2。  
 **Files:** `backend/cli/src/session/runtime/pi.ts`、`backend/cli/src/session/runtime/pi-model.ts`、`backend/cli/src/session/runtime/pi-message.ts`、`backend/cli/test/session/pi-runtime.test.ts`、`backend/cli/test/session/pi-message.test.ts`。  
-**Scope / estimate:** M，6–9 工程日。
+**Scope / estimate:** M，7–10 工程日。
 
 ### Task 4: 接入 tool schema、权限、安全、hooks 与错误回灌
 
@@ -181,6 +191,8 @@ SessionPrompt facade / server API
 
 - [ ] 每个 Pi tool 来自当前 turn selected handles；profile/permission/MCP refresh 排除的 ID 无法按名称猜测执行。
 - [ ] Pi preflight 与 Zod canonical validation 的 valid/invalid 结果一致；任何 schema drift 都 fail closed 并输出稳定 reason code。
+- [ ] Pi schema 由单一转换器从 canonical Zod/JSON Schema 生成，不维护逐工具手写 TypeBox 副本；无法等价表达的 refinement 标记 incompatible 并 fail closed。
+- [ ] `test/tool/registry.test.ts` 自动遍历全部 Pi-exposed tools 运行 valid/invalid parity；新增或修改 canonical schema 会自动进入 CI gate，无需人工维护工具名单。
 - [ ] PermissionNext ask/reject、Plugin before/after、MessageV2 part start/end、bounded output 与 telemetry 对每次 call 恰好一次。
 - [ ] invalid args、permission rejection、tool throw、structured tool error 都回灌 LLM，且分别映射到正确 canonical part/terminal；错误不含 secret 或完整 args/result。
 - [ ] Pi 没有直接 filesystem/process/network capability；Bash/Python/R/MCP/Batch 仍经 Plan 18 policy/supervisor 与既有 timeout/redaction。
@@ -188,11 +200,12 @@ SessionPrompt facade / server API
 
 **Verification:**
 
-- [ ] `(cwd: backend/cli) bun test test/session/pi-tool.test.ts test/tool/selection.test.ts test/permission-task.test.ts test/plugin/hook.test.ts`
+- [ ] `(cwd: backend/cli) bun test test/session/pi-tool.test.ts test/tool/registry.test.ts test/tool/selection.test.ts test/permission-task.test.ts test/plugin/hook.test.ts`
 - [ ] 真实 tool integration 覆盖 malformed args、denied ask、throw、partial output、cancel、timeout、MCP stale manifest 和 10+ sibling calls。
 
 **Dependencies:** Task 3；Plan 13 unified invoke envelope。TaskTool/parallel canary 还依赖 Plan 10；process 工具依赖 Plan 18 对应安全任务。  
-**Files:** `backend/cli/src/session/runtime/pi-tool.ts`、`backend/cli/src/session/turn/tools.ts`、`backend/cli/src/session/runtime/pi.ts`、`backend/cli/test/session/pi-tool.test.ts`、相邻真实 tool fixtures。  
+**Files:** `backend/cli/src/session/runtime/pi-tool.ts`、`backend/cli/src/session/runtime/pi-schema.ts`、`backend/cli/src/session/turn/tools.ts`、`backend/cli/src/session/runtime/pi.ts`、`backend/cli/test/session/pi-tool.test.ts`、`backend/cli/test/tool/registry.test.ts`、相邻真实 tool fixtures。
+
 **Scope / estimate:** M，5–8 工程日。
 
 ### Task 5: 固定 context、compaction 与 trace ownership
@@ -216,14 +229,37 @@ SessionPrompt facade / server API
 **Files:** `backend/cli/src/session/runtime/pi-context.ts`、`backend/cli/src/session/runtime/pi-trace.ts`、`backend/cli/src/session/telemetry.ts`、`backend/cli/test/session/pi-context.test.ts`、`backend/cli/test/session/pi-trace.test.ts`。  
 **Scope / estimate:** M，4–7 工程日。
 
+### Upstream version re-evaluation checkpoint（Task 5 → Task 6）
+
+**Description:** 在 adapter、tool bridge 与 context ownership 已稳定但尚未投入长期 shadow/canary 前，对固定基线 `0.83.0` 与届时 Pi 最新 stable 做一次受控对照，避免迁移周期内积累已知上游兼容债务。该 checkpoint 只形成升级决策，不自动改生产 pin。
+
+**Acceptance:**
+
+- [ ] `0.83.0` 与最新 stable 在隔离 lockfile/worktree 中运行同一 Task 1 compatibility、Task 3 abort、Task 4 registry parity 与 Task 5 context/trace suite。
+- [ ] 报告记录 API/schema 差异、Bun/Node 行为、已修复或新增 issue、安全公告、adapter diff 与回滚成本。
+- [ ] 仅当 frozen contract、Bun gate、abort/resource、schema parity 与 canonical trace 全绿时才提议升级；升级使用精确版本并作为独立 review/commit。
+- [ ] 最新 stable 未通过或升级收益不足时保留 `0.83.0`，记录复核日期与 blocker，不阻塞 Task 6。
+
+**Verification:**
+
+- [ ] 保存两版本同 fixture 的 machine-readable diff 与人工 decision record；生产 lockfile 在明确升级决策前保持不变。
+
+**Dependencies:** Task 5。
+
+**Files:** compatibility report、version decision record、隔离 eval 配置；仅在升级获批后修改 `backend/cli/package.json` 与 `bun.lock`。
+
+**Scope / estimate:** S，1–2 工程日。
+
 ### Task 6: 建立无副作用 replay/shadow 与 parity gate
 
-**Description:** 扩展 Plan 11 runner，以相同 case/model/config 成对运行 legacy/Pi。生产 shadow 不重复执行 live write/remote tools；副作用场景只在隔离 Instance/worktree 中运行。
+**Description:** 扩展 Plan 11 runner，以相同 case/model/config 成对运行 legacy/Pi。live shadow 默认复用主路径已经产生的 canonical tool result，不重复执行工具；只有显式 opt-in 的纯工具可以二次执行，其他副作用场景只在隔离 Instance/worktree 中运行。
 
 **Acceptance:**
 
 - [ ] deterministic replay 覆盖 text/tool/error/cancel/timeout/compaction；Pi 与 legacy 的 canonical trace 可自动 diff。
-- [ ] live shadow 只允许 text/read-only、幂等且明确标记 shadow-safe 的 handles；write/task/compute/network mutation 在 disposable eval 环境运行。
+- [ ] tool metadata 定义 `shadowSafe: true` 显式 opt-in，默认值为 false，并记录 effect class；未声明或 effect 不明的工具不能在 live shadow 重执行。
+- [ ] live shadow 默认 replay 主路径 canonical tool result；只有 `shadowSafe: true` 且 effect 为 pure 的 handle 可重执行。network read、付费 API、cache/log 写入、访问计数、task/compute/process 与任何 mutation 即使表面 read-only 也默认禁止。
+- [ ] 需要真实执行的 write/task/compute/network 场景仅在 disposable eval 环境运行，环境销毁由测试验证。
 - [ ] shadow 输出只保存版本、IDs、reason codes、metrics 和 diff 摘要，不默认持久化 prompt/tool body。
 - [ ] 报告包含 terminal、tool selection/order、permission、event order、provider input、tokens、latency、compaction、hook count 和 unknown mapping。
 - [ ] 任一缺失 trace、schema drift、unknown event、double invoke/hook、silent success 或 permission bypass 均计为失败，不从分母移除。
@@ -232,9 +268,12 @@ SessionPrompt facade / server API
 
 - [ ] `(cwd: backend/cli) bun test test/eval/pi-runtime-score.test.ts test/eval/orchestrator-runner.test.ts`
 - [ ] 本地 deterministic provider 跑完整 parity set；受控模型跑 direct/code/literature/graph/cancel/timeout/long-context 成对 smoke。
+- [ ] registry test 证明未标记、仅标 read-only 但写 cache/log、以及 network/paid tools 均被 live shadow default-deny；pure opt-in 工具才允许重执行。
 
-**Dependencies:** Task 5；Plans 10、11。  
-**Files:** `backend/cli/eval/pi-runtime/score.ts`、`backend/cli/eval/pi-runtime/cases.jsonl`、`backend/cli/eval/orchestrator/run.ts`、`backend/cli/test/eval/pi-runtime-score.test.ts`、eval README。  
+**Dependencies:** Task 5 与 upstream version re-evaluation checkpoint；Plans 10、11。
+
+**Files:** `backend/cli/src/tool/tool.ts`、`backend/cli/eval/pi-runtime/score.ts`、`backend/cli/eval/pi-runtime/cases.jsonl`、`backend/cli/eval/orchestrator/run.ts`、`backend/cli/test/eval/pi-runtime-score.test.ts`、`backend/cli/test/tool/registry.test.ts`、eval README。
+
 **Scope / estimate:** M，5–8 工程日。
 
 ### Task 7: 以显式 feature flag 灰度并演练回滚
@@ -248,7 +287,7 @@ SessionPrompt facade / server API
 - [ ] canary 顺序为 text-only → read-only tools → bounded native tools → TaskTool → process/MCP；每级通过后才进入下一级。
 - [ ] in-flight rollback 先 abort 并等待 terminal barrier；下一 turn 用同一 MessageV2 history 回到 legacy，无 session/schema migration。
 - [ ] 回滚不会删除 child session、artifact、TaskResult、tool part 或 telemetry；不需要前端或 SDK 识别 Pi 类型。
-- [ ] Pi 版本锁定；升级与 flag 默认值变化必须重新通过 Tasks 1、5、6。
+- [ ] Pi 版本锁定；升级与 flag 默认值变化必须重新通过 Tasks 1、3–6 及 upstream version checkpoint。
 
 **Verification:**
 
@@ -289,13 +328,16 @@ flowchart TD
   P00["00/01 contracts"] --> T1["1 Pi/Bun compatibility gate · P1 now"]
   T1 --> G{"Go?"}
   G -->|No| N["Record blocker; keep legacy"]
-  G -->|Yes| T2["2 TurnRuntime + legacy adapter"]
-  P13["13 Task 1–3 characterization/invoke seam"] --> T2
-  T2 --> T3["3 Provider/message adapter"]
+  G -->|Yes| T2D["2 Adapter development"]
+  P13C["13 Task 1 contract + characterization"] --> T2D
+  T2D --> T2W["2 Production wiring"]
+  P13W["13 Tasks 2–3 runner/invoke seams"] --> T2W
+  T2W --> T3["3 Provider/message adapter"]
   T3 --> T4["4 Tool/permission/security bridge"]
   T4 --> T5["5 Context/trace ownership"]
   P02["02 context gate"] --> T5
-  T5 --> T6["6 Replay/shadow parity"]
+  T5 --> V["Upstream version re-evaluation"]
+  V --> T6["6 Replay/shadow parity"]
   P10["10 scheduler"] --> T6
   P11["11 eval"] --> T6
   T6 --> T7["7 Canary + rollback"]
@@ -306,62 +348,71 @@ flowchart TD
 
 1. 立即执行 Task 1，成本小且能尽早验证 Bun、provider、schema 和 lifecycle 是否存在硬阻塞。
 2. 不让 Pi 迁移阻塞 Plans 02、09–11；这些计划先冻结 MedHorizon 的 context、orchestrator、scheduler 和 eval 事实源。
-3. Plan 13 Task 1 完成后，将 Task 2 与 Plan 13 Tasks 2–3 串行合并为同一 runtime/invoke seam，避免先拆一次、再为 Pi 重拆一次。
-4. Tasks 3–5 在 seam 稳定后推进；Tasks 6–8 必须等待 Plans 02、10、11 的量化门槛。
+3. Plan 13 Task 1 冻结 contract 后即可开发 Task 2 adapter；只有 production wiring 等待 Plan 13 Tasks 2–3，并由同一 owner 接入同一 runtime/invoke seam。
+4. Tasks 3–5 在 production seam 稳定后推进；Task 5 后先完成上游版本复核，Tasks 6–8 再等待 Plans 02、10、11 的量化门槛。
 5. Plan 18 与本计划可按模块并行，但共同修改 `prompt.ts`、tool invoke、AbortSignal、ProcessReceipt 或 Batch 时串行；Pi adapter 只消费 Plan 18 结果，不复制 supervisor。
 
 ## Existing plan compatibility
 
-| Plan                 | 关系            | 协调结论                                                                                                                      |
-| -------------------- | --------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| 00 CI/test           | 前置            | 所有 Pi runtime/lockfile 代码通过其 frozen install、coverage 和全量门槛后才能合并                                             |
-| 01 TaskResult        | 强兼容          | TaskResult 保持 worker terminal 事实源；Pi tool result 不能重解释或覆盖它                                                     |
-| 02 Context closeout  | 前置/兼容       | 先冻结 context、schema、cache/result-bound 与 compaction baseline；Pi 不重复实现这些优化                                      |
-| 03–04 Research Graph | 正交            | RG supervisor/gateway 不变；Pi tool 仍经现有 gateway/permission，不直连 sidecar                                               |
-| 05–08 UI             | 正交            | 不改 Toast/Dialog/AsyncState/visual primitives；Pi 类型不进入前端                                                             |
-| 09 Orchestrator      | 兼容            | worker catalog、brief、routing 和 TaskResult 是上层策略；Pi 只替换每个 Agent 的执行 loop                                      |
-| 10 Scheduler         | 潜在冲突        | Pi parallel tool execution 不得绕过 child/compute admission、cancel、timeout 和 terminal guard；首期 sequential               |
-| 11 Evaluation        | 复用/前置       | 扩展真实 runner 做 legacy/Pi paired gate，不建立第二套模型评测基础设施                                                        |
-| 12 Orchestration UI  | 正交            | 继续只消费 TaskRun/MessageV2；runtime 可作为 additive metadata，UI 不依赖 Pi event                                            |
-| 13 Turn pipeline     | 最强重叠        | Plan 13 拥有 characterization、runner port 和 unified invoke seam；本计划在同一 seam 接入 Pi，不平行拆 `prompt.ts`            |
-| 15–16、19–22         | 基本正交        | Atlas 退役、Explorer、file/artifact/evidence identity 不变；Pi 不恢复任何退役 surface                                         |
-| 18 Tool runtime      | 强兼容/潜在冲突 | Pi 只能调用 selected invoker；ProcessSupervisor、ExecutionPolicy、bounded output、redaction、Batch capability 仍由 Plan 18 管 |
+| Plan                 | 关系            | 协调结论                                                                                                                             |
+| -------------------- | --------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| 00 CI/test           | 前置            | 所有 Pi runtime/lockfile 代码通过其 frozen install、coverage 和全量门槛后才能合并                                                    |
+| 01 TaskResult        | 强兼容          | TaskResult 保持 worker terminal 事实源；Pi tool result 不能重解释或覆盖它                                                            |
+| 02 Context closeout  | 前置/兼容       | 先冻结 context、schema、cache/result-bound 与 compaction baseline；Pi 不重复实现这些优化                                             |
+| 03–04 Research Graph | 正交            | RG supervisor/gateway 不变；Pi tool 仍经现有 gateway/permission，不直连 sidecar                                                      |
+| 05–08 UI             | 正交            | 不改 Toast/Dialog/AsyncState/visual primitives；Pi 类型不进入前端                                                                    |
+| 09 Orchestrator      | 兼容            | worker catalog、brief、routing 和 TaskResult 是上层策略；Pi 只替换每个 Agent 的执行 loop                                             |
+| 10 Scheduler         | 潜在冲突        | Pi parallel tool execution 不得绕过 child/compute admission、cancel、timeout 和 terminal guard；首期 sequential                      |
+| 11 Evaluation        | 复用/前置       | 扩展真实 runner 做 legacy/Pi paired gate，不建立第二套模型评测基础设施                                                               |
+| 12 Orchestration UI  | 正交            | 继续只消费 TaskRun/MessageV2；runtime 可作为 additive metadata，UI 不依赖 Pi event                                                   |
+| 13 Turn pipeline     | 最强重叠        | Plan 13 Task 1 提前冻结 characterization/runtime contract；Tasks 2–3 拥有 production runner/invoke seam，本计划只在同一 seam 接入 Pi |
+| 15–16、19–22         | 基本正交        | Atlas 退役、Explorer、file/artifact/evidence identity 不变；Pi 不恢复任何退役 surface                                                |
+| 18 Tool runtime      | 强兼容/潜在冲突 | Pi 只能调用 selected invoker；ProcessSupervisor、ExecutionPolicy、bounded output、redaction、Batch capability 仍由 Plan 18 管        |
 
 ## Measured release gates
 
-- [ ] Bun import/typecheck/build/runtime/abort compatibility 全部通过，Pi dependency 精确锁定且无 production `pi-coding-agent`。
+- [ ] Bun import/typecheck/build/runtime compatibility 及 Bun/Node 20-turn stress 全部通过，Pi dependency 精确锁定且无 production `pi-coding-agent`。
+- [ ] Task 3 abort storm 在首 delta 前、stream 中与 tool 执行中均通过；active request/process 为 0，listener/timer/handle 和内存满足 Task 1 冻结阈值。
 - [ ] canonical trace 的 event order、exactly-once persistence/hooks、terminal 与 correlation parity 达到 100%。
 - [ ] invalid args、permission denial、tool throw、cancel、timeout 全部回灌正确结果，silent success、late success、capability bypass 均为 0。
+- [ ] registry 自动 parity 覆盖全部 Pi-exposed tools；schema 由 canonical source 生成，无法等价转换的工具 fail closed。
 - [ ] text/tool/TaskTool/MCP/process canary 都不创建第二套 provider、session、compaction、permission、scheduler 或 process runtime。
+- [ ] live shadow 默认 replay canonical result；只有显式 `shadowSafe: true` 的 pure tool 可重执行，未标记、network、paid、cache/log 与 mutation 工具全部 default-deny。
 - [ ] context/compaction/provider input 差异有解释；Plan 11 completion regression 不超过 5pp，tokens/latency/cost 不隐藏额外 loop 开销。
 - [ ] Pi path abort/cancel latency 和资源回收满足 Plans 10、18；无 listener、permit、process 或 pending-write leak。
+- [ ] Task 5 后的 upstream version checkpoint 已留存双版本报告与明确 pin 决策。
 - [ ] `legacy` 默认、Pi 显式灰度、Pi→legacy next-turn rollback 均已真实演练，无数据/API migration。
 
 ## Risks
 
 | Risk                                         | Impact                                           | Mitigation                                                                                     |
 | -------------------------------------------- | ------------------------------------------------ | ---------------------------------------------------------------------------------------------- |
-| Pi 只声明 Node engine，Bun 存在运行/打包差异 | 无法稳定发布                                     | Task 1 真实 import/test/build/abort 闸门；不通过即 no-go，不在主路径加 shim 堆栈               |
+| Plan 13 production seam 延迟                 | Task 2 接入与后续迁移串行停滞                    | Plan 13 Task 1 先冻结 contract；adapter 可先开发，只有 wiring 等待 Tasks 2–3                   |
+| Pi 只声明 Node engine，Bun 存在运行/打包差异 | 无法稳定发布                                     | Task 1 用 Bun/Node 同 fixture 跑 20-turn、stream、abort、worker_threads 与资源回收闸门         |
 | custom `streamFn` 丢 provider-specific 行为  | reasoning、usage、headers、retry 或 billing 回归 | 保留 SessionLLM/SessionProcessor 边界，逐 event characterization；unknown mapping fail visible |
-| Zod 与 TypeBox 双验证漂移                    | 合法调用被拒或非法调用进入执行                   | Zod canonical、TypeBox preflight、代表 schema parity + fail-closed reason code                 |
+| Zod 与 TypeBox 双验证漂移                    | 合法调用被拒或非法调用进入执行                   | 单一转换器生成 Pi schema；registry CI 自动覆盖全部 exposed tools；无法转换即 fail closed       |
 | Pi parallel tools 绕过 scheduler/safety      | 超配、竞态、权限或进程泄漏                       | 首期 sequential；只对 parallel-safe handle 开放并复用 Plan 10/18 admission                     |
 | 两套 context/compaction/retry 同时生效       | token 激增、历史丢失或重复请求                   | MedHorizon 单一 owner；Pi auto-compaction/SessionManager 不启用                                |
 | lifecycle event 顺序不同                     | UI race、重复持久化、假 idle                     | 使用 `Agent` awaited barrier、共享 sink、Plan 13 trace 和 terminal guard                       |
+| abort 后 stream/listener/process 未释放      | 内存增长、悬挂请求或 late terminal               | Task 1 压力基线 + Task 3 30 次 abort storm；逐项检查 request/handle/listener/process/heap      |
 | Pi 没有内建 sandbox                          | 模型调用获得宿主权限                             | 不注册 Pi built-ins；所有执行仍走 PermissionNext/ProcessSupervisor/OS isolation                |
-| 上游 AgentHarness/observability 设计变化     | adapter 追逐不稳定 API                           | 只依赖已发布 Agent Core API，pin exact version；升级重新过 Task 1/6                            |
-| shadow 重复副作用或泄露内容                  | 文件/远端状态改变，敏感数据落盘                  | live shadow 仅 shadow-safe read-only；mutation 在 disposable eval；默认只存 metrics/IDs        |
+| 上游 AgentHarness/observability 设计变化     | adapter 追逐不稳定 API                           | 只依赖已发布 Agent Core API，pin exact version；升级重跑 Tasks 1、3–6 与版本 checkpoint        |
+| 长迁移期内固定版本过时                       | 累积已修复 bug 或临近切流才发现升级成本          | Task 5→6 执行双版本复核；不自动升级，变更 pin 必须独立通过全 gate                              |
+| shadow 重复副作用或泄露内容                  | 文件/远端状态改变，敏感数据落盘                  | 默认 replay canonical result；`shadowSafe: true` + pure 才重执行，其余 default-deny            |
 
 ## Checkpoint
 
 - [ ] Task 1 输出明确 go/no-go；no-go 时计划可以安全关闭且生产代码保持 legacy。
+- [ ] Plan 13 Task 1 contract 已冻结；adapter 开发与 production wiring gate 的边界有可复跑证据。
 - [ ] TurnRuntime port 无 Pi 类型泄漏，legacy/Pi 共用 MessageV2 sink 和 selected invoker。
 - [ ] Session/MessageV2/Bus、PermissionNext、TaskResult、TaskScheduler、ProcessSupervisor、compaction、billing 和 RSI 的所有权没有迁移或复制。
 - [ ] replay/shadow、canary、rollback 和版本升级门槛均可复跑。
+- [ ] upstream version re-evaluation 已完成，当前精确 pin 有带日期的保留或升级决策。
 - [ ] Measured release gates、focused suites、Plan 00 全量门槛和 Plan 11 paired evaluation 有保存证据。
 
 ## Definition of done
 
-- [ ] Tasks 1–8 与 Checkpoint 全部完成，或 Task 1 no-go 已记录且未留下半接入生产路径。
+- [ ] Tasks 1–8、upstream version checkpoint 与 Checkpoint 全部完成，或 Task 1 no-go 已记录且未留下半接入生产路径。
 - [ ] Pi 只作为可替换 runtime adapter 存在；无 Pi 类型进入 API/SDK/frontend/session persistence。
 - [ ] 所有工具仍经同一 schema/permission/hook/safety/error-feedback path，无 built-in capability bypass。
 - [ ] context、trace、cancel、retry、compaction、terminal 与 provider semantics 达到 legacy parity 门槛。
@@ -371,3 +422,4 @@ flowchart TD
 ## Progress
 
 - 2026-08-02：完成 MedHorizon runtime 与 Pi 0.83.0 官方接口只读评估；结论为“可通过 Agent Core adapter 渐进迁移，不采用 Coding Agent 全栈替换”。尚未引入依赖或修改运行时代码。
+- 2026-08-03：复核 Plan 13 串行依赖、Bun 深度兼容、schema 漂移、shadow 隔离、上游版本过时与 abort 回收风险；六项风险均成立，已加入 contract 提前冻结、Bun/Node 压力基线、registry 自动 parity、default-deny shadow、Task 5→6 版本复核和 abort storm 门槛。

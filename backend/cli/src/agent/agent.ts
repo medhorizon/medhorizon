@@ -22,6 +22,7 @@ import { Global } from "@/global"
 import path from "path"
 import { Plugin } from "@/plugin"
 import * as Profile from "../tool/profile"
+import { CapabilityPolicy } from "../process/policy"
 
 export namespace Agent {
   export const Info = z
@@ -44,6 +45,8 @@ export namespace Agent {
         .optional(),
       prompt: z.string().optional(),
       options: z.record(z.string(), z.any()),
+      /** Explicit profile upper bounds for subprocess capability policy. */
+      subprocessCapabilities: CapabilityPolicy.grants.optional(),
       steps: z.number().int().positive().optional(),
     })
     .meta({
@@ -183,8 +186,8 @@ export namespace Agent {
             },
             edit: {
               "*": "deny",
-              [path.join(".medhorizon", "plans", "*.md")]: "allow",
-              [path.join(".openscience", "plans", "*.md")]: "allow",
+              [path.posix.join(".medhorizon", "plans", "*.md")]: "allow",
+              [path.posix.join(".openscience", "plans", "*.md")]: "allow",
               [path.relative(Instance.worktree, path.join(Global.Path.data, path.join("plans", "*.md")))]: "allow",
             },
           }),
@@ -396,7 +399,12 @@ export namespace Agent {
       item.steps = value.steps ?? item.steps
       item.toolset = value.toolset ?? item.toolset
       item.options = mergeDeep(item.options, value.options ?? {})
+      item.subprocessCapabilities = CapabilityPolicy.grants.parse(value.subprocessCapabilities ?? item.subprocessCapabilities ?? {})
       item.permission = PermissionNext.merge(item.permission, PermissionNext.fromConfig(value.permission ?? {}))
+    }
+
+    for (const name of Object.keys(result)) {
+      result[name].subprocessCapabilities = CapabilityPolicy.grants.parse(result[name].subprocessCapabilities ?? {})
     }
 
     // Ensure Truncate.DIR is allowed unless explicitly configured

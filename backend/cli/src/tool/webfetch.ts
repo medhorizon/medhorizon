@@ -1,4 +1,8 @@
 import z from "zod"
+import http from "node:http"
+import https from "node:https"
+import { isIP } from "node:net"
+import type { ClientRequest, IncomingHttpHeaders, IncomingMessage } from "node:http"
 import { Tool } from "./tool"
 import TurndownService from "turndown"
 import DESCRIPTION from "./webfetch.txt"
@@ -7,6 +11,165 @@ import { Network } from "@/settings/network"
 const MAX_RESPONSE_SIZE = 5 * 1024 * 1024 // 5MB
 const DEFAULT_TIMEOUT = 30 * 1000 // 30 seconds
 const MAX_TIMEOUT = 120 * 1000 // 2 minutes
+const MAX_REDIRECTS = 5
+
+type Response = {
+  status: number
+  headers: Headers
+  body: IncomingMessage
+  close: () => void
+}
+
+function safe(url: URL): string {
+  const copy = new URL(url)
+  for (const key of copy.searchParams.keys()) {
+    if (/token|secret|password|passwd|api[_-]?key|auth|credential/i.test(key)) copy.searchParams.set(key, "[redacted]")
+  }
+  return copy.toString()
+}
+
+function responseHeaders(input: IncomingHttpHeaders): Headers {
+  const result = new Headers()
+  for (const [key, value] of Object.entries(input)) {
+    if (typeof value === "string") result.set(key, value)
+    if (Array.isArray(value)) result.set(key, value.join(", "))
+  }
+  return result
+}
+
+async function request(url: URL, address: Network.Address, signal: AbortSignal, headers: Record<string, string>): Promise<Response> {
+  if (signal.aborted) throw new Error("webfetch request aborted")
+
+  const hostname = url.hostname.replace(/^\[|\]$/g, "")
+  const common = {
+    hostname,
+    port: url.port || undefined,
+    path: `${url.pathname}${url.search}`,
+    method: "GET",
+    headers: {
+      ...headers,
+      Host: url.host,
+    },
+    lookup: (
+      _name: string,
+      options: { all?: boolean },
+      callback: (error: Error | null, result: string | Array<{ address: string; family: number }>, family?: number) => void,
+    ) => {
+      const value = { address: address.address, family: address.family }
+      if (options.all) return callback(null, [value])
+      callback(null, value.address, value.family)
+    },
+  }
+
+  return new Promise((resolve, reject) => {
+    const state: { request?: ClientRequest; body?: IncomingMessage; settled: boolean } = { settled: false }
+    const stop = () => {
+      state.request?.destroy(new Error("webfetch request aborted"))
+      state.body?.destroy(new Error("webfetch request aborted"))
+    }
+    const cleanup = () => signal.removeEventListener("abort", stop)
+    const fail = (error: Error) => {
+      if (state.settled) return
+      state.settled = true
+      cleanup()
+      reject(error)
+    }
+    const done = (body: IncomingMessage) => {
+      if (state.settled) return
+      state.settled = true
+      state.body = body
+      resolve({
+        status: body.statusCode ?? 0,
+        headers: responseHeaders(body.headers),
+        body,
+        close: () => {
+          cleanup()
+          body.destroy()
+          state.request?.destroy()
+        },
+      })
+    }
+
+    signal.addEventListener("abort", stop, { once: true })
+    const transport = url.protocol === "https:" ? https : http
+    const req =
+      url.protocol === "https:"
+        ? transport.request(
+            {
+              ...common,
+              servername: isIP(hostname) ? undefined : hostname,
+            },
+            done,
+          )
+        : transport.request(common, done)
+    state.request = req
+    req.once("error", (error) => fail(new Error("webfetch network request failed", { cause: error })))
+    req.end()
+  })
+}
+
+async function readBody(response: IncomingMessage, signal: AbortSignal): Promise<Buffer> {
+  const length = Number(response.headers["content-length"])
+  if (Number.isFinite(length) && length > MAX_RESPONSE_SIZE) {
+    response.destroy()
+    throw new Error("webfetch response too large: exceeds 5 MiB limit")
+  }
+
+  const state = { size: 0, chunks: [] as Buffer[] }
+  const stop = () => response.destroy(new Error("webfetch request aborted"))
+  signal.addEventListener("abort", stop, { once: true })
+  try {
+    for await (const chunk of response) {
+      const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)
+      const size = state.size + buffer.byteLength
+      if (size > MAX_RESPONSE_SIZE) {
+        response.destroy()
+        throw new Error("webfetch response too large: exceeds 5 MiB limit")
+      }
+      state.chunks.push(buffer)
+      state.size = size
+    }
+    return Buffer.concat(state.chunks, state.size)
+  } finally {
+    signal.removeEventListener("abort", stop)
+  }
+}
+
+async function follow(
+  resolution: Network.Resolution,
+  headers: Record<string, string>,
+  signal: AbortSignal,
+  hops: number,
+  retried = false,
+): Promise<{ resolution: Network.Resolution; response: Response }> {
+  const address = resolution.addresses[0]
+  if (!address) throw new Error("webfetch DNS resolution returned no address")
+  const first = await request(resolution.url, address, signal, headers)
+  const challenge = first.status === 403 && first.headers.get("cf-mitigated") === "challenge"
+  if (challenge && !retried) {
+    first.close()
+    return follow(
+      resolution,
+      {
+        ...headers,
+        "User-Agent": "openscience",
+      },
+      signal,
+      hops,
+      true,
+    )
+  }
+
+  const location = first.headers.get("location")
+  if (first.status < 300 || first.status >= 400 || !location) return { resolution, response: first }
+  first.close()
+  if (hops >= MAX_REDIRECTS) throw new Error("webfetch redirect limit exceeded")
+
+  const next = URL.canParse(location, resolution.url.toString()) ? new URL(location, resolution.url) : undefined
+  if (!next) throw new Error("webfetch invalid redirect location")
+  const target = await Network.resolve(next.toString(), signal)
+  return follow(target, headers, signal, hops + 1)
+}
 
 export const WebFetchTool = Tool.define("webfetch", {
   description: DESCRIPTION,
@@ -19,27 +182,29 @@ export const WebFetchTool = Tool.define("webfetch", {
     timeout: z.number().describe("Optional timeout in seconds (max 120)").optional(),
   }),
   async execute(params, ctx) {
-    // Validate URL
-    if (!params.url.startsWith("http://") && !params.url.startsWith("https://")) {
-      throw new Error("URL must start with http:// or https://")
+    const parsed = URL.canParse(params.url) ? new URL(params.url) : undefined
+    if (!parsed) throw new Error(`webfetch invalid URL: ${params.url}`)
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+      throw new Error(`webfetch unsupported URL scheme: ${parsed.protocol}`)
     }
-    await Network.assertAllowed(params.url)
+    if (parsed.username || parsed.password) throw new Error("webfetch URL credentials are not allowed")
+    await Network.assertAllowed(parsed.toString())
 
     await ctx.ask({
       permission: "webfetch",
-      patterns: [params.url],
+      patterns: [safe(parsed)],
       always: ["*"],
       metadata: {
-        url: params.url,
+        url: safe(parsed),
         format: params.format,
         timeout: params.timeout,
       },
     })
 
-    const timeout = Math.min((params.timeout ?? DEFAULT_TIMEOUT / 1000) * 1000, MAX_TIMEOUT)
+    const timeout = Math.max(1, Math.min((params.timeout ?? DEFAULT_TIMEOUT / 1000) * 1000, MAX_TIMEOUT))
 
     const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), timeout)
+    const timeoutId = setTimeout(() => controller.abort("timeout"), timeout)
 
     // Build Accept header based on requested format with q parameters for fallbacks
     let acceptHeader = "*/*"
@@ -59,88 +224,53 @@ export const WebFetchTool = Tool.define("webfetch", {
     }
 
     const signal = AbortSignal.any([controller.signal, ctx.abort])
-    const headers = {
+    const headers: Record<string, string> = {
       "User-Agent":
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
       Accept: acceptHeader,
       "Accept-Language": "en-US,en;q=0.9",
+      "Accept-Encoding": "identity",
     }
 
-    const initial = await fetch(params.url, { signal, headers })
-
-    // Retry with honest UA if blocked by Cloudflare bot detection (TLS fingerprint mismatch)
-    const response =
-      initial.status === 403 && initial.headers.get("cf-mitigated") === "challenge"
-        ? await fetch(params.url, { signal, headers: { ...headers, "User-Agent": "openscience" } })
-        : initial
-
-    clearTimeout(timeoutId)
-
-    if (!response.ok) {
-      throw new Error(`Request failed with status code: ${response.status}`)
-    }
-
-    // Check content length
-    const contentLength = response.headers.get("content-length")
-    if (contentLength && parseInt(contentLength) > MAX_RESPONSE_SIZE) {
-      throw new Error("Response too large (exceeds 5MB limit)")
-    }
-
-    const arrayBuffer = await response.arrayBuffer()
-    if (arrayBuffer.byteLength > MAX_RESPONSE_SIZE) {
-      throw new Error("Response too large (exceeds 5MB limit)")
-    }
-
-    const content = new TextDecoder().decode(arrayBuffer)
-    const contentType = response.headers.get("content-type") || ""
-
-    const title = `${params.url} (${contentType})`
-
-    // Handle content based on requested format and actual content type
-    switch (params.format) {
-      case "markdown":
-        if (contentType.includes("text/html")) {
-          const markdown = convertHTMLToMarkdown(content)
-          return {
-            output: markdown,
-            title,
-            metadata: {},
-          }
-        }
-        return {
-          output: content,
-          title,
-          metadata: {},
+    try {
+      const resolution = await Network.resolve(parsed.toString(), signal)
+      const result = await follow(resolution, headers, signal, 0)
+      try {
+        if (result.response.status < 200 || result.response.status >= 300) {
+          throw new Error(`webfetch HTTP error: ${result.response.status}`)
         }
 
-      case "text":
-        if (contentType.includes("text/html")) {
-          const text = await extractTextFromHTML(content)
-          return {
-            output: text,
-            title,
-            metadata: {},
-          }
-        }
-        return {
-          output: content,
-          title,
-          metadata: {},
-        }
+        const content = new TextDecoder().decode(await readBody(result.response.body, signal))
+        const contentType = result.response.headers.get("content-type") || ""
+        const title = `${safe(result.resolution.url)} (${contentType})`
 
-      case "html":
-        return {
-          output: content,
-          title,
-          metadata: {},
+        switch (params.format) {
+          case "markdown":
+            return {
+              output: contentType.includes("text/html") ? convertHTMLToMarkdown(content) : content,
+              title,
+              metadata: {},
+            }
+          case "text":
+            return {
+              output: contentType.includes("text/html") ? await extractTextFromHTML(content) : content,
+              title,
+              metadata: {},
+            }
+          case "html":
+            return { output: content, title, metadata: {} }
+          default:
+            return { output: content, title, metadata: {} }
         }
-
-      default:
-        return {
-          output: content,
-          title,
-          metadata: {},
-        }
+      } finally {
+        result.response.close()
+      }
+    } catch (error) {
+      if (ctx.abort.aborted) throw new Error("webfetch aborted", { cause: error })
+      if (controller.signal.aborted) throw new Error("webfetch timeout", { cause: error })
+      throw error
+    } finally {
+      clearTimeout(timeoutId)
     }
   },
 })

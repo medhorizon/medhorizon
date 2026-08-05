@@ -98,10 +98,10 @@ Add a non-deprecated agent-level availability field, separate from `permission`.
         "webfetch",
         "websearch",
         "provenance_*",
-        "atlas_*"
-      ]
-    }
-  }
+        "atlas_*",
+      ],
+    },
+  },
 }
 ```
 
@@ -129,13 +129,13 @@ model capability
 
 Initial profiles should be explicit configuration rather than model-generated routing:
 
-| Profile | Intended tools |
-| --- | --- |
-| `chat` | no tools, or `question` only when interactive input is required |
-| `code` | `read`, `glob`, `grep`, `bash`, and the provider-appropriate edit/patch tool |
-| `research` | search/fetch, skills, scientific and provenance tools, and `stage` |
-| `graph` | `stage` plus `atlas_graph`, `atlas_stage`, and other explicitly required Atlas tools |
-| `compute` | notebook, R kernel, artifact, and the minimum file tools required for results |
+| Profile    | Intended tools                                                                       |
+| ---------- | ------------------------------------------------------------------------------------ |
+| `chat`     | no tools, or `question` only when interactive input is required                      |
+| `code`     | `read`, `glob`, `grep`, `bash`, and the provider-appropriate edit/patch tool         |
+| `research` | search/fetch, skills, scientific and provenance tools, and `stage`                   |
+| `graph`    | `stage` plus `atlas_graph`, `atlas_stage`, and other explicitly required Atlas tools |
+| `compute`  | notebook, R kernel, artifact, and the minimum file tools required for results        |
 
 Primary agents may compose profiles, but each resulting tool ID is deduplicated before schema construction. Dynamic routing can be evaluated later; the first release must remain deterministic and debuggable.
 
@@ -198,13 +198,13 @@ Extend existing `tool/truncation.ts` (line/byte spill to `tool-output/`) rather 
 
 #### Failure modes to test explicitly
 
-| Failure | Required outcome |
-| --- | --- |
+| Failure                                         | Required outcome                                           |
+| ----------------------------------------------- | ---------------------------------------------------------- |
 | Search returns 10 hits, budget fits 3 full rows | Model still sees all 10 IDs/titles + how to fetch the rest |
-| Log contains one ERROR amid noise | ERROR line retained after truncation |
-| Artifact path after spill | Subsequent `read` succeeds; stub mentions truncated=true |
-| `atlas_graph` create/get large graph | All node/edge IDs remain inline |
-| Truncator bug | Prefer pass-through full result over wrong summary |
+| Log contains one ERROR amid noise               | ERROR line retained after truncation                       |
+| Artifact path after spill                       | Subsequent `read` succeeds; stub mentions truncated=true   |
+| `atlas_graph` create/get large graph            | All node/edge IDs remain inline                            |
+| Truncator bug                                   | Prefer pass-through full result over wrong summary         |
 
 Gate behind `experimental.tool_result_bound` (default off). Research Graph e2e (stage land + graph create) is a merge blocker for enabling the flag.
 
@@ -378,18 +378,18 @@ Task 4 / Task 6 must not ship “fail open into silence” (empty tools or empty
 
 ## Risks and mitigations
 
-| Risk | Severity | Impact | Mitigation |
-| --- | --- | --- | --- |
-| Required tool omitted from a profile | Medium | Agent cannot complete a valid workflow | Deterministic profiles, integration tests, bounded profile expansion |
-| Availability bypasses permission | High | Security regression | Permission after availability; deny always removes |
-| **MCP cache stale after missed `list_changed`** | 🟠 High | Model calls obsolete schemas; tool data missing that turn | TTL hard cap; invalidate on notify/reconnect/config; stale-call forced refresh |
-| **MCP refresh failure clears tools** | 🟠 High | Entire server toolset disappears; “I can’t do that” | Last-good retention; reconnect degrade; never replace good cache with `{}` on refresh error; `cache_refresh_failed` metrics |
-| Provider token estimate differs | Low | Misleading budgets | Compare estimates with provider-reported usage |
-| Schema reduction changes semantics | Medium | Invalid or ambiguous tool calls | Preserve validation; schema/tool-call regression tests |
-| **Tool result truncation drops citations / ERROR / graph IDs** | 🔴 Critical | Hallucination, incomplete graphs, blind debugging | Conservative budgets; no LLM summaries; search ID keep-all; severity retention; hard keep-list for `stage`/`atlas_*`/provenance |
-| **Artifact path unreadable later** | 🔴 Critical | Model knows “something existed” but cannot fetch facts | Stable path + `read`/artifact contract tests across turns and compaction |
-| Larger context masks the regression | Medium | Overhead returns unnoticed | Per-profile schema budgets + CI assertions |
-| Compaction still masks a real user request | Medium | Incorrect conversation behavior | Track synthetic-continuation ordering separately |
+| Risk                                                           | Severity    | Impact                                                    | Mitigation                                                                                                                      |
+| -------------------------------------------------------------- | ----------- | --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| Required tool omitted from a profile                           | Medium      | Agent cannot complete a valid workflow                    | Deterministic profiles, integration tests, bounded profile expansion                                                            |
+| Availability bypasses permission                               | High        | Security regression                                       | Permission after availability; deny always removes                                                                              |
+| **MCP cache stale after missed `list_changed`**                | 🟠 High     | Model calls obsolete schemas; tool data missing that turn | TTL hard cap; invalidate on notify/reconnect/config; stale-call forced refresh                                                  |
+| **MCP refresh failure clears tools**                           | 🟠 High     | Entire server toolset disappears; “I can’t do that”       | Last-good retention; reconnect degrade; never replace good cache with `{}` on refresh error; `cache_refresh_failed` metrics     |
+| Provider token estimate differs                                | Low         | Misleading budgets                                        | Compare estimates with provider-reported usage                                                                                  |
+| Schema reduction changes semantics                             | Medium      | Invalid or ambiguous tool calls                           | Preserve validation; schema/tool-call regression tests                                                                          |
+| **Tool result truncation drops citations / ERROR / graph IDs** | 🔴 Critical | Hallucination, incomplete graphs, blind debugging         | Conservative budgets; no LLM summaries; search ID keep-all; severity retention; hard keep-list for `stage`/`atlas_*`/provenance |
+| **Artifact path unreadable later**                             | 🔴 Critical | Model knows “something existed” but cannot fetch facts    | Stable path + `read`/artifact contract tests across turns and compaction                                                        |
+| Larger context masks the regression                            | Medium      | Overhead returns unnoticed                                | Per-profile schema budgets + CI assertions                                                                                      |
+| Compaction still masks a real user request                     | Medium      | Incorrect conversation behavior                           | Track synthetic-continuation ordering separately                                                                                |
 
 ---
 
@@ -412,13 +412,13 @@ Task 4 / Task 6 must not ship “fail open into silence” (empty tools or empty
 
 ### Progress (2026-07-31)
 
-| Task | Status | Notes |
-| --- | --- | --- |
-| 1 — Context telemetry | **done** | `SessionTelemetry.recordContext` + `recordUsage`; tool groups by native/plugin/MCP; wired in `LLM.stream` and `processor` |
-| 2 — Availability policy | **done** | `agent.toolset`, `ToolSelection`, `"*": false` allowlist fix in `LLM.modelTools` |
-| 3 — Pre-init filtering | **done** | `ToolRegistry.tools(..., selected)` skips `init()`/schema for excluded IDs; MCP filtered post-fetch |
-| 4 — MCP cache | **done** | `mcp/manifest-cache.ts`; TTL (default 5m), last-good, single-flight, cache metrics; flag `experimental.mcp_manifest_cache` (default off) |
-| 5 — Agent profiles | **done** | `tool/profile.ts` profiles; native agents configured; `research` includes `atlas_*` + `stage` |
+| Task                     | Status   | Notes                                                                                                                                           |
+| ------------------------ | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1 — Context telemetry    | **done** | `SessionTelemetry.recordContext` + `recordUsage`; tool groups by native/plugin/MCP; wired in `LLM.stream` and `processor`                       |
+| 2 — Availability policy  | **done** | `agent.toolset`, `ToolSelection`, `"*": false` allowlist fix in `LLM.modelTools`                                                                |
+| 3 — Pre-init filtering   | **done** | `ToolRegistry.tools(..., selected)` skips `init()`/schema for excluded IDs; MCP filtered post-fetch                                             |
+| 4 — MCP cache            | **done** | `mcp/manifest-cache.ts`; TTL (default 5m), last-good, single-flight, cache metrics; flag `experimental.mcp_manifest_cache` (default off)        |
+| 5 — Agent profiles       | **done** | `tool/profile.ts` profiles; native agents configured; `research` includes `atlas_*` + `stage`                                                   |
 | 6 — Tool-result bounding | **done** | `Truncate.bound`; keep-lists, search index, log severity, artifact spill; MCP content sync; flag `experimental.tool_result_bound` (default off) |
 
 **Files touched (plan 13 scope):**
@@ -438,18 +438,18 @@ Task 4 / Task 6 must not ship “fail open into silence” (empty tools or empty
 
 **Profile table (native agents, `experimental.tool_profiles` default on):**
 
-| Agent | Profile | Key tools |
-| --- | --- | --- |
-| `research`, `biology` | `RESEARCH` / `BIOLOGY` | read/edit/bash, skill, stage, web*, science_*, provenance_*, notebook, rkernel, artifact, **atlas_*** |
-| `physics`, `ml` | `COMPUTE_WORKFLOW` | compute + science/provenance; **no atlas_*** |
-| `plan` | `PLAN` | read/glob/grep, question, planwrite, plan_enter/exit |
-| `task` | `TASK` | code + task + web* |
-| `explore` | `EXPLORE` | read/glob/grep/bash/list + web* |
-| `literature-review` | `LITERATURE` | read + web* + skill |
-| `critique`, `reviewer` | `CRITIQUE` / `REVIEWER` | read-only + skill (reviewer + bash) |
-| `physics-critique` | `PHYSICS_CRITIQUE` | read + bash |
-| `write` | `WRITE` | read/edit + provenance + artifact; no graph/compute |
-| `compaction`, `title` | `NONE` | no tools |
+| Agent                  | Profile                 | Key tools                                                                                                    |
+| ---------------------- | ----------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `research`, `biology`  | `RESEARCH` / `BIOLOGY`  | read/edit/bash, skill, stage, web*, science\_*, provenance*\*, notebook, rkernel, artifact, \*\*atlas*\*\*\* |
+| `physics`, `ml`        | `COMPUTE_WORKFLOW`      | compute + science/provenance; **no atlas\_\***                                                               |
+| `plan`                 | `PLAN`                  | read/glob/grep, question, planwrite, plan_enter/exit                                                         |
+| `task`                 | `TASK`                  | code + task + web\*                                                                                          |
+| `explore`              | `EXPLORE`               | read/glob/grep/bash/list + web\*                                                                             |
+| `literature-review`    | `LITERATURE`            | read + web\* + skill                                                                                         |
+| `critique`, `reviewer` | `CRITIQUE` / `REVIEWER` | read-only + skill (reviewer + bash)                                                                          |
+| `physics-critique`     | `PHYSICS_CRITIQUE`      | read + bash                                                                                                  |
+| `write`                | `WRITE`                 | read/edit + provenance + artifact; no graph/compute                                                          |
+| `compaction`, `title`  | `NONE`                  | no tools                                                                                                     |
 
 **Tests (`backend/cli`, focused):**
 

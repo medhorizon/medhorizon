@@ -17,6 +17,7 @@ test("can open an existing session and type into the prompt", async ({ page, sdk
   try {
     await gotoSession(sessionID)
 
+    await expect(page.locator('[data-visual-ready="session"]')).toBeVisible()
     const prompt = page.locator(promptSelector)
     await prompt.click()
     await page.keyboard.type("hello from e2e")
@@ -53,6 +54,7 @@ test("session lifecycle works through the sidebar UI", async ({ page, slug, sdk,
 
     const originalRow = rows.filter({ hasText: created.title })
     await expect(originalRow).toHaveCount(1)
+    await expect(originalRow.locator('[data-slot="relative-time"]')).toBeVisible()
     await originalRow.getByTitle("Double-click to rename").dblclick()
 
     const editor = rows.locator("input")

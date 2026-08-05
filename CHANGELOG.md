@@ -4,6 +4,32 @@ MedHorizon follows [semantic versioning](https://semver.org). GitHub Releases
 (`v0.x`) ship native binaries for Linux, macOS (Apple Silicon), and Windows via
 the `Release` workflow. Upstream OpenScience history is retained below.
 
+## MedHorizon v0.3.21 — 2026-08-05
+
+### Added
+
+- **Visual system and regression foundation (plan 08):** semantic typography, spacing,
+  radius, motion, focus tokens, stable surface selectors, keyboard/reduced-motion checks,
+  and isolated visual/a11y Playwright coverage are now wired for Home, Session, and Settings.
+- **Tool runtime optimization (plan 18):** Bash, notebook, and R kernel execution share
+  bounded process supervision, deadlines, kill-tree handling, streaming redaction, opaque
+  receipts, kernel lifecycle controls, scoped subprocess capabilities, and bounded Batch,
+  Read/Grep, and WebFetch paths.
+
+### Changed
+
+- **Plan 16/19 release integration:** the v0.3.20 Explorer and scientific-file routing work
+  is merged into this release line, including session-artifact isolation and inspect-first
+  project-file routing.
+
+### Known limitations
+
+- Visual golden baselines and required cold-Linux visual CI gates remain staged for follow-up;
+  the current release includes observation-mode visual/a11y coverage.
+- The Plan 18 benchmark could not collect representative timings because Python and R are
+  unavailable in the release environment; Windows Job Object containment still requires
+  platform validation.
+
 ## MedHorizon v0.3.20 — 2026-08-05
 
 ### Added

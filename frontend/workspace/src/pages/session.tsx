@@ -31,7 +31,7 @@ import { filesModule } from "@/features/explorer/modules/files"
 import { artifactsModule } from "@/features/explorer/modules/artifacts"
 import SkillsPage from "@/atlas/SkillsPage"
 import { centerTabs } from "@/atlas/store/centerTabs"
-import { FONT_MONO, FONT_SANS } from "@/styles/tokens"
+import { FONT_CODE, FONT_CONTENT, FONT_UI } from "@/styles/tokens"
 import { uiStore } from "@/atlas/store/ui"
 import { relpath } from "@/utils/relpath"
 import { useGlobalKeys } from "@/atlas/useGlobalKeys"
@@ -454,6 +454,7 @@ export default function Page(): JSX.Element {
   return (
     <div
       class="atlas-root"
+      data-visual-ready={sync.ready ? "session" : undefined}
       style={{
         flex: 1,
         display: "flex",
@@ -623,8 +624,8 @@ export default function Page(): JSX.Element {
                                         style={{
                                           display: "flex",
                                           "align-items": "center",
-                                          gap: "10px",
-                                          padding: "2px 16px",
+                                          gap: "var(--space-3)",
+                                          padding: "var(--space-1) var(--space-4)",
                                           "font-size": "11px",
                                           "letter-spacing": "0.06em",
                                           "text-transform": "uppercase",
@@ -642,9 +643,9 @@ export default function Page(): JSX.Element {
                                         display: "flex",
                                         "align-items": "center",
                                         "justify-content": "center",
-                                        gap: "8px",
-                                        padding: "6px 16px",
-                                        "font-family": FONT_MONO,
+                                        gap: "var(--space-2)",
+                                        padding: "var(--space-2) var(--space-4)",
+                                        "font-family": FONT_UI,
                                         "font-size": "11px",
                                         "letter-spacing": "0.06em",
                                         "text-transform": "uppercase",
@@ -700,13 +701,13 @@ export default function Page(): JSX.Element {
                           transform: "translateX(-50%)",
                           display: "inline-flex",
                           "align-items": "center",
-                          gap: "6px",
-                          padding: "6px 12px",
+                          gap: "var(--space-2)",
+                          padding: "var(--space-2) var(--space-3)",
                           "border-radius": "999px",
                           border: "1px solid var(--color-border-strong)",
                           background: "var(--color-surface-solid)",
                           "box-shadow": "var(--shadow-md)",
-                          "font-family": FONT_MONO,
+                          "font-family": FONT_UI,
                           "font-size": "11px",
                           color: "var(--color-text)",
                           cursor: "pointer",
@@ -733,12 +734,12 @@ export default function Page(): JSX.Element {
                       style={{
                         display: "flex",
                         "align-items": "center",
-                        gap: "12px",
-                        padding: "8px 12px",
+                        gap: "var(--space-3)",
+                        padding: "var(--space-2) var(--space-3)",
                         border: "1px solid var(--color-border)",
-                        "border-radius": "8px",
+                        "border-radius": "var(--radius-card)",
                         "font-size": "12px",
-                        "font-family": FONT_SANS,
+                        "font-family": FONT_CONTENT,
                         color: "var(--color-text-muted)",
                         background: "var(--color-bg)",
                       }}
@@ -754,8 +755,8 @@ export default function Page(): JSX.Element {
                           border: "1px solid var(--color-border)",
                           background: "transparent",
                           color: "inherit",
-                          padding: "4px 10px",
-                          "border-radius": "8px",
+                          padding: "var(--space-1) var(--space-3)",
+                          "border-radius": "var(--radius-control)",
                           "font-size": "12px",
                           cursor: "pointer",
                           "white-space": "nowrap",
@@ -860,12 +861,14 @@ function CenterTabStrip(props: { chatTitle: string }): JSX.Element {
   const active = centerTabs.active
   return (
     <div
+      role="tablist"
+      aria-label="session views"
       class="atlas-scroll"
       style={{
         display: "flex",
         "align-items": "stretch",
-        gap: "5px",
-        padding: "7px 10px",
+        gap: "var(--space-1)",
+        padding: "var(--space-2) var(--space-3)",
         "border-bottom": "1px solid var(--color-border)",
         background: "var(--color-bg-subtle)",
         "overflow-x": "auto",
@@ -914,18 +917,19 @@ function CenterTab(props: {
         cursor: "pointer",
         display: "inline-flex",
         "align-items": "center",
-        gap: "7px",
+        gap: "var(--space-2)",
         "max-width": "220px",
-        padding: "6px 10px",
-        "border-radius": "4px",
+        padding: "var(--space-2) var(--space-3)",
+        "border-radius": "var(--radius-control)",
         border: props.active ? "1px solid var(--color-border-strong)" : "1px solid transparent",
         background: props.active ? "var(--color-surface-solid)" : "transparent",
         "box-shadow": props.active ? "0 1px 2px rgba(0,0,0,0.10)" : "none",
-        "font-family": FONT_MONO,
+        "font-family": FONT_UI,
         "font-size": "11px",
         "font-weight": props.active ? 700 : 400,
         color: props.active ? "var(--color-text)" : "var(--color-text-muted)",
-        transition: "background 120ms ease, color 120ms ease, border-color 120ms ease",
+        transition:
+          "background var(--motion-fast) var(--motion-ease), color var(--motion-fast) var(--motion-ease), border-color var(--motion-fast) var(--motion-ease)",
         "flex-shrink": 0,
       }}
       onMouseEnter={(e) => {
@@ -959,7 +963,7 @@ function CenterTab(props: {
             "justify-content": "center",
             width: "16px",
             height: "16px",
-            "border-radius": "4px",
+            "border-radius": "var(--radius-control)",
             color: "var(--color-text-faint)",
             "flex-shrink": 0,
           }}
@@ -1003,13 +1007,13 @@ function Header(props: {
           cursor: "pointer",
           display: "inline-flex",
           "align-items": "center",
-          gap: "5px",
-          padding: "5px 10px",
-          "border-radius": "4px",
-          "font-family": FONT_MONO,
+          gap: "var(--space-1)",
+          padding: "var(--space-2) var(--space-3)",
+          "border-radius": "var(--radius-control)",
+          "font-family": FONT_UI,
           "font-size": "11px",
           color: "var(--color-text-muted)",
-          transition: "background 120ms ease",
+          transition: "background var(--motion-fast) var(--motion-ease)",
         }}
         onMouseEnter={(e) => (e.currentTarget.style.background = "var(--color-accent-subtle)")}
         onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
@@ -1023,7 +1027,7 @@ function Header(props: {
       <span
         class="session-project-name"
         style={{
-          "font-family": FONT_SANS,
+          "font-family": FONT_UI,
           "font-size": "13px",
           "font-weight": 400,
           color: "var(--color-text)",
@@ -1034,7 +1038,7 @@ function Header(props: {
       <span
         class="session-project-path"
         style={{
-          "font-family": FONT_MONO,
+          "font-family": FONT_CODE,
           "font-size": "10px",
           color: "var(--color-text-faint)",
           overflow: "hidden",
@@ -1121,12 +1125,12 @@ function EditableTitle(props: { title: string; onRename: (t: string) => void }):
           "box-sizing": "border-box",
           flex: 1,
           "min-width": 0,
-          "font-family": FONT_SANS,
+          "font-family": FONT_UI,
           background: "var(--color-surface-solid)",
           "box-shadow": "inset 0 0 0 1px var(--color-border-strong)",
-          "border-radius": "6px",
-          padding: "1px 6px",
-          margin: "0 -6px",
+          "border-radius": "var(--radius-control)",
+          padding: "var(--space-1) var(--space-2)",
+          margin: "0 calc(-1 * var(--space-2))",
           color: "var(--color-text-strong, var(--color-text))",
         }}
       />
@@ -1168,10 +1172,10 @@ function SessionsSidebar(props: {
     >
       <div
         style={{
-          padding: "12px 12px 8px",
+          padding: "var(--space-3) var(--space-3) var(--space-2)",
           display: "flex",
           "flex-direction": "column",
-          gap: "8px",
+          gap: "var(--space-2)",
         }}
       >
         <button
@@ -1183,16 +1187,16 @@ function SessionsSidebar(props: {
             display: "flex",
             "align-items": "center",
             "justify-content": "center",
-            gap: "6px",
-            padding: "7px 12px",
-            "border-radius": "8px",
+            gap: "var(--space-2)",
+            padding: "var(--space-2) var(--space-3)",
+            "border-radius": "var(--radius-control)",
             background: "var(--color-surface-solid)",
             border: "1px solid var(--color-border-strong)",
-            "font-family": FONT_MONO,
+            "font-family": FONT_UI,
             "font-size": "12px",
             "font-weight": 400,
             color: "var(--color-text)",
-            transition: "all 120ms ease",
+            transition: "all var(--motion-fast) var(--motion-ease)",
           }}
           onMouseEnter={(e) => (e.currentTarget.style.background = "var(--color-bg-elevated)")}
           onMouseLeave={(e) => (e.currentTarget.style.background = "var(--color-surface-solid)")}
@@ -1208,7 +1212,7 @@ function SessionsSidebar(props: {
           <span
             style={{
               position: "absolute",
-              left: "10px",
+              left: "var(--space-3)",
               display: "inline-flex",
               "align-items": "center",
               color: "var(--color-text-faint)",
@@ -1236,13 +1240,13 @@ function SessionsSidebar(props: {
               "box-sizing": "border-box",
               width: "100%",
               padding: "8px 28px 8px 30px",
-              "border-radius": "8px",
+              "border-radius": "var(--radius-control)",
               background: "var(--color-surface-solid)",
               border: "1px solid var(--color-border)",
-              "font-family": FONT_MONO,
+              "font-family": FONT_UI,
               "font-size": "12.5px",
               color: "var(--color-text)",
-              transition: "border-color 120ms ease",
+              transition: "border-color var(--motion-fast) var(--motion-ease)",
             }}
             onFocusIn={(e) => (e.currentTarget.style.borderColor = "var(--color-border-strong)")}
             onFocusOut={(e) => (e.currentTarget.style.borderColor = "var(--color-border)")}
@@ -1256,14 +1260,14 @@ function SessionsSidebar(props: {
               style={{
                 all: "unset",
                 position: "absolute",
-                right: "8px",
+                right: "var(--space-2)",
                 cursor: "pointer",
                 display: "inline-flex",
                 "align-items": "center",
                 "justify-content": "center",
                 width: "18px",
                 height: "18px",
-                "border-radius": "5px",
+                "border-radius": "var(--radius-control)",
                 color: "var(--color-text-faint)",
               }}
               onMouseEnter={(e) => (e.currentTarget.style.color = "var(--color-text)")}
@@ -1281,8 +1285,8 @@ function SessionsSidebar(props: {
           display: "flex",
           "align-items": "baseline",
           "justify-content": "space-between",
-          padding: "2px 14px 6px",
-          "font-family": FONT_MONO,
+          padding: "var(--space-1) var(--space-3) var(--space-2)",
+          "font-family": FONT_UI,
           "font-size": "11px",
           color: "var(--color-text-faint)",
         }}
@@ -1293,7 +1297,14 @@ function SessionsSidebar(props: {
         </span>
       </div>
 
-      <div style={{ display: "flex", "flex-direction": "column", gap: "1px", padding: "0 8px 10px" }}>
+      <div
+        style={{
+          display: "flex",
+          "flex-direction": "column",
+          gap: "var(--space-1)",
+          padding: "0 var(--space-2) var(--space-3)",
+        }}
+      >
         <For each={filtered()}>
           {(s) => (
             <SessionRow
@@ -1308,8 +1319,8 @@ function SessionsSidebar(props: {
         <Show when={props.sessions.length === 0}>
           <div
             style={{
-              padding: "12px 10px",
-              "font-family": FONT_MONO,
+              padding: "var(--space-3) var(--space-3)",
+              "font-family": FONT_UI,
               "font-size": "11px",
               color: "var(--color-text-faint)",
               "line-height": 1.55,
@@ -1321,8 +1332,8 @@ function SessionsSidebar(props: {
         <Show when={props.sessions.length > 0 && filtered().length === 0}>
           <div
             style={{
-              padding: "12px 10px",
-              "font-family": FONT_MONO,
+              padding: "var(--space-3) var(--space-3)",
+              "font-family": FONT_UI,
               "font-size": "11px",
               color: "var(--color-text-faint)",
               "line-height": 1.55,
@@ -1389,16 +1400,16 @@ function SessionRow(props: {
         cursor: editing() ? "text" : "pointer",
         display: "flex",
         "flex-direction": "column",
-        gap: "3px",
-        padding: "8px 12px",
-        "padding-right": hover() && !editing() ? "34px" : "12px",
-        "border-radius": "8px",
+        gap: "var(--space-1)",
+        padding: "var(--space-2) var(--space-3)",
+        "padding-right": hover() && !editing() ? "calc(var(--space-6) + var(--space-1) / 2)" : "var(--space-3)",
+        "border-radius": "var(--radius-control)",
         background: props.active ? "var(--color-bg-elevated)" : hover() ? "var(--color-accent-subtle)" : "transparent",
-        transition: "background 120ms ease, padding 120ms ease",
+        transition: "background var(--motion-fast) var(--motion-ease), padding var(--motion-fast) var(--motion-ease)",
         position: "relative",
       }}
     >
-      <div style={{ display: "flex", "align-items": "center", gap: "8px" }}>
+      <div style={{ display: "flex", "align-items": "center", gap: "var(--space-2)" }}>
         <StatusDot status={props.active ? "active" : "muted"} size={9} />
         <Show
           when={editing()}
@@ -1406,7 +1417,7 @@ function SessionRow(props: {
             <span
               title="Double-click to rename"
               style={{
-                "font-family": FONT_MONO,
+                "font-family": FONT_UI,
                 "font-size": "12.5px",
                 color: props.active ? "var(--color-text)" : "var(--color-text-muted)",
                 "font-weight": 400,
@@ -1449,12 +1460,12 @@ function SessionRow(props: {
               "box-sizing": "border-box",
               flex: 1,
               "min-width": 0,
-              padding: "1px 5px",
-              "margin-left": "-5px",
-              "border-radius": "5px",
+              padding: "var(--space-1) var(--space-2)",
+              "margin-left": "calc(-1 * var(--space-2))",
+              "border-radius": "var(--radius-control)",
               background: "var(--color-surface-solid)",
               "box-shadow": "inset 0 0 0 1px var(--color-border-strong)",
-              "font-family": FONT_MONO,
+              "font-family": FONT_UI,
               "font-size": "12.5px",
               color: "var(--color-text)",
             }}
@@ -1462,12 +1473,13 @@ function SessionRow(props: {
         </Show>
       </div>
       <div
+        data-slot="relative-time"
         style={{
-          "font-family": FONT_MONO,
+          "font-family": FONT_CODE,
           "font-size": "10.5px",
           color: "var(--color-text-faint)",
           "letter-spacing": "0.04em",
-          "padding-left": "17px",
+          "padding-left": "var(--space-4)",
         }}
       >
         {props.session.time?.updated ? DateTime.fromMillis(props.session.time.updated).toRelative() : "—"}
@@ -1489,7 +1501,7 @@ function SessionRow(props: {
           }}
           style={{
             position: "absolute",
-            right: "6px",
+            right: "var(--space-2)",
             top: "50%",
             transform: "translateY(-50%)",
             display: "inline-flex",
@@ -1497,12 +1509,12 @@ function SessionRow(props: {
             "justify-content": "center",
             width: "22px",
             height: "22px",
-            "border-radius": "4px",
+            "border-radius": "var(--radius-control)",
             background: "var(--color-surface-solid)",
             border: "1px solid var(--color-border)",
             color: "var(--color-text-faint)",
             cursor: "pointer",
-            transition: "all 120ms ease",
+            transition: "all var(--motion-fast) var(--motion-ease)",
           }}
           onMouseEnter={(el) => {
             el.currentTarget.style.background = "var(--color-error-muted)"

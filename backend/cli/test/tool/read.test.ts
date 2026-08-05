@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test"
 import path from "path"
+import { open } from "fs/promises"
 import { ReadTool } from "../../src/tool/read"
 import { Instance } from "../../src/project/instance"
 import { tmpdir } from "../fixture/fixture"
@@ -243,6 +244,72 @@ describe("tool.read truncation", () => {
         expect(result.output).toContain("line14")
         expect(result.output).not.toContain("line0")
         expect(result.output).not.toContain("line15")
+      },
+    })
+  })
+
+  test("streams UTF-8 and CRLF lines without loading the whole file", async () => {
+    await using tmp = await tmpdir({
+      init: async (dir) => {
+        const content = `${"前缀😀\r\n".repeat(4096)}第一行\r\n第二行\r\n最后一行`
+        await Bun.write(path.join(dir, "utf8-crlf.txt"), content)
+      },
+    })
+    await Instance.provide({
+      directory: tmp.path,
+      fn: async () => {
+        const read = await ReadTool.init()
+        const result = await read.execute({ filePath: path.join(tmp.path, "utf8-crlf.txt"), offset: 4096, limit: 3 }, ctx)
+        expect(result.output).toContain("04097| 第一行")
+        expect(result.output).toContain("04098| 第二行")
+        expect(result.output).toContain("04099| 最后一行")
+        expect(result.output).not.toContain("\r")
+      },
+    })
+  })
+
+  test("preserves the final empty line for a CRLF-terminated file", async () => {
+    await using tmp = await tmpdir({
+      init: async (dir) => {
+        await Bun.write(path.join(dir, "eof-crlf.txt"), "one\r\ntwo\r\n")
+      },
+    })
+    await Instance.provide({
+      directory: tmp.path,
+      fn: async () => {
+        const read = await ReadTool.init()
+        const result = await read.execute({ filePath: path.join(tmp.path, "eof-crlf.txt") }, ctx)
+        expect(result.output).toContain("00001| one")
+        expect(result.output).toContain("00002| two")
+        expect(result.output).toContain("00003| ")
+        expect(result.output).toContain("End of file - total 3 lines")
+        expect(result.output).not.toContain("\r")
+      },
+    })
+  })
+
+  test("stops a 100 MiB text read after the requested lines", async () => {
+    await using tmp = await tmpdir({
+      init: async (dir) => {
+        const filepath = path.join(dir, "100m.txt")
+        const file = await open(filepath, "w")
+        try {
+          await file.write("first\nsecond\n")
+          const chunk = "x".repeat(1024 * 1024)
+          for (const _ of Array.from({ length: 100 })) await file.write(chunk)
+        } finally {
+          await file.close()
+        }
+      },
+    })
+    await Instance.provide({
+      directory: tmp.path,
+      fn: async () => {
+        const read = await ReadTool.init()
+        const result = await read.execute({ filePath: path.join(tmp.path, "100m.txt"), limit: 1 }, ctx)
+        expect(result.output).toContain("00001| first")
+        expect(result.output).not.toContain("00002| second")
+        expect(result.metadata.truncated).toBe(true)
       },
     })
   })

@@ -4,6 +4,7 @@ import { serverName } from "./utils"
 test("home renders and shows core entrypoints", async ({ page }) => {
   await page.goto("/")
 
+  await expect(page.locator('[data-visual-ready="home"]')).toBeVisible()
   await expect(page.getByRole("button", { name: /new project/i }).first()).toBeVisible()
   await expect(page.getByRole("button", { name: serverName })).toBeVisible()
 })

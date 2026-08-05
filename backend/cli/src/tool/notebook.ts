@@ -9,15 +9,23 @@ import { Instance } from "@/project/instance"
 import { OpenScience } from "@/openscience"
 import { Config } from "@/config/config"
 import { Sandbox } from "@/sandbox/sandbox"
+import { CapabilityPolicy, capabilityEnv, type CapabilityID } from "@/process/policy"
+import { createReceipt } from "@/process/types"
+import {
+  KernelLifecycle,
+  redactKernelResult,
+  stripPngTextChunks,
+} from "@/science/kernel/lifecycle"
 import type {
   Kernel,
-  KernelManager,
   KernelLanguage,
   KernelStartOptions,
   ExecuteOptions,
   ExecuteResult,
   KernelOutput,
 } from "@/science/kernel/types"
+
+const ExecutionInput = z.object({ skill: z.string().optional(), capabilities: z.array(z.string()).optional() })
 
 /**
  * General, non-domain-gated persistent Python kernel.
@@ -164,7 +172,6 @@ while True:
 const READY = "__OPENSCIENCE_KERNEL_READY__"
 const START = "__OPENSCIENCE_RESULT_START__\n"
 const END = "\n__OPENSCIENCE_RESULT_END__"
-const IDLE_MS = 30 * 60 * 1000 // reap kernels idle for 30 min
 
 interface RawPayload {
   ok: boolean
@@ -193,7 +200,10 @@ function payloadToResult(p: RawPayload): ExecuteResult {
   const outputs: KernelOutput[] = []
   if (p.stdout) outputs.push({ type: "stream", name: "stdout", data: { "text/plain": p.stdout } })
   if (p.stderr) outputs.push({ type: "stream", name: "stderr", data: { "text/plain": p.stderr } })
-  for (const b64 of p.images ?? []) outputs.push({ type: "display", data: { "image/png": b64 } })
+  for (const b64 of p.images ?? []) {
+    const clean = stripPngTextChunks(b64)
+    if (clean) outputs.push({ type: "display", data: { "image/png": clean } })
+  }
   if (p.result !== null && p.result !== undefined) {
     const data: Record<string, string> = { "text/plain": p.result }
     if (p.result_html) data["text/html"] = p.result_html
@@ -220,7 +230,11 @@ class PythonKernel implements Kernel {
   proc?: ChildProcess
   scriptPath?: string
   lastUsed = Date.now()
+  sandbox?: { backend?: string; sandboxed?: boolean; warning?: string }
   private stderrTail = ""
+  private starting?: Promise<void>
+  private queue = Promise.resolve()
+  private active = 0
 
   constructor(id: string) {
     this.id = id
@@ -230,7 +244,32 @@ class PythonKernel implements Kernel {
     return !!this.proc && !this.proc.killed && this.proc.exitCode === null
   }
 
+  get busy(): boolean {
+    return this.active > 0
+  }
+
   async start(opts?: KernelStartOptions): Promise<void> {
+    if (this.ready) return
+    if (this.starting) return this.starting
+    this.starting = this.boot(opts)
+      .catch(async (error) => {
+        if (this.proc) {
+          await Shell.killTree(this.proc, {
+            exited: () => this.proc?.exitCode !== null,
+            detached: process.platform !== "win32",
+          }).catch(() => {})
+          this.proc = undefined
+        }
+        this.cleanupScript()
+        throw error
+      })
+      .finally(() => {
+        this.starting = undefined
+      })
+    return this.starting
+  }
+
+  private async boot(opts?: KernelStartOptions): Promise<void> {
     if (this.ready) return
     const scriptPath = path.join(os.tmpdir(), `openscience-pykernel-${this.id.slice(0, 8)}-${Date.now()}.py`)
     await Bun.write(scriptPath, KERNEL_SCRIPT)
@@ -247,12 +286,21 @@ class PythonKernel implements Kernel {
       extraWritable: [scriptPath],
       options: await Config.trustedSandbox(),
     })
+    this.sandbox = {
+      backend: sandboxed.backend,
+      sandboxed: sandboxed.sandboxed,
+      warning: sandboxed.warning,
+    }
+    await OpenScience.refreshByokSecrets().catch(() => {})
+    const base = await OpenScience.subprocessEnv(process.env)
+    const allowed = capabilityEnv((opts?.capabilities ?? []) as CapabilityID[])
+    const scoped = OpenScience.scopedSubprocessEnv({ ...base, ...process.env }, allowed)
+    const requested = OpenScience.scopedSubprocessEnv({ ...scoped, ...(opts?.env ?? {}) }, allowed)
     const proc = spawn(sandboxed.file, sandboxed.args, {
       cwd: opts?.cwd ?? Instance.directory,
       env: {
-        ...(await OpenScience.subprocessEnv(process.env)),
-        ...OpenScience.pythonThreadCapEnv(process.env),
-        ...(opts?.env ?? {}),
+        ...OpenScience.pythonThreadCapEnv(requested),
+        ...requested,
         PYTHONUNBUFFERED: "1",
       },
       stdio: ["pipe", "pipe", "pipe"],
@@ -268,49 +316,80 @@ class PythonKernel implements Kernel {
       if (this.stderrTail.length > 10_000) this.stderrTail = this.stderrTail.slice(-5000)
     })
 
-    await new Promise<void>((resolve, reject) => {
+    try {
+      await new Promise<void>((resolve, reject) => {
       const timer = setTimeout(() => {
         void Shell.killTree(proc, { exited: () => proc.exitCode !== null, detached: process.platform !== "win32" })
         reject(new Error(`Python kernel startup timed out. stderr: ${this.stderrTail}`))
       }, 15_000)
       let buf = ""
+      const onAbort = () => {
+        clearTimeout(timer)
+        void Shell.killTree(proc, { exited: () => proc.exitCode !== null, detached: process.platform !== "win32" }).catch(() => {})
+        reject(new Error("Python kernel startup aborted"))
+      }
       const onData = (d: Buffer) => {
         buf += d.toString()
         if (buf.includes(READY)) {
           clearTimeout(timer)
           proc.stdout?.off("data", onData)
+          opts?.signal?.removeEventListener("abort", onAbort)
           resolve()
         }
       }
       proc.stdout?.on("data", onData)
+      opts?.signal?.addEventListener("abort", onAbort, { once: true })
+      if (opts?.signal?.aborted) onAbort()
       proc.once("error", (err) => {
         clearTimeout(timer)
+        opts?.signal?.removeEventListener("abort", onAbort)
         reject(err)
       })
       proc.once("exit", (code) => {
         clearTimeout(timer)
+        opts?.signal?.removeEventListener("abort", onAbort)
         reject(new Error(`Python kernel exited during startup (code ${code}). stderr: ${this.stderrTail}`))
       })
-    })
+      })
+    } catch (error) {
+      await Shell.killTree(proc, { exited: () => proc.exitCode !== null, detached: process.platform !== "win32" }).catch(() => {})
+      this.proc = undefined
+      this.cleanupScript()
+      throw error
+    }
   }
 
   async execute(code: string, opts?: ExecuteOptions): Promise<ExecuteResult> {
-    if (!this.ready) await this.start()
+    const run = this.queue.then(() => this.cell(code, opts))
+    this.queue = run.then(
+      () => undefined,
+      () => undefined,
+    )
+    return run
+  }
+
+  private async cell(code: string, opts?: ExecuteOptions): Promise<ExecuteResult> {
+    if (opts?.signal?.aborted) throw new Error("Execution aborted")
+    if (!this.ready) await this.start({ signal: opts?.signal })
     const proc = this.proc!
     this.lastUsed = Date.now()
+    this.active++
     const timeout = Math.min(Math.max(opts?.timeout ?? 120_000, 5_000), 600_000)
 
-    const payload = await new Promise<RawPayload>((resolve, reject) => {
+    try {
+      const payload = await new Promise<RawPayload>((resolve, reject) => {
       const timer = setTimeout(() => {
         cleanup()
         void Shell.killTree(proc, { exited: () => proc.exitCode !== null, detached: process.platform !== "win32" })
-        reject(new Error(`Cell execution timed out after ${Math.round(timeout / 1000)}s`))
+          .catch(() => {})
+          .finally(() => reject(new Error(`Cell execution timed out after ${Math.round(timeout / 1000)}s`)))
       }, timeout)
 
       const onAbort = () => {
         cleanup()
         void Shell.killTree(proc, { exited: () => proc.exitCode !== null, detached: process.platform !== "win32" })
-        reject(new Error("Execution aborted"))
+          .catch(() => {})
+          .finally(() => reject(new Error("Execution aborted")))
       }
 
       let buffer = ""
@@ -349,24 +428,35 @@ class PythonKernel implements Kernel {
       }
 
       opts?.signal?.addEventListener("abort", onAbort, { once: true })
+      if (opts?.signal?.aborted) {
+        onAbort()
+        return
+      }
       proc.stdout?.on("data", onData)
       proc.once("exit", onExit)
       proc.stdin?.write(code + "\n__OPENSCIENCE_CODE_END__\n")
-    })
-
-    return payloadToResult(payload)
+      })
+      this.lastUsed = Date.now()
+      return redactKernelResult(payloadToResult(payload), opts?.secrets ?? [])
+    } finally {
+      this.active--
+      this.lastUsed = Date.now()
+    }
   }
 
   async shutdown(): Promise<void> {
     const proc = this.proc
-    if (proc)
+    if (proc) {
       await Shell.killTree(proc, { exited: () => proc.exitCode !== null, detached: process.platform !== "win32" })
+      this.proc = undefined
+    }
     this.cleanupScript()
   }
 
   /** Synchronous group kill for process-exit handlers (async shutdown can't run there). */
   killSync(): void {
     if (this.proc) Shell.killTreeSync(this.proc, { detached: process.platform !== "win32" })
+    this.proc = undefined
     this.cleanupScript()
   }
 
@@ -380,62 +470,15 @@ class PythonKernel implements Kernel {
   }
 }
 
-class PythonKernelManager implements KernelManager {
-  readonly language: KernelLanguage = "python"
-  private kernels = new Map<string, PythonKernel>()
-
-  private reapIdle() {
-    const now = Date.now()
-    for (const [id, k] of this.kernels) {
-      if (now - k.lastUsed > IDLE_MS || !k.ready) {
-        k.shutdown()
-        this.kernels.delete(id)
-      }
-    }
-  }
-
-  async get(sessionID: string, opts?: KernelStartOptions): Promise<PythonKernel> {
-    this.reapIdle()
-    const existing = this.kernels.get(sessionID)
-    if (existing && existing.ready) {
-      existing.lastUsed = Date.now()
-      return existing
-    }
-    if (existing) {
-      await existing.shutdown()
-      this.kernels.delete(sessionID)
-    }
+/** Process-wide singleton manager with real idle timers and shared admission. */
+export const pythonKernels = new KernelLifecycle<PythonKernel>({
+  language: "python",
+  factory: async (sessionID, opts) => {
     const kernel = new PythonKernel(sessionID)
     await kernel.start(opts)
-    this.kernels.set(sessionID, kernel)
     return kernel
-  }
-
-  async release(sessionID: string): Promise<void> {
-    const k = this.kernels.get(sessionID)
-    if (!k) return
-    await k.shutdown()
-    this.kernels.delete(sessionID)
-  }
-
-  async shutdownAll(): Promise<void> {
-    for (const [id, k] of this.kernels) {
-      await k.shutdown()
-      this.kernels.delete(id)
-    }
-  }
-
-  /** Sync variant for process-exit handlers. */
-  shutdownAllSync(): void {
-    for (const [id, kernel] of this.kernels) {
-      kernel.killSync()
-      this.kernels.delete(id)
-    }
-  }
-}
-
-/** Process-wide singleton manager (mirrors the biology kernel's module-level map). */
-export const pythonKernels = new PythonKernelManager()
+  },
+})
 
 let exitHooked = false
 function hookExit() {
@@ -452,18 +495,22 @@ function clip(s: string, max = 30_000): string {
   return s.length > max ? s.slice(0, max) + "\n\n... (truncated)" : s
 }
 
-export const NotebookTool = Tool.define("notebook", {
+export const NotebookTool = Tool.define("notebook", async (initCtx) => {
+  const grants = initCtx?.agent?.subprocessCapabilities ?? {}
+  return {
   description: [
     "Execute Python code in a persistent kernel. Variables, imports, and state persist across calls.",
     "Use instead of `bash python` for analysis — no need to re-import or re-load data between cells.",
     "numpy (np), pandas (pd), scipy, and matplotlib (plt) are pre-imported. Expression results auto-display like Jupyter.",
-    "matplotlib figures are captured as inline PNG images. Not gated to any agent.",
+    "matplotlib figures are captured as opaque inline PNG images. Text redaction strips PNG ancillary text chunks but cannot redact pixels; do not put credentials in plot titles or labels.",
   ].join("\n"),
   parameters: z.object({
     code: z.string().describe("Python code to execute in the persistent kernel"),
     timeout: z.number().default(120_000).describe("Execution timeout in ms (default: 120s, max: 600s)"),
+    execution: ExecutionInput.optional(),
   }),
   async execute(params, ctx) {
+    const input = params as { code: string; timeout: number; execution?: { skill?: string; capabilities?: string[] } }
     // Executes arbitrary code — same permission gate as bash.
     await ctx.ask({
       permission: "bash",
@@ -472,8 +519,26 @@ export const NotebookTool = Tool.define("notebook", {
       metadata: {},
     })
 
-    const kernel = await pythonKernels.get(ctx.sessionID)
-    const result = await kernel.execute(params.code, { timeout: params.timeout, signal: ctx.abort })
+    const capability = CapabilityPolicy.resolve({
+      sessionID: ctx.sessionID,
+      turnID: ctx.messageID,
+      agent: ctx.agent,
+      grants,
+      execution: input.execution,
+    })
+    await OpenScience.refreshByokSecrets().catch(() => {})
+    const queuedAt = Date.now()
+    const kernel = await pythonKernels.get(ctx.sessionID, {
+      capabilities: capability.capabilities,
+      skill: input.execution?.skill,
+      signal: ctx.abort,
+    })
+    const startedAt = Date.now()
+    const result = await kernel.execute(input.code, {
+      timeout: input.timeout,
+      signal: ctx.abort,
+      secrets: OpenScience.subprocessSecrets(),
+    })
 
     const images = result.outputs.filter((o) => o.type === "display" && o.data?.["image/png"])
     const dataUrls = images.map((o) => `data:image/png;base64,${o.data!["image/png"]}`)
@@ -491,9 +556,31 @@ export const NotebookTool = Tool.define("notebook", {
     if (images.length) parts.push(`[figure] captured ${images.length} inline image(s)`)
     if (!parts.length) parts.push("(no output)")
     const output = clip(parts.join("\n"))
+    const endedAt = Date.now()
+    const receipt = createReceipt({
+      runtime: "notebook",
+      mode: "persistent",
+      lane: "kernel",
+      status: result.ok ? "success" : "failure",
+      sessionID: ctx.sessionID,
+      callID: ctx.callID ?? "",
+      queuedAt,
+      startedAt,
+      endedAt,
+      waitMs: Math.max(0, startedAt - queuedAt),
+      runMs: Math.max(0, endedAt - startedAt),
+      sandbox: kernel.sandbox?.sandboxed ? "enforced" : kernel.sandbox?.warning ? "degraded" : "unavailable",
+      backend: kernel.sandbox?.backend,
+      output: {
+        inlineBytes: Buffer.byteLength(output, "utf8"),
+        totalBytes: Buffer.byteLength(output, "utf8"),
+        truncated: false,
+        spilled: false,
+      },
+    })
 
     ctx.metadata({
-      metadata: { output, ok: result.ok },
+      metadata: { output, ok: result.ok, receipt, ...(kernel.sandbox?.warning ? { warning: kernel.sandbox.warning } : {}) },
     })
 
     return {
@@ -504,8 +591,12 @@ export const NotebookTool = Tool.define("notebook", {
         output,
         executionCount: result.executionCount,
         hasImages: images.length,
+        sandbox: (kernel as PythonKernel).sandbox,
+        ...(kernel.sandbox?.warning ? { warning: kernel.sandbox.warning } : {}),
+        receipt,
         ...(images.length ? { artifact: { kind: "image", data: { images: dataUrls } } } : {}),
       },
     }
   },
+  }
 })

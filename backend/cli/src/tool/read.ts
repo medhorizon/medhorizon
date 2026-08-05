@@ -125,23 +125,11 @@ export const ReadTool = Tool.define("read", {
     const isBinary = await isBinaryFile(filepath, file)
     if (isBinary) throw new Error(`Cannot read binary file: ${filepath}`)
 
-    const limit = params.limit ?? DEFAULT_READ_LIMIT
-    const offset = params.offset || 0
-    const lines = await file.text().then((text) => text.split("\n"))
-
-    const raw: string[] = []
-    let bytes = 0
-    let truncatedByBytes = false
-    for (let i = offset; i < Math.min(lines.length, offset + limit); i++) {
-      const line = lines[i].length > MAX_LINE_LENGTH ? lines[i].substring(0, MAX_LINE_LENGTH) + "..." : lines[i]
-      const size = Buffer.byteLength(line, "utf-8") + (raw.length > 0 ? 1 : 0)
-      if (bytes + size > MAX_BYTES) {
-        truncatedByBytes = true
-        break
-      }
-      raw.push(line)
-      bytes += size
-    }
+    const limit = Math.max(0, Math.floor(params.limit ?? DEFAULT_READ_LIMIT))
+    const offset = Math.max(0, Math.floor(params.offset ?? 0))
+    const scanned = await scanText(file, offset, limit)
+    const raw = scanned.raw
+    const truncatedByBytes = scanned.truncatedByBytes
 
     const content = raw.map((line, index) => {
       return `${(index + offset + 1).toString().padStart(5, "0")}| ${line}`
@@ -151,9 +139,9 @@ export const ReadTool = Tool.define("read", {
     let output = "<file>\n"
     output += content.join("\n")
 
-    const totalLines = lines.length
+    const totalLines = scanned.totalLines
     const lastReadLine = offset + raw.length
-    const hasMoreLines = totalLines > lastReadLine
+    const hasMoreLines = scanned.hasMoreLines
     const truncated = hasMoreLines || truncatedByBytes
 
     if (truncatedByBytes) {
@@ -184,6 +172,88 @@ export const ReadTool = Tool.define("read", {
     }
   },
 })
+
+async function scanText(file: Bun.BunFile, offset: number, limit: number) {
+  const reader = file.stream().getReader()
+  const decoder = new TextDecoder()
+  const state = {
+    pending: "",
+    line: 0,
+    totalLines: 0,
+    raw: [] as string[],
+    bytes: 0,
+    truncatedByBytes: false,
+    hasMoreLines: false,
+    stop: false,
+  }
+  const maxPending = MAX_LINE_LENGTH + 1
+
+  const process = (value: string) => {
+    if (state.stop) return
+
+    const line = value.endsWith("\r") ? value.slice(0, -1) : value
+    const index = state.line
+    state.line += 1
+    state.totalLines = state.line
+
+    if (index < offset) return
+    if (index >= offset + limit) {
+      state.hasMoreLines = true
+      state.stop = true
+      return
+    }
+
+    const content = line.length > MAX_LINE_LENGTH ? line.substring(0, MAX_LINE_LENGTH) + "..." : line
+    const size = Buffer.byteLength(content, "utf-8") + (state.raw.length > 0 ? 1 : 0)
+    if (state.bytes + size > MAX_BYTES) {
+      state.truncatedByBytes = true
+      state.stop = true
+      return
+    }
+
+    state.raw.push(content)
+    state.bytes += size
+  }
+
+  const feed = (value: string) => {
+    if (state.stop) return
+
+    const combined = state.pending + value
+    let start = 0
+    while (!state.stop) {
+      if (state.line >= offset + limit && start < combined.length) {
+        state.hasMoreLines = true
+        state.stop = true
+        return
+      }
+      const end = combined.indexOf("\n", start)
+      if (end < 0) break
+      process(combined.slice(start, end))
+      start = end + 1
+    }
+
+    if (state.stop) return
+    const pending = combined.slice(start)
+    state.pending = pending.length > maxPending ? pending.slice(0, maxPending) : pending
+  }
+
+  try {
+    while (!state.stop) {
+      const chunk = await reader.read()
+      if (chunk.done) {
+        feed(decoder.decode())
+        if (!state.stop) process(state.pending)
+        break
+      }
+      feed(decoder.decode(chunk.value, { stream: true }))
+    }
+  } finally {
+    if (state.stop) await reader.cancel().catch(() => {})
+    reader.releaseLock()
+  }
+
+  return state
+}
 
 async function isBinaryFile(filepath: string, file: Bun.BunFile): Promise<boolean> {
   const ext = path.extname(filepath).toLowerCase()

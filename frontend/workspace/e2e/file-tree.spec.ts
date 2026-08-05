@@ -59,6 +59,28 @@ test("a missing path surfaces a real error with retry", async ({ page, gotoSessi
   await expect(page.getByRole("button", { name: "retry", exact: true })).toBeVisible()
 })
 
+test("a failed navigation does not retain files from the previous folder", async ({ page, gotoSession }) => {
+  const directory = mkdtempSync(path.join(tmpdir(), "openscience-file-stale-"))
+  const file = path.join(directory, "stale.txt")
+  try {
+    await Bun.write(file, "stale")
+    await gotoSession()
+    await page.getByRole("tab", { name: "Files", exact: true }).click()
+
+    const location = page.getByPlaceholder("/absolute/path")
+    await location.fill(directory)
+    await location.press("Enter")
+    await expect(page.getByRole("button", { name: /^stale\.txt\b/ })).toBeVisible()
+
+    await location.fill(path.join(directory, "missing"))
+    await location.press("Enter")
+    await expect(page.getByText("can't read this folder")).toBeVisible()
+    await expect(page.getByRole("button", { name: /^stale\.txt\b/ })).toHaveCount(0)
+  } finally {
+    rmSync(directory, { recursive: true, force: true })
+  }
+})
+
 test("retry recovers once the directory exists", async ({ page, gotoSession }) => {
   const parent = mkdtempSync(path.join(tmpdir(), "openscience-retry-"))
   const target = path.join(parent, "recover")

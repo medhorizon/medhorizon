@@ -2,8 +2,8 @@
    Synthetic Sciences — Atlas-style design system
 
    Adapted from Atlas "Obsidian Glass" tokens. Frosted-glass
-   panels over a quiet background mesh. Mono-first typography
-   for instrument-readout density. 4px controls, 8px surfaces.
+   panels over a quiet background mesh. Semantic UI/content/code
+   typography with instrument-readout density. 4px controls, 8px surfaces.
    ========================================================== */
 
 /* Computer Modern (SIL OFL, see /fonts/cmc/OFL.md). Self-hosted, regular + bold. */
@@ -36,8 +36,11 @@
   --color-border: var(--border-base);
   --color-border-strong: var(--border-strong-base);
   --color-text: var(--text-strong);
-  --color-text-muted: var(--text-weak);
-  --color-text-faint: var(--text-weaker);
+  /* The kit's weaker ramps are decorative and fall below WCAG AA for the
+     small labels used by the shell. Keep the semantic aliases theme-owned but
+     resolve readable muted/faint copy through the kit's AA-safe base ramp. */
+  --color-text-muted: var(--text-base);
+  --color-text-faint: var(--text-base);
   --color-accent: var(--text-strong);
   --color-accent-hover: var(--text-base);
   --color-accent-subtle: var(--surface-base-hover);
@@ -48,13 +51,12 @@
   --glass-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 4px 12px rgba(0, 0, 0, 0.03);
   --glass-blur: 20px;
 
-  /* Radius — one crisp system: 4px controls, 8px overlays (modals, dialogs,
-     drawers); circular only for toggles/dots/avatars. Sharp + consistent is the
-     product's identity — refined, not rounded into a generic look. */
-  --radius: 4px;
-  --radius-sm: 4px;
-  --radius-xs: 4px;
-  --radius-lg: 8px;
+  /* Semantic radius bridge: primitives remain owned by @synsci/ui. */
+  --radius-control: var(--radius-md);
+  --radius-card: var(--radius-lg);
+  --radius-modal: var(--radius-xl);
+  /* Legacy alias retained while surfaces migrate to semantic names. */
+  --radius: var(--radius-control);
 
   --color-success: var(--surface-success-strong);
   --color-success-muted: var(--surface-success-weak);
@@ -70,14 +72,15 @@
   --kind-untyped: #71717a;
   --kind-untyped-bg: rgba(113, 113, 122, 0.08);
 
-  --space-1: 4px;
-  --space-2: 8px;
-  --space-3: 12px;
-  --space-4: 16px;
-  --space-5: 24px;
-  --space-6: 32px;
-  --space-7: 48px;
-  --space-8: 64px;
+  /* Spacing bridge: one kit unit is --spacing (0.25rem in @synsci/ui). */
+  --space-1: calc(var(--spacing) * 1);
+  --space-2: calc(var(--spacing) * 2);
+  --space-3: calc(var(--spacing) * 3);
+  --space-4: calc(var(--spacing) * 4);
+  --space-5: calc(var(--spacing) * 6);
+  --space-6: calc(var(--spacing) * 8);
+  --space-7: calc(var(--spacing) * 12);
+  --space-8: calc(var(--spacing) * 16);
 
   --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
@@ -92,15 +95,26 @@
   --text-xl: 16px;
   --text-2xl: 20px;
 
-  --font-sans: "Computer Modern", "Latin Modern Roman", Georgia, "Times New Roman", serif;
-  --font-serif: "Computer Modern", "Latin Modern Roman", Georgia, "Times New Roman", serif;
-  /* Code font: single source. --font-family-mono is owned by @synsci/ui theme.css
-     and written at runtime by the Settings mono-font picker (self-hosted Nerd
-     Font families) — everything code-shaped routes through it. */
-  --font-code: var(--font-family-mono);
-  --font-ui-sans: "Computer Modern", "Latin Modern Roman", Georgia, "Times New Roman", serif;
-  /* Bridge @synsci/ui (SessionTurn chat transcript) typography to Computer Modern */
-  --font-family-sans: "Computer Modern", "Latin Modern Roman", Georgia, serif;
+  /* Typography bridge: fallback stacks keep standalone surfaces readable while
+     @synsci/ui owns the theme-selected family variables. */
+  --font-ui: var(--font-family-sans, "Computer Modern", "Latin Modern Roman", Georgia, "Times New Roman", serif);
+  --font-content: var(--font-family-serif, "Computer Modern", "Latin Modern Roman", Georgia, "Times New Roman", serif);
+  --font-code: var(--font-family-mono, "IBM Plex Mono", "IBM Plex Mono Fallback", ui-monospace, monospace);
+  /* Deprecated local names remain aliases, not independent font stacks. */
+  --font-sans: var(--font-ui);
+  --font-serif: var(--font-content);
+  --font-ui-sans: var(--font-ui);
+
+  /* Motion and focus bridges: primitives remain owned by @synsci/ui. */
+  --motion-fast: var(--duration-fast);
+  --motion-normal: var(--duration-slow);
+  --motion-ease: var(--ease-standard);
+  --motion-enter-ease: var(--ease-out-expo);
+  --focus-ring: var(--shadow-xs-border-focus);
+
+  /* Shiki consumes the theme syntax variables directly. Primitive literals
+     must remain readable when axe scans the seeded session fixture. */
+  --syntax-primitive: var(--text-base);
 
   --z-header: 20;
   --z-sticky: 50;
@@ -114,7 +128,7 @@
   --agent-bubble-pad-y: 11px;
   --agent-gap: 14px;
   --agent-trace-w: 1px;
-  --agent-ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --agent-ease: var(--motion-enter-ease);
 
   --agent-signal: var(--color-text-muted);
   --agent-signal-soft: var(--color-accent-subtle);
@@ -135,6 +149,7 @@
 :where(button, [role="button"], a, input, textarea, select, [tabindex]):focus-visible {
   outline: 2px solid var(--color-focus) !important;
   outline-offset: 2px;
+  box-shadow: var(--focus-ring) !important;
 }
 
 /* The v1.1.116 chat + PromptInput buttons carry their own subtle focus treatment
@@ -217,7 +232,12 @@ html[data-color-scheme="dark"] {
   position: relative;
   background: var(--color-bg);
   color: var(--color-text);
-  font-family: var(--font-sans);
+  font-family: var(--font-ui);
+  /* Keep shell copy AA-safe even when the runtime theme injects its own
+     weaker ramps after the static stylesheet. */
+  --color-text-muted: var(--text-base);
+  --color-text-faint: var(--text-base);
+  --syntax-primitive: var(--text-base);
   letter-spacing: -0.011em;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -426,6 +446,12 @@ html[data-color-scheme="dark"] .g-strip {
    preference by making them instant (final state, no transform/opacity ramp)
    while keeping functional loaders (spin/blink) intact. */
 @media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-fast: 1ms;
+    --motion-normal: 1ms;
+    --motion-ease: linear;
+    --motion-enter-ease: linear;
+  }
   .atlas-fade-in,
   .atlas-slide-up,
   .atlas-stagger,
@@ -968,7 +994,7 @@ html[data-color-scheme="dark"] .atlas-overlay {
   z-index: var(--z-modal);
   background: var(--color-surface-solid);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-modal);
   box-shadow: var(--shadow-md);
   animation: atlas-scale-in 240ms var(--agent-ease);
   max-width: 90vw;
@@ -1192,7 +1218,7 @@ html[data-color-scheme="dark"] .atlas-overlay {
     min-width: min(86vw, 300px) !important;
     height: 100%;
     transform: translateX(-102%);
-    transition: transform 180ms cubic-bezier(0.16, 1, 0.3, 1);
+    transition: transform var(--motion-normal) var(--motion-enter-ease);
     box-shadow: 12px 0 30px rgba(0, 0, 0, 0.18);
   }
 
@@ -1207,5 +1233,14 @@ html[data-color-scheme="dark"] .atlas-overlay {
     width: 100% !important;
     min-width: 0 !important;
     flex: 0 0 100% !important;
+  }
+}
+
+@media (max-width: 640px) and (prefers-reduced-motion: reduce) {
+  .session-sidebar {
+    transition: transform 1ms linear !important;
+  }
+  .session-sidebar-backdrop {
+    transition: none !important;
   }
 }

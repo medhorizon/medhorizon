@@ -1,9 +1,27 @@
 import z from "zod"
 import { Tool } from "./tool"
 import DESCRIPTION from "./batch.txt"
+import { Agent } from "../agent/agent"
+import { ToolSelection } from "./selection"
 
 const DISALLOWED = new Set(["batch"])
+const BATCHABLE = new Set(["read", "grep", "glob", "list"])
 const FILTERED_FROM_SUGGESTIONS = new Set(["invalid", "patch", ...DISALLOWED])
+export const BATCH_CONCURRENCY = 4
+
+/** Validate a batch call against the allowlist and the selected tool registry. */
+export const validateBatchCall = (name: string, available: ReadonlyMap<string, unknown>) => {
+  if (DISALLOWED.has(name)) {
+    throw new Error(`Tool '${name}' is not allowed in batch. Disallowed tools: ${Array.from(DISALLOWED).join(", ")}`)
+  }
+  if (!BATCHABLE.has(name)) {
+    throw new Error(`Tool '${name}' is not allowed in batch. Batch accepts read-only tools: ${[...BATCHABLE].join(", ")}`)
+  }
+  if (!available.has(name)) {
+    const names = Array.from(available.keys()).filter((item) => !FILTERED_FROM_SUGGESTIONS.has(item))
+    throw new Error(`Tool '${name}' not in registry. External tools (MCP, environment) cannot be batched - call them directly. Available tools: ${names.join(", ")}`)
+  }
+}
 
 export const BatchTool = Tool.define("batch", async () => {
   return {
@@ -37,7 +55,15 @@ export const BatchTool = Tool.define("batch", async () => {
       const discardedCalls = params.tool_calls.slice(25)
 
       const { ToolRegistry } = await import("./registry")
-      const availableTools = await ToolRegistry.tools({ modelID: "", providerID: "" })
+      const agent = await Agent.get(ctx.agent)
+      const model = agent?.model ?? { modelID: "", providerID: "" }
+      const ids = await ToolRegistry.ids(model, agent)
+      const selected = ToolSelection.selected({
+        ids,
+        toolset: agent?.toolset,
+        permission: agent?.permission ?? [],
+      })
+      const availableTools = await ToolRegistry.tools(model, agent, selected)
       const toolMap = new Map(availableTools.map((t) => [t.id, t]))
 
       const executeCall = async (call: (typeof toolCalls)[0]) => {
@@ -45,19 +71,9 @@ export const BatchTool = Tool.define("batch", async () => {
         const partID = Identifier.ascending("part")
 
         try {
-          if (DISALLOWED.has(call.tool)) {
-            throw new Error(
-              `Tool '${call.tool}' is not allowed in batch. Disallowed tools: ${Array.from(DISALLOWED).join(", ")}`,
-            )
-          }
-
+          validateBatchCall(call.tool, toolMap)
           const tool = toolMap.get(call.tool)
-          if (!tool) {
-            const availableToolsList = Array.from(toolMap.keys()).filter((name) => !FILTERED_FROM_SUGGESTIONS.has(name))
-            throw new Error(
-              `Tool '${call.tool}' not in registry. External tools (MCP, environment) cannot be batched - call them directly. Available tools: ${availableToolsList.join(", ")}`,
-            )
-          }
+          if (!tool) throw new Error(`Tool '${call.tool}' is unavailable`)
           const validatedParams = tool.parameters.parse(call.parameters)
 
           await Session.updatePart({
@@ -123,7 +139,16 @@ export const BatchTool = Tool.define("batch", async () => {
         }
       }
 
-      const results = await Promise.all(toolCalls.map((call) => executeCall(call)))
+      const results: Awaited<ReturnType<typeof executeCall>>[] = []
+      const cursor = { value: 0 }
+      const worker = async () => {
+        while (cursor.value < toolCalls.length) {
+          const index = cursor.value
+          cursor.value += 1
+          results[index] = await executeCall(toolCalls[index])
+        }
+      }
+      await Promise.all(Array.from({ length: Math.min(BATCH_CONCURRENCY, toolCalls.length) }, worker))
 
       // Add discarded calls as errors
       const now = Date.now()

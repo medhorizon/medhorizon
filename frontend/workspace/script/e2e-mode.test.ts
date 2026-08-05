@@ -7,9 +7,12 @@ describe("E2E command selection", () => {
       scripts: Record<string, string>
     }
 
-    expect(pkg.scripts.test).toBe("bun script/e2e-local.ts")
-    expect(pkg.scripts["test:e2e"]).toBe("bun script/e2e-local.ts")
-    expect(pkg.scripts["test:e2e:local"]).toBe("bun script/e2e-local.ts")
+    expect(pkg.scripts.test).toBe("bun script/e2e-local.ts --project=chromium")
+    expect(pkg.scripts["test:e2e"]).toBe("bun script/e2e-local.ts --project=chromium")
+    expect(pkg.scripts["test:e2e:behavior"]).toBe("bun script/e2e-local.ts --project=chromium")
+    expect(pkg.scripts["test:e2e:local"]).toBe("bun script/e2e-local.ts --project=chromium")
+    expect(pkg.scripts["test:e2e:visual"]).toBe("bun script/e2e-local.ts --project=visual-a11y")
+    expect(pkg.scripts["visual:update"]).toBe("bun script/visual-update.ts")
     expect(pkg.scripts["test:e2e:external"]).toBe("bun script/e2e-external.ts")
     expect(pkg.scripts["test:e2e:packaged"]).toBe("bun script/e2e-external.ts --packaged")
   })

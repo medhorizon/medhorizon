@@ -3,14 +3,18 @@ import { resolvePlaywrightTarget } from "./script/e2e-mode"
 
 const target = resolvePlaywrightTarget(process.env)
 const baseURL = target.baseURL
-const serverHost = process.env.PLAYWRIGHT_SERVER_HOST ?? "localhost"
-const serverPort = process.env.PLAYWRIGHT_SERVER_PORT ?? "4096"
+const serverHost = process.env.VITE_OPENSCIENCE_SERVER_HOST ?? process.env.PLAYWRIGHT_SERVER_HOST ?? "localhost"
+const serverPort = process.env.VITE_OPENSCIENCE_SERVER_PORT ?? process.env.PLAYWRIGHT_SERVER_PORT ?? "4096"
+const proxyTarget =
+  process.env.VITE_OPENSCIENCE_PROXY_TARGET ??
+  `http://${process.env.PLAYWRIGHT_SERVER_HOST ?? "127.0.0.1"}:${process.env.PLAYWRIGHT_SERVER_PORT ?? "4096"}`
 // Basic-Auth creds for the in-process openscience server. e2e-local.ts pins both
 // OPENSCIENCE_SERVER_* (server side) and VITE_OPENSCIENCE_SERVER_* (frontend side) to
 // the same value so the Playwright-hosted frontend can authenticate.
 const serverUsername = process.env.VITE_OPENSCIENCE_SERVER_USERNAME ?? "openscience"
 const serverPassword = process.env.VITE_OPENSCIENCE_SERVER_PASSWORD ?? ""
-const command = `bun run dev -- --host 0.0.0.0 --port ${target.port}`
+const bun = process.env.BUN_EXEC_PATH ?? "bun"
+const command = `${JSON.stringify(bun)} run dev -- --host 0.0.0.0 --port ${target.port}`
 
 export default defineConfig({
   testDir: "./e2e",
@@ -28,6 +32,7 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   reporter: [["html", { outputFolder: "e2e/playwright-report", open: "never" }], ["line"]],
+  snapshotPathTemplate: "{testDir}/{testFilePath}-snapshots/{arg}{ext}",
   ...(target.startWebServer
     ? {
         webServer: {
@@ -42,6 +47,7 @@ export default defineConfig({
             VITE_OPENSCIENCE_SERVER_PORT: serverPort,
             VITE_OPENSCIENCE_SERVER_USERNAME: serverUsername,
             VITE_OPENSCIENCE_SERVER_PASSWORD: serverPassword,
+            VITE_OPENSCIENCE_PROXY_TARGET: proxyTarget,
           },
         },
       }
@@ -63,10 +69,23 @@ export default defineConfig({
   projects: [
     {
       name: "chromium",
+      testIgnore: [/visual-shells\.spec\.ts/, /accessibility\.spec\.ts/],
       use: {
         ...devices["Desktop Chrome"],
         // Prefer an installed Chrome when Playwright's bundled Chromium is
         // unavailable (common on fresh Windows hosts before `playwright install`).
+        ...(process.env.PLAYWRIGHT_CHANNEL
+          ? { channel: process.env.PLAYWRIGHT_CHANNEL as "chrome" | "msedge" | "chrome-beta" }
+          : {}),
+      },
+    },
+    {
+      name: "visual-a11y",
+      testMatch: [/visual-shells\.spec\.ts/, /accessibility\.spec\.ts/],
+      fullyParallel: false,
+      retries: 0,
+      use: {
+        ...devices["Desktop Chrome"],
         ...(process.env.PLAYWRIGHT_CHANNEL
           ? { channel: process.env.PLAYWRIGHT_CHANNEL as "chrome" | "msedge" | "chrome-beta" }
           : {}),

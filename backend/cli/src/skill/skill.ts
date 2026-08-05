@@ -18,6 +18,8 @@ import { BusEvent } from "@/bus/bus-event"
 import { Session } from "@/session"
 import { OpenScience } from "@/openscience"
 import { Installation } from "@/installation"
+import { createHash } from "crypto"
+import { CapabilityPolicy, type SourceID } from "../process/policy"
 
 // System skills the product invokes directly but which are not part of the
 // server skill catalog. Their SKILL.md is embedded so they resolve in every
@@ -34,6 +36,14 @@ export namespace Skill {
     location: z.string(),
     category: z.string().optional(),
     tags: z.array(z.string()).optional(),
+    /** Skill-declared capabilities.  This is a declaration only; the agent
+     * profile and one-shot request still have to grant the same IDs. */
+    "subprocess-capabilities": CapabilityPolicy.list.optional(),
+    /** Runtime-normalized alias populated by Skill discovery. */
+    subprocessCapabilities: CapabilityPolicy.list.optional(),
+    /** Generated identity fields; frontmatter cannot choose these values. */
+    sourceID: CapabilityPolicy.sources.optional(),
+    digest: z.string().min(1).max(128).optional(),
     /** Whether the skill is user-facing (shows in / autocomplete) or an
      *  internal helper used transitively by other skills. Defaults to true.
      *  Driven by `medhorizon-skills.json` `entries[]` for URL-installed skills;
@@ -70,6 +80,36 @@ export namespace Skill {
   const USER_SKILL_DIR = path.join(Global.Path.data, "user-skills")
   const UserSkillName = z.string().regex(/^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$/)
 
+  /** Derive an origin-qualified identity from the loader that found a skill. */
+  export function sourceID(location: string, name: string): SourceID {
+    const normalized = location.replaceAll("\\", "/")
+    const installed = normalized.match(/\/installed-skills\/([^/]+)\/skills\/([^/]+)\/SKILL\.md$/)
+    if (installed) return CapabilityPolicy.sources.parse(`installed:${installed[1]}/${installed[2]}`)
+    if (normalized.includes("/learned-skills/")) return CapabilityPolicy.sources.parse(`learned:${name}`)
+    if (normalized.includes("/user-skills/")) return CapabilityPolicy.sources.parse(`user:${name}`)
+    if (normalized.includes("/.claude/skills/")) return CapabilityPolicy.sources.parse(`claude:${name}`)
+    if (normalized.includes("/system-skills/")) return CapabilityPolicy.sources.parse(`system:${name}`)
+    if (normalized.includes("/cache/skills/") || normalized.includes("/skills/")) {
+      return CapabilityPolicy.sources.parse(`bundled:${name}`)
+    }
+    if (normalized.includes("/.medhorizon/") || normalized.includes("/.openscience/") || normalized.includes("/.synsc/")) {
+      return CapabilityPolicy.sources.parse(`project:${name}`)
+    }
+    return CapabilityPolicy.sources.parse(`local:${name}`)
+  }
+
+  export function digest(content: string): string {
+    return createHash("sha256").update(content).digest("hex")
+  }
+
+  async function fileDigest(location: string): Promise<string | undefined> {
+    try {
+      return digest(await Bun.file(location).text())
+    } catch {
+      return undefined
+    }
+  }
+
   async function compute() {
     const skills: Record<string, Info> = {}
 
@@ -85,9 +125,21 @@ export namespace Skill {
 
       if (!md) return
 
-      const parsed = Info.pick({ name: true, description: true, category: true, tags: true, entry: true }).safeParse(
-        md.data,
-      )
+      // Only the hyphenated frontmatter key is part of the declaration
+      // contract.  Legacy snake/camel aliases are rejected instead of being
+      // silently moved into an unverified options bag.
+      if ("subprocess_capabilities" in md.data || ("subprocessCapabilities" in md.data && !("subprocess-capabilities" in md.data))) {
+        log.warn("rejected non-canonical subprocess capability frontmatter", { skill: match })
+        return
+      }
+      const parsed = Info.pick({
+        name: true,
+        description: true,
+        category: true,
+        tags: true,
+        entry: true,
+        "subprocess-capabilities": true,
+      }).safeParse(md.data)
       if (!parsed.success) return
 
       // Block skills with injection-like descriptions
@@ -116,6 +168,10 @@ export namespace Skill {
         category: parsed.data.category,
         tags: parsed.data.tags,
         entry: parsed.data.entry,
+        "subprocess-capabilities": parsed.data["subprocess-capabilities"],
+        subprocessCapabilities: parsed.data["subprocess-capabilities"],
+        sourceID: sourceID(match, parsed.data.name),
+        digest: await fileDigest(match),
       }
     }
 
@@ -191,6 +247,7 @@ export namespace Skill {
               location: cachePath, // may not exist yet — fetched lazily when invoked
               category: skill.category,
               tags: skill.tags,
+              sourceID: sourceID(cachePath, skill.name),
             }
           }
         }
@@ -491,9 +548,20 @@ export namespace Skill {
     await Bun.write(tmp, input.content, { mode: 0o600 })
     try {
       const md = await ConfigMarkdown.parse(tmp)
-      const parsed = Info.pick({ name: true, description: true, category: true, tags: true, entry: true }).safeParse(
-        md.data,
-      )
+      if ("subprocess_capabilities" in md.data || ("subprocessCapabilities" in md.data && !("subprocess-capabilities" in md.data))) {
+        throw new InvalidError({
+          path: file,
+          message: "Skill frontmatter must use the canonical subprocess-capabilities key.",
+        })
+      }
+      const parsed = Info.pick({
+        name: true,
+        description: true,
+        category: true,
+        tags: true,
+        entry: true,
+        "subprocess-capabilities": true,
+      }).safeParse(md.data)
       if (!parsed.success) {
         throw new InvalidError({
           path: file,
@@ -532,6 +600,9 @@ export namespace Skill {
       return {
         ...parsed.data,
         location: file,
+        subprocessCapabilities: parsed.data["subprocess-capabilities"],
+        sourceID: sourceID(file, parsed.data.name),
+        digest: digest(input.content),
       } satisfies Info
     } finally {
       await fs.rm(tmp, { force: true }).catch(() => {})

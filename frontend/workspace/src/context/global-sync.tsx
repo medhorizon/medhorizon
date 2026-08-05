@@ -589,7 +589,7 @@ function createGlobalSync() {
       const blockingRequests = {
         project: () => sdk.project.current().then((x) => setStore("project", x.data!.id)),
         provider: () => loadProvider(directory).then((value) => setStore("provider", reconcile(value))),
-        agent: () => sdk.app.agents().then((x) => setStore("agent", x.data ?? [])),
+        agent: () => sdk.app.agents().then((x) => setStore("agent", Array.isArray(x.data) ? x.data : [])),
         config: () => sdk.config.get().then((x) => setStore("config", x.data!)),
       }
 
@@ -608,7 +608,7 @@ function createGlobalSync() {
 
       Promise.all([
         sdk.path.get().then((x) => setStore("path", x.data!)),
-        sdk.command.list().then((x) => setStore("command", x.data ?? [])),
+        sdk.command.list().then((x) => setStore("command", Array.isArray(x.data) ? x.data : [])),
         loadSkills(directory),
         sdk.session.status().then((x) => setStore("session_status", x.data!)),
         loadSessions(directory),
